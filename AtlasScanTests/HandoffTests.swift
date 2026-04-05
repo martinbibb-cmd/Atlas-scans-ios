@@ -215,7 +215,8 @@ final class HandoffTests: XCTestCase {
             try JSONSerialization.jsonObject(with: manifestData) as? [String: Any]
         )
         XCTAssertEqual(manifest["format"] as? String, "AtlasScanPackageV1")
-        XCTAssertEqual(manifest["room_count"] as? Int, job.rooms.count)
+        let importSummary = try XCTUnwrap(manifest["import_summary"] as? [String: Any])
+        XCTAssertEqual(importSummary["room_count"] as? Int, job.rooms.count)
     }
 
     func test_buildPackage_bundleJSONMatchesInput() throws {
@@ -242,6 +243,134 @@ final class HandoffTests: XCTestCase {
         pkg.cleanup()
         XCTAssertFalse(FileManager.default.fileExists(atPath: dirPath),
                        "cleanup() should remove the temp directory")
+    }
+
+    // MARK: - Import summary in manifest
+
+    func test_buildPackage_manifest_decodesAsScanImportManifest() throws {
+        let job = makeValidJob()
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = decodeImportManifest(manifestData)
+        XCTAssertNotNil(decoded, "manifest.json must decode as ScanImportManifest")
+        XCTAssertEqual(decoded?.format, "AtlasScanPackageV1")
+        XCTAssertEqual(decoded?.propertyAddress, job.propertyAddress)
+    }
+
+    func test_buildPackage_manifest_importSummaryRoomCount() throws {
+        let job = makeValidJob()
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.importSummary.roomCount, job.rooms.count)
+    }
+
+    func test_buildPackage_manifest_reviewStateIsAccurate() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        var room1 = makeReviewedRoom(jobID: job.id)
+        room1.isReviewed = true
+        var room2 = ScannedRoom(jobID: job.id, name: "Bedroom")
+        room2.isReviewed = false
+        job.rooms = [room1, room2]
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.importSummary.roomCount, 2)
+        XCTAssertEqual(decoded.importSummary.reviewedRoomCount, 1)
+    }
+
+    func test_buildPackage_manifest_scannedRoomCountIsAccurate() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        var scanned = makeReviewedRoom(jobID: job.id)
+        scanned.geometryCaptured = true
+        var manual = ScannedRoom(jobID: job.id, name: "Manual Room")
+        manual.isReviewed = true
+        manual.geometryCaptured = false
+        job.rooms = [scanned, manual]
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.importSummary.scannedRoomCount, 1,
+                       "Only rooms with geometryCaptured = true count as scanned")
+    }
+
+    func test_buildPackage_manifest_validationWarningsIncluded() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        let unreviewedRoom = ScannedRoom(jobID: job.id, name: "Kitchen", isReviewed: false)
+        job.rooms = [unreviewedRoom]
+        let issues = builder.validate(job: job)
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json, validationIssues: issues)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertFalse(decoded.importSummary.validationWarnings.isEmpty,
+                       "Warnings from validate() must be surfaced in the manifest import summary")
+        XCTAssertTrue(decoded.importSummary.validationWarnings.contains(where: { $0.contains("reviewed") }))
+    }
+
+    func test_buildPackage_manifest_noWarnings_whenJobIsClean() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        var room = makeReviewedRoom(jobID: job.id)
+        room.addPhoto(TaggedPhoto(filename: "site.jpg", roomID: room.id))
+        job.rooms = [room]
+        let issues = builder.validate(job: job)
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json, validationIssues: issues)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertTrue(decoded.importSummary.validationWarnings.isEmpty,
+                      "A clean job must produce no validation warnings in the manifest")
+        XCTAssertFalse(decoded.importSummary.hasBlockingIssues)
+    }
+
+    func test_buildPackage_manifest_hasBlockingIssues_whenAddressEmpty() throws {
+        let job = ScanJob(propertyAddress: "")
+        let issues = builder.validate(job: job)
+
+        // Building a bundle from a job with no rooms still produces valid JSON
+        // (the caller is responsible for checking validate() before sharing).
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json, validationIssues: issues)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertTrue(decoded.importSummary.hasBlockingIssues,
+                      "Blocking issues from validate() must be reflected in the manifest")
     }
 
     // MARK: - Failure on blocking export conditions

@@ -1,4 +1,5 @@
 import Foundation
+import AtlasContracts
 
 // MARK: - ExportPackage
 //
@@ -45,15 +46,19 @@ final class ExportPackageBuilder {
     /// Builds a temporary export package for the given job.
     ///
     /// - Parameters:
-    ///   - job:             The scan job whose data is being exported.
-    ///   - bundleJSON:      Pre-encoded, contract-valid ScanBundleV1 JSON string.
-    ///   - includeEvidence: When true, copies linked photo files into the package.
+    ///   - job:              The scan job whose data is being exported.
+    ///   - bundleJSON:       Pre-encoded, contract-valid ScanBundleV1 JSON string.
+    ///   - includeEvidence:  When true, copies linked photo files into the package.
+    ///   - validationIssues: Issues from `ExportBuilder.validate(job:)`.  Warnings
+    ///                       are surfaced in the manifest import summary so Atlas can
+    ///                       show them before hydrating the floor-plan draft.
     /// - Returns: An `ExportPackage` wrapping the temporary directory on disk.
     /// - Throws:  If temp directory creation or any file write fails.
     func buildPackage(
         from job: ScanJob,
         bundleJSON: String,
-        includeEvidence: Bool = false
+        includeEvidence: Bool = false,
+        validationIssues: [ValidationIssue] = []
     ) throws -> ExportPackage {
         let packageDir = try makePackageDirectory(for: job)
 
@@ -74,11 +79,11 @@ final class ExportPackageBuilder {
 
         // 3. Write the manifest.
         let manifestFile = packageDir.appendingPathComponent("manifest.json")
-        let manifest = buildManifest(for: job, evidenceFiles: copiedEvidence)
-        let manifestData = try JSONSerialization.data(
-            withJSONObject: manifest,
-            options: [.prettyPrinted, .sortedKeys]
-        )
+        let manifest = buildManifest(for: job, evidenceFiles: copiedEvidence, validationIssues: validationIssues)
+        let manifestEncoder = JSONEncoder()
+        manifestEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        manifestEncoder.keyEncodingStrategy = .convertToSnakeCase
+        let manifestData = try manifestEncoder.encode(manifest)
         try manifestData.write(to: manifestFile)
 
         return ExportPackage(
@@ -129,23 +134,42 @@ final class ExportPackageBuilder {
 
     private static let iso8601: ISO8601DateFormatter = ISO8601DateFormatter()
 
-    /// Builds a manifest dictionary describing the package contents.
-    private func buildManifest(for job: ScanJob, evidenceFiles: [URL]) -> [String: Any] {
+    /// Builds a typed ``ScanImportManifest`` describing the package contents.
+    ///
+    /// The manifest is the first file the receiving Atlas side reads; it carries
+    /// the import summary (room counts, review state, validation warnings) so
+    /// Atlas can show a pre-import review screen before hydrating the floor-plan draft.
+    private func buildManifest(
+        for job: ScanJob,
+        evidenceFiles: [URL],
+        validationIssues: [ValidationIssue]
+    ) -> ScanImportManifest {
         let allPhotos = job.photos + job.rooms.flatMap(\.photos)
         var contents: [String] = ["scan_bundle.json", "manifest.json"]
         contents += evidenceFiles.map { "evidence/\($0.lastPathComponent)" }
 
-        return [
-            "format":               "AtlasScanPackageV1",
-            "job_reference":        job.jobReference,
-            "property_address":     job.propertyAddress,
-            "room_count":           job.rooms.count,
-            "total_objects":        job.totalTaggedObjects,
-            "total_photos":         allPhotos.count,
-            "evidence_included":    !evidenceFiles.isEmpty,
-            "evidence_file_count":  evidenceFiles.count,
-            "generated_at":         Self.iso8601.string(from: Date()),
-            "contents":             contents,
-        ]
+        let warnings = validationIssues.compactMap { $0.severity == .warning ? $0.message : nil }
+        let hasBlockers = validationIssues.contains { $0.severity == .blocking }
+
+        let summary = ScanImportManifest.ImportSummary(
+            roomCount: job.rooms.count,
+            reviewedRoomCount: job.rooms.filter(\.isReviewed).count,
+            scannedRoomCount: job.rooms.filter(\.geometryCaptured).count,
+            totalObjects: job.totalTaggedObjects,
+            totalPhotos: allPhotos.count,
+            hasBlockingIssues: hasBlockers,
+            validationWarnings: warnings
+        )
+
+        return ScanImportManifest(
+            format: "AtlasScanPackageV1",
+            jobReference: job.jobReference,
+            propertyAddress: job.propertyAddress,
+            generatedAt: Self.iso8601.string(from: Date()),
+            importSummary: summary,
+            evidenceIncluded: !evidenceFiles.isEmpty,
+            evidenceFileCount: evidenceFiles.count,
+            contents: contents
+        )
     }
 }
