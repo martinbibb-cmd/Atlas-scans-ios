@@ -182,10 +182,13 @@ final class ExportBuilderTests: XCTestCase {
 
     func test_unsupportedVersion_failsContractValidation() throws {
         let job = makeValidJob()
-        var bundle = builder.buildBundle(from: job)
+        let bundle = builder.buildBundle(from: job)
         // Manually craft a bundle with an unsupported version field.
         let data = try builder.encode(bundle: bundle)
-        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        guard var json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            XCTFail("Expected encoded bundle to produce a JSON object")
+            return
+        }
         json["version"] = "99.0"
         let badData = try JSONSerialization.data(withJSONObject: json)
 
