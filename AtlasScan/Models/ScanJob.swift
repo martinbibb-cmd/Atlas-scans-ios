@@ -126,6 +126,14 @@ struct ScanJob: Identifiable, Codable {
         !rooms.isEmpty && rooms.allSatisfy(\.isReviewed)
     }
 
+    /// A filesystem-safe version of `jobReference`, suitable for use in file names.
+    /// Replaces characters that are invalid or inconvenient in file paths.
+    var safeFileNameReference: String {
+        jobReference
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "_")
+    }
+
     mutating func touch() {
         updatedAt = Date()
     }

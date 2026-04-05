@@ -293,8 +293,7 @@ struct ExportPreviewView: View {
     private func saveToDocuments() {
         guard isReadyToExport, !bundleJSON.isEmpty else { return }
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let safeRef = job.jobReference.replacingOccurrences(of: "/", with: "-")
-        let file = docs.appendingPathComponent("\(safeRef).scanbundle.json")
+        let file = docs.appendingPathComponent("\(job.safeFileNameReference).scanbundle.json")
         do {
             try bundleJSON.write(to: file, atomically: true, encoding: .utf8)
 

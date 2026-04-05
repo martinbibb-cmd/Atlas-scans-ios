@@ -104,11 +104,8 @@ final class ExportPackageBuilder {
     private func makePackageDirectory(for job: ScanJob) throws -> URL {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("AtlasScanExports")
-        let safeRef = job.jobReference
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: " ", with: "_")
         let timestamp = Int(Date().timeIntervalSince1970)
-        let dir = root.appendingPathComponent("\(safeRef)_\(timestamp)")
+        let dir = root.appendingPathComponent("\(job.safeFileNameReference)_\(timestamp)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
