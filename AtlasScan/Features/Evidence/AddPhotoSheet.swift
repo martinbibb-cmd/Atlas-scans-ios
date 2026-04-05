@@ -31,6 +31,7 @@ struct AddPhotoSheet: View {
     @State private var selectedSource: ImagePickerView.Source = .camera
     @State private var showingImagePicker = false
     @State private var isSaving = false
+    @State private var saveFailed = false
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,11 @@ struct AddPhotoSheet: View {
                     showingImagePicker = true
                 }
                 Button("Cancel", role: .cancel) {}
+            }
+            .alert("Could Not Save Photo", isPresented: $saveFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The photo could not be saved. Please check that you have enough storage space and try again.")
             }
         }
     }
@@ -133,15 +139,17 @@ struct AddPhotoSheet: View {
         isSaving = true
 
         let photoID = UUID()
-        var filename = "\(photoID.uuidString).jpg"
-        var thumbnailPath: String? = nil
+        let filename: String
+        let thumbnailPath: String?
 
         do {
             let saved = try PhotoStore.shared.save(image, id: photoID)
             filename = saved.filename
             thumbnailPath = saved.thumbnailPath
         } catch {
-            print("[AddPhotoSheet] Failed to save image: \(error)")
+            isSaving = false
+            saveFailed = true
+            return
         }
 
         let photo = TaggedPhoto(

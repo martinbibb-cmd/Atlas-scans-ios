@@ -18,7 +18,9 @@ final class PhotoStore {
 
     enum PhotoStoreError: Error, LocalizedError {
         case encodingFailed
-        var errorDescription: String? { "Could not encode image as JPEG." }
+        var errorDescription: String? {
+            "Failed to save photo. Please ensure you have sufficient storage space and try again."
+        }
     }
 
     // MARK: - Directories
