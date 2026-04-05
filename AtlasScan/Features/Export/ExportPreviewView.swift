@@ -17,6 +17,7 @@ struct ExportPreviewView: View {
     @State private var bundle: ScanBundleV1?
     @State private var bundleJSON: String = ""
     @State private var shareItem: ShareItem?
+    @State private var pendingPackage: ExportPackage?
     @State private var isBuilding = false
     @State private var buildError: String?
     @State private var showingJSONInspector = false
@@ -58,7 +59,7 @@ struct ExportPreviewView: View {
                 }
             }
             .onAppear { runValidation() }
-            .sheet(item: $shareItem) { item in
+            .sheet(item: $shareItem, onDismiss: { pendingPackage?.cleanup(); pendingPackage = nil }) { item in
                 ShareSheet(items: [item.url])
             }
             .sheet(isPresented: $showingJSONInspector) {
@@ -265,17 +266,28 @@ struct ExportPreviewView: View {
         guard isReadyToExport, !bundleJSON.isEmpty else { return }
         isBuilding = true
         buildError = nil
-        do {
-            let pkg = try packageBuilder.buildPackage(
-                from: job,
-                bundleJSON: bundleJSON,
-                includeEvidence: includeEvidence
-            )
-            shareItem = ShareItem(url: pkg.bundleFile)
-        } catch {
-            buildError = error.localizedDescription
+        let capturedJob = job
+        let capturedJSON = bundleJSON
+        let capturedInclude = includeEvidence
+        Task {
+            do {
+                let pkg = try packageBuilder.buildPackage(
+                    from: capturedJob,
+                    bundleJSON: capturedJSON,
+                    includeEvidence: capturedInclude
+                )
+                await MainActor.run {
+                    pendingPackage = pkg
+                    shareItem = ShareItem(url: pkg.bundleFile)
+                    isBuilding = false
+                }
+            } catch {
+                await MainActor.run {
+                    buildError = error.localizedDescription
+                    isBuilding = false
+                }
+            }
         }
-        isBuilding = false
     }
 
     private func saveToDocuments() {
