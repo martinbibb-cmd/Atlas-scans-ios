@@ -32,6 +32,8 @@ AA010022 /* ScanBundleV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA
 AA010023 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020023 /* MockData.swift */; };
 AA010024 /* ExportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020024 /* ExportBuilderTests.swift */; };
 AA010025 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020025 /* ModelTests.swift */; };
+AA010026 /* RoomPlanScannerAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020026 /* RoomPlanScannerAdapter.swift */; };
+AA010027 /* RoomPlanMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020027 /* RoomPlanMapperTests.swift */; };
 AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -62,6 +64,8 @@ AA020022 /* ScanBundleV1.swift */ = {isa = PBXFileReference; lastKnownFileType =
 AA020023 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 AA020024 /* ExportBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportBuilderTests.swift; sourceTree = "<group>"; };
 AA020025 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+AA020026 /* RoomPlanScannerAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanScannerAdapter.swift; sourceTree = "<group>"; };
+AA020027 /* RoomPlanMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanMapperTests.swift; sourceTree = "<group>"; };
 AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -137,6 +141,7 @@ children = (
 AA020005 /* RoomCaptureContainerView.swift */,
 AA020006 /* ScannerAdapter.swift */,
 AA020007 /* MockScannerAdapter.swift */,
+AA020026 /* RoomPlanScannerAdapter.swift */,
 );
 path = RoomCapture;
 sourceTree = "<group>";
@@ -219,6 +224,7 @@ isa = PBXGroup;
 children = (
 AA020024 /* ExportBuilderTests.swift */,
 AA020025 /* ModelTests.swift */,
+AA020027 /* RoomPlanMapperTests.swift */,
 );
 path = AtlasScanTests;
 sourceTree = "<group>";
@@ -363,6 +369,7 @@ AA010020 /* ScanJobStore.swift in Sources */,
 AA010021 /* ExportBuilder.swift in Sources */,
 AA010022 /* ScanBundleV1.swift in Sources */,
 AA010023 /* MockData.swift in Sources */,
+AA010026 /* RoomPlanScannerAdapter.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -372,6 +379,7 @@ buildActionMask = 2147483647;
 files = (
 AA010024 /* ExportBuilderTests.swift in Sources */,
 AA010025 /* ModelTests.swift in Sources */,
+AA010027 /* RoomPlanMapperTests.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
