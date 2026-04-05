@@ -12,6 +12,21 @@ import UIKit
 
 final class ExportBuilder {
 
+    // MARK: - Geometry fallback constants
+
+    /// Default wall length in metres, used when no geometry has been captured.
+    /// 3 m is a representative minimum room dimension for typical UK residential rooms.
+    private static let defaultWallLengthM: Double = 3.0
+
+    /// Default floor area in m², used when no geometry has been captured.
+    /// 20 m² is a representative small-room size (e.g. a single bedroom).
+    private static let defaultRoomAreaM2: Double = 20.0
+
+    /// Half-width of the bounding box assigned to a tagged service object, in metres.
+    /// Produces a 50 cm × 50 cm footprint, representative of a typical wall-mounted
+    /// or floor-standing service object (boiler, radiator, cylinder, etc.).
+    private static let serviceObjectHalfBoxM: Double = 0.25
+
     private let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -196,9 +211,7 @@ final class ExportBuilder {
     }
 
     private func contractOpening(from opening: ScannedOpening, wall: ScannedWall) -> ScanOpening {
-        // Default wall length: 3 m is a representative minimum room dimension
-        // used when no geometry has been captured yet.
-        let wallLength = wall.lengthMetres ?? 3.0
+        let wallLength = wall.lengthMetres ?? ExportBuilder.defaultWallLengthM
         return ScanOpening(
             id: opening.id.uuidString,
             widthM: opening.widthMetres ?? 0.9,
@@ -210,14 +223,14 @@ final class ExportBuilder {
     }
 
     private func contractObject(from object: TaggedObject, room: ScannedRoom) -> ScanDetectedObject {
-        // Default area: 20 m² is a representative small-room size used when
-        // no floor area has been captured yet.
-        let side = sqrt(room.areaSquareMetres ?? 20.0)
+        // Square-room approximation: compute a side length from the area so we
+        // can map normalised 0…1 positions to metric coordinates. Non-square
+        // rooms will have some positional error here, but accuracy improves once
+        // real RoomPlan geometry is integrated in the next PR.
+        let side = sqrt(room.areaSquareMetres ?? ExportBuilder.defaultRoomAreaM2)
         let cx = (object.normalizedPosition?.x ?? 0.5) * side
         let cy = (object.normalizedPosition?.y ?? 0.5) * side
-        // Half-width of the object's bounding box (50 cm total = typical
-        // service-object footprint for boiler, radiator, etc.)
-        let halfBoxSize = 0.25
+        let halfBoxSize = ExportBuilder.serviceObjectHalfBoxM
 
         return ScanDetectedObject(
             id: object.id.uuidString,
@@ -245,9 +258,7 @@ final class ExportBuilder {
         var x = 0.0, y = 0.0
 
         for wall in walls {
-            // Default wall length: 3 m is a representative minimum dimension
-            // used when no geometry has been captured yet.
-            let length = wall.lengthMetres ?? 3.0
+            let length = wall.lengthMetres ?? ExportBuilder.defaultWallLengthM
             let bearing = (wall.bearingDegrees ?? 0.0) * .pi / 180.0
             let dx = length * sin(bearing)
             let dy = length * cos(bearing)

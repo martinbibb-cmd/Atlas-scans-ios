@@ -44,8 +44,8 @@ public func validateScanBundle(_ data: Data) -> ScanValidationResult {
         return .failure(["Input is not a valid JSON object."])
     }
 
-    guard let version = raw["version"] as? String else {
-        return .failure(["version: missing or not a string."])
+    guard let version = raw["version"] as? String, !version.isEmpty else {
+        return .failure(["version: missing, empty, or not a string."])
     }
 
     guard isSupportedVersion(version) else {
