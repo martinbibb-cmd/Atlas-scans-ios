@@ -46,6 +46,8 @@ final class ExportBuilder {
     func validate(job: ScanJob) -> [ValidationIssue] {
         var issues: [ValidationIssue] = []
 
+        // MARK: Blocking checks
+
         if job.propertyAddress.trimmingCharacters(in: .whitespaces).isEmpty {
             issues.append(ValidationIssue(
                 severity: .blocking,
@@ -59,6 +61,8 @@ final class ExportBuilder {
                 message: "At least one room must be added before export."
             ))
         }
+
+        // MARK: Per-room checks
 
         for room in job.rooms {
             if room.name.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -84,10 +88,59 @@ final class ExportBuilder {
                     roomID: room.id
                 ))
             }
+
+            // Warn about unplaced major service objects (boiler, cylinder).
+            let unplacedMajor = room.taggedObjects.filter {
+                $0.placementMode == .unplaced && majorServiceCategories.contains($0.category)
+            }
+            for obj in unplacedMajor {
+                issues.append(ValidationIssue(
+                    severity: .warning,
+                    message: "\(obj.displayLabel) in '\(room.name)' has not been placed on the room plan.",
+                    roomID: room.id,
+                    objectID: obj.id
+                ))
+            }
+
+            // Warn about low-confidence object placements.
+            let lowConf = room.taggedObjects.filter {
+                $0.confidence == .low || $0.confidence == .unknown
+            }
+            for obj in lowConf {
+                issues.append(ValidationIssue(
+                    severity: .warning,
+                    message: "\(obj.displayLabel) in '\(room.name)' has low placement confidence.",
+                    roomID: room.id,
+                    objectID: obj.id
+                ))
+            }
+        }
+
+        // MARK: Job-level checks
+
+        // Warn about tentative (unconfirmed) room adjacencies.
+        let tentativeAdjacencies = job.roomAdjacencies.filter { !$0.isConfirmed }
+        if !tentativeAdjacencies.isEmpty {
+            issues.append(ValidationIssue(
+                severity: .warning,
+                message: "\(tentativeAdjacencies.count) room \(tentativeAdjacencies.count == 1 ? "link" : "links") not yet confirmed."
+            ))
+        }
+
+        // Warn when no evidence has been captured for this job.
+        let totalPhotos = job.photos.count + job.rooms.reduce(0) { $0 + $1.photos.count }
+        if totalPhotos == 0 {
+            issues.append(ValidationIssue(
+                severity: .warning,
+                message: "No evidence photos have been captured for this job."
+            ))
         }
 
         return issues
     }
+
+    /// Service object categories considered major for placement validation.
+    private let majorServiceCategories: Set<ServiceObjectCategory> = [.boiler, .cylinder]
 
     // MARK: Build shared-contract bundle
 

@@ -51,6 +51,8 @@ AA010041 /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef =
 AA010042 /* AddPhotoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020042 /* AddPhotoSheet.swift */; };
 AA010043 /* PhotoGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020043 /* PhotoGalleryView.swift */; };
 AA010044 /* EvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020044 /* EvidenceTests.swift */; };
+AA010045 /* ExportPackageBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020045 /* ExportPackageBuilder.swift */; };
+AA010046 /* HandoffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020046 /* HandoffTests.swift */; };
 
 AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
@@ -101,6 +103,8 @@ AA020041 /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileTyp
 AA020042 /* AddPhotoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPhotoSheet.swift; sourceTree = "<group>"; };
 AA020043 /* PhotoGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGalleryView.swift; sourceTree = "<group>"; };
 AA020044 /* EvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidenceTests.swift; sourceTree = "<group>"; };
+AA020045 /* ExportPackageBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPackageBuilder.swift; sourceTree = "<group>"; };
+AA020046 /* HandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffTests.swift; sourceTree = "<group>"; };
 
 AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -255,6 +259,7 @@ AA020029 /* PlacementService.swift */,
 AA020032 /* ClearanceEngine.swift */,
 AA020033 /* ApplianceProfiles.swift */,
 AA020040 /* PhotoStore.swift */,
+AA020045 /* ExportPackageBuilder.swift */,
 );
 path = Services;
 sourceTree = "<group>";
@@ -294,6 +299,7 @@ AA020034 /* ClearanceEngineTests.swift */,
 AA020035 /* ApplianceProfileTests.swift */,
 AA020039 /* RoomAdjacencyTests.swift */,
 AA020044 /* EvidenceTests.swift */,
+AA020046 /* HandoffTests.swift */,
 );
 path = AtlasScanTests;
 sourceTree = "<group>";
@@ -447,6 +453,11 @@ AA010033 /* ApplianceProfiles.swift in Sources */,
 AA010036 /* RoomAdjacency.swift in Sources */,
 AA010037 /* PropertyPlanView.swift in Sources */,
 AA010038 /* LinkRoomsSheet.swift in Sources */,
+AA010040 /* PhotoStore.swift in Sources */,
+AA010041 /* ImagePickerView.swift in Sources */,
+AA010042 /* AddPhotoSheet.swift in Sources */,
+AA010043 /* PhotoGalleryView.swift in Sources */,
+AA010045 /* ExportPackageBuilder.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -461,6 +472,8 @@ AA010031 /* PlacementServiceTests.swift in Sources */,
 AA010034 /* ClearanceEngineTests.swift in Sources */,
 AA010035 /* ApplianceProfileTests.swift in Sources */,
 AA010039 /* RoomAdjacencyTests.swift in Sources */,
+AA010044 /* EvidenceTests.swift in Sources */,
+AA010046 /* HandoffTests.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
