@@ -1,4 +1,5 @@
 import SwiftUI
+import AtlasContracts
 
 // MARK: - ExportPreviewView
 //
@@ -77,11 +78,11 @@ struct ExportPreviewView: View {
     private var bundleSummarySection: some View {
         Section("Bundle Summary") {
             if let b = bundle {
-                LabeledContent("Schema version", value: b.schemaVersion)
-                LabeledContent("Bundle ID", value: String(b.bundleID.prefix(8)) + "…")
+                LabeledContent("Schema version", value: b.version)
+                LabeledContent("Bundle ID", value: String(b.bundleId.prefix(8)) + "…")
                 LabeledContent("Rooms", value: "\(b.rooms.count)")
-                LabeledContent("Tagged objects", value: "\(b.rooms.reduce(0) { $0 + $1.taggedObjects.count })")
-                LabeledContent("Exported at", value: b.exportedAt)
+                LabeledContent("Tagged objects", value: "\(b.rooms.reduce(0) { $0 + $1.detectedObjects.count })")
+                LabeledContent("Captured at", value: b.meta.capturedAt)
             }
         }
     }
@@ -136,6 +137,16 @@ struct ExportPreviewView: View {
         let built = builder.buildBundle(from: job)
         do {
             let data = try builder.encode(bundle: built)
+
+            // Validate the encoded payload against the shared contract before
+            // allowing the engineer to share or save it.
+            let contractResult = builder.validateBundle(data: data)
+            if case .failure(let errors) = contractResult {
+                buildError = "Contract validation failed: \(errors.joined(separator: "; "))"
+                isBuilding = false
+                return
+            }
+
             bundleJSON = String(decoding: data, as: UTF8.self)
             bundle = built
 

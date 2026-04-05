@@ -32,6 +32,8 @@ AA010022 /* ScanBundleV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA
 AA010023 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020023 /* MockData.swift */; };
 AA010024 /* ExportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020024 /* ExportBuilderTests.swift */; };
 AA010025 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020025 /* ModelTests.swift */; };
+AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
+AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +72,7 @@ AA040001 /* Frameworks */ = {
 isa = PBXFrameworksBuildPhase;
 buildActionMask = 2147483647;
 files = (
+AAPKG003 /* AtlasContracts in Frameworks */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -77,6 +80,7 @@ AA040002 /* Frameworks */ = {
 isa = PBXFrameworksBuildPhase;
 buildActionMask = 2147483647;
 files = (
+AAPKG005 /* AtlasContracts in Frameworks */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -253,6 +257,9 @@ buildRules = (
 dependencies = (
 );
 name = AtlasScan;
+packageProductDependencies = (
+AAPKG002 /* AtlasContracts */,
+);
 productName = AtlasScan;
 productReference = AA030001 /* AtlasScan.app */;
 productType = "com.apple.product-type.application";
@@ -270,6 +277,9 @@ dependencies = (
 AA0A0001 /* PBXTargetDependency */,
 );
 name = AtlasScanTests;
+packageProductDependencies = (
+AAPKG004 /* AtlasContracts */,
+);
 productName = AtlasScanTests;
 productReference = AA030002 /* AtlasScanTests.xctest */;
 productType = "com.apple.product-type.bundle.unit-test";
@@ -300,6 +310,9 @@ hasScannedForEncodings = 0;
 knownRegions = (
 en,
 Base,
+);
+localPackages = (
+AAPKG001 /* AtlasContracts */,
 );
 mainGroup = AA060000;
 productRefGroup = AA060002 /* Products */;
@@ -630,6 +643,26 @@ defaultConfigurationIsVisible = 0;
 defaultConfigurationName = Release;
 };
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+AAPKG001 /* AtlasContracts */ = {
+isa = XCLocalSwiftPackageReference;
+relativePath = AtlasContracts;
+};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+AAPKG002 /* AtlasContracts */ = {
+isa = XCSwiftPackageProductDependency;
+package = AAPKG001 /* AtlasContracts */;
+productName = AtlasContracts;
+};
+AAPKG004 /* AtlasContracts */ = {
+isa = XCSwiftPackageProductDependency;
+package = AAPKG001 /* AtlasContracts */;
+productName = AtlasContracts;
+};
+/* End XCSwiftPackageProductDependency section */
 
 };
 rootObject = AA0B0001 /* Project object */;
