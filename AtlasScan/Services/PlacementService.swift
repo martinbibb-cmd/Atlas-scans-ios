@@ -177,8 +177,10 @@ enum PlacementService {
         guard points.count >= 2 else { return unitSquare }
         let xs = points.map(\.x)
         let ys = points.map(\.y)
-        let minX = xs.min()!, maxX = xs.max()!
-        let minY = ys.min()!, maxY = ys.max()!
+        let minX = xs.min() ?? 0
+        let maxX = xs.max() ?? 1
+        let minY = ys.min() ?? 0
+        let maxY = ys.max() ?? 1
         let rangeX = max(maxX - minX, 1e-3)
         let rangeY = max(maxY - minY, 1e-3)
         return points.map {

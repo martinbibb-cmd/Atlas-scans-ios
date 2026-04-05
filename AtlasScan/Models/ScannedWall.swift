@@ -49,4 +49,7 @@ struct ScannedWall: Identifiable, Codable {
     }
 
     var displayName: String { "Wall \(index + 1)" }
+
+    /// Formats a wall index (0-based) as a display name without a ScannedWall instance.
+    static func displayName(forIndex index: Int) -> String { "Wall \(index + 1)" }
 }

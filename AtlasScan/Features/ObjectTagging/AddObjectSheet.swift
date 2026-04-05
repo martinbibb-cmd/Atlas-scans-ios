@@ -171,7 +171,7 @@ struct AddObjectSheet: View {
                     LabeledContent("Position",
                         value: String(format: "x %.0f%%, y %.0f%%", pos.x * 100, pos.y * 100))
                     if let wallIdx = pendingWallIndex {
-                        LabeledContent("Wall", value: "Wall \(wallIdx + 1)")
+                        LabeledContent("Wall", value: ScannedWall.displayName(forIndex: wallIdx))
                     }
                 }
             }

@@ -42,27 +42,34 @@ struct PlacementSize: Codable, Equatable {
 
 extension ServiceObjectCategory {
 
+    // MARK: - Wall-mounted vs floor-placed sets
+
+    /// Categories that are typically mounted on a wall surface.
+    static let wallMountedCategories: Set<ServiceObjectCategory> = [
+        .radiator, .radiatorDrop, .towelRail, .fanConvector,
+        .thermostat, .programmer, .smartController, .thermostatReceiver,
+        .gasMeter, .electricMeter, .consumerUnit,
+        .stopTap, .flue, .likelyFlueRoute,
+        .zoneValve, .externalWall, .serviceVoid,
+    ]
+
+    /// Categories that are typically placed on the floor or within the room.
+    static let floorPlacedCategories: Set<ServiceObjectCategory> = [
+        .boiler, .heatPump, .cylinder, .thermalStore, .bufferVessel,
+        .pump, .lowLossHeader, .expansionVessel, .manifold,
+        .airingCupboard, .plantSpace, .drainPoint,
+        .ufhZone, .loftHatch,
+    ]
+
     /// Default placement mode for this category of service object.
     /// User-guided placement overrides this at placement time.
     var defaultPlacementMode: PlacementMode {
-        switch self {
-        // Wall-mounted emitters and controls
-        case .radiator, .radiatorDrop, .towelRail, .fanConvector,
-             .thermostat, .programmer, .smartController, .thermostatReceiver,
-             .gasMeter, .electricMeter, .consumerUnit,
-             .stopTap, .flue, .likelyFlueRoute,
-             .zoneValve, .externalWall, .serviceVoid:
+        if ServiceObjectCategory.wallMountedCategories.contains(self) {
             return .wallMounted
-
-        // Floor-standing / room-placed plant and fixtures
-        case .boiler, .heatPump, .cylinder, .thermalStore, .bufferVessel,
-             .pump, .lowLossHeader, .expansionVessel, .manifold,
-             .airingCupboard, .plantSpace, .drainPoint,
-             .ufhZone, .loftHatch:
-            return .floorPlaced
-
-        case .other:
-            return .unplaced
         }
+        if ServiceObjectCategory.floorPlacedCategories.contains(self) {
+            return .floorPlaced
+        }
+        return .unplaced
     }
 }

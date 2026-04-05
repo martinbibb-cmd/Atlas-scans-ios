@@ -160,13 +160,23 @@ struct RoomLayoutView: View {
 
     // MARK: - Opening segment computation
 
+    /// Default fraction along the wall where an opening is rendered (midpoint).
+    private static let openingDefaultFraction: Double = 0.5
+
+    /// Fallback opening width in metres when none is provided.
+    private static let openingDefaultWidthMetres: Double = 0.9
+
     private static func buildOpeningSegments(
         room: ScannedRoom
     ) -> [(wallIndex: Int, fraction: Double, width: Double)] {
         room.openings.map { opening in
-            // Place the opening at the midpoint of its wall (fraction = 0.5).
+            // Place the opening at the midpoint of its wall.
             // Future work: use real offset data when available from RoomPlan.
-            (wallIndex: opening.wallIndex, fraction: 0.5, width: opening.widthMetres ?? 0.9)
+            (
+                wallIndex: opening.wallIndex,
+                fraction: openingDefaultFraction,
+                width: opening.widthMetres ?? openingDefaultWidthMetres
+            )
         }
     }
 }
