@@ -33,6 +33,34 @@ struct EditObjectSheet: View {
                     }
                 }
 
+                let profiles = ApplianceProfileLibrary.profiles(for: object.category)
+                if !profiles.isEmpty {
+                    Section {
+                        Picker("Profile", selection: Binding(
+                            get: { object.applianceProfileID ?? "" },
+                            set: { object.applianceProfileID = $0.isEmpty ? nil : $0 }
+                        )) {
+                            Text("Generic defaults").tag("")
+                            ForEach(profiles) { profile in
+                                Text(profile.displayName).tag(profile.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        if let profileID = object.applianceProfileID,
+                           let note = ApplianceProfileLibrary.profile(id: profileID)?.guidanceNote {
+                            Text(note)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Appliance Profile")
+                    } footer: {
+                        Text("Profile dimensions refine clearance guidance. Generic defaults apply when no profile is selected.")
+                            .font(.caption2)
+                    }
+                }
+
                 Section("Confidence") {
                     Picker("Confidence", selection: $object.confidence) {
                         ForEach(ConfidenceLevel.allCases, id: \.self) { level in

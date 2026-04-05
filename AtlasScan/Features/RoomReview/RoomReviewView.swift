@@ -355,6 +355,13 @@ struct ClearanceSummaryView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if let note = result.profileNote {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .italic()
+            }
+
             if let note = result.confidenceNote {
                 Text(note)
                     .font(.caption2)

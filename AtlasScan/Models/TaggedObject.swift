@@ -34,6 +34,11 @@ struct TaggedObject: Identifiable, Codable {
     /// Approximate physical footprint of the object
     var boundingSize: PlacementSize?
 
+    /// Optional appliance profile identifier for model-specific clearance rules.
+    /// When set, ClearanceEngine uses this profile's dimensions instead of category defaults.
+    /// Must match an `ApplianceProfile.id` in `ApplianceProfileLibrary`.
+    var applianceProfileID: String?
+
     /// Quick-entry field values keyed by QuickField.key
     var quickFieldValues: [String: String]
 
@@ -62,6 +67,7 @@ struct TaggedObject: Identifiable, Codable {
         placementMode: PlacementMode? = nil,
         rotation: Double = 0.0,
         boundingSize: PlacementSize? = nil,
+        applianceProfileID: String? = nil,
         quickFieldValues: [String: String] = [:],
         notes: String = "",
         isConfirmed: Bool = false,
@@ -77,6 +83,7 @@ struct TaggedObject: Identifiable, Codable {
         self.placementMode = placementMode ?? category.defaultPlacementMode
         self.rotation = rotation
         self.boundingSize = boundingSize
+        self.applianceProfileID = applianceProfileID
         self.quickFieldValues = quickFieldValues
         self.notes = notes
         self.isConfirmed = isConfirmed

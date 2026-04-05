@@ -62,6 +62,9 @@ struct ClearanceResult {
     /// Short caveat note about scan confidence, or `nil` when confidence is high.
     var confidenceNote: String?
 
+    /// Guidance note from the selected appliance profile, or `nil` when no profile is chosen.
+    var profileNote: String?
+
     /// Physical footprint of the object in normalised room coordinates.
     var footprintRect: CGRect
 
@@ -118,11 +121,27 @@ enum ClearanceEngine {
     /// Evaluates clearance for a placed object within a room.
     ///
     /// Returns `nil` when the category is unsupported or the object has no position.
+    ///
+    /// When the object has an `applianceProfileID` that matches a profile in
+    /// `ApplianceProfileLibrary`, that profile's rule and guidance note are used.
+    /// Otherwise the default category rule applies.
     static func evaluate(object: TaggedObject, in room: ScannedRoom) -> ClearanceResult? {
         guard supportedCategories.contains(object.category),
-              let pos = object.normalizedPosition,
-              let rule = Self.rule(for: object.category)
+              let pos = object.normalizedPosition
         else { return nil }
+
+        // Resolve clearance rule: prefer appliance profile dimensions when set.
+        let rule: ClearanceRule
+        let profileNote: String?
+        if let profileID = object.applianceProfileID,
+           let profile = ApplianceProfileLibrary.profile(id: profileID) {
+            rule = profile.rule
+            profileNote = profile.guidanceNote
+        } else {
+            guard let categoryRule = Self.rule(for: object.category) else { return nil }
+            rule = categoryRule
+            profileNote = nil
+        }
 
         let (roomWidth, roomHeight) = estimateRoomDimensions(room)
         let polygon = PlacementService.layoutPolygon(for: room)
@@ -154,6 +173,7 @@ enum ClearanceEngine {
             status: overallStatus(from: issues),
             issues: issues,
             confidenceNote: confidenceNote(for: object, room: room),
+            profileNote: profileNote,
             footprintRect: footprintRect,
             clearanceRect: clearanceRect
         )
