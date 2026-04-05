@@ -91,7 +91,8 @@ final class ClearanceEngineTests: XCTestCase {
     func test_evaluate_boilerFrontClearanceInsufficient_returnsConflict() {
         // 1.5 m × 1.5 m room; boiler centred.
         // determineFacing: all edges equidistant (0.75 m), picks .down.
-        // frontDist (distBottom) = 0.75 m < requiredFront (0.25 + 0.60 = 0.85 m) → conflict.
+        // requiredFront = footprintDepthMetres/2 + frontClearanceMetres = 0.50/2 + 0.60 = 0.85 m
+        // frontDist (distBottom) = 0.5 × 1.5 = 0.75 m < 0.85 m → conflict.
         let room = roomWithDimensions(width: 1.5, height: 1.5)
         var obj = TaggedObject(roomID: room.id, category: .boiler)
         obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
@@ -229,6 +230,8 @@ final class ClearanceEngineTests: XCTestCase {
         let result = ClearanceEngine.evaluate(object: obj, in: room)
         XCTAssertNotNil(result?.confidenceNote,
             "Non-scanned room should always produce a confidence note")
+        XCTAssertTrue(result?.confidenceNote?.contains("scanner") ?? false,
+            "Confidence note should mention scanner geometry")
     }
 
     func test_evaluate_scannedGeometryHighConfidence_noNote() {

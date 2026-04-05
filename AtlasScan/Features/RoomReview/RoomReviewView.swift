@@ -28,10 +28,11 @@ struct RoomReviewView: View {
     }
 
     var body: some View {
-        List {
-            layoutSection
+        let results = clearanceResults
+        return List {
+            layoutSection(with: results)
             geometrySection
-            serviceObjectsSection
+            serviceObjectsSection(with: results)
             notesSection
             reviewSection
         }
@@ -78,12 +79,12 @@ struct RoomReviewView: View {
 
     // MARK: - Sections
 
-    private var layoutSection: some View {
+    private func layoutSection(with results: [UUID: ClearanceResult]) -> some View {
         Section {
             RoomLayoutView(
                 room: room,
                 selectedObjectID: selectedObjectIDOnLayout,
-                clearanceResults: clearanceResults,
+                clearanceResults: results,
                 onTapRoom: nil,
                 onTapObject: { id in
                     selectedObjectIDOnLayout = id
@@ -100,7 +101,7 @@ struct RoomReviewView: View {
             .frame(minHeight: 220)
 
             if let selectedID = selectedObjectIDOnLayout,
-               let result = clearanceResults[selectedID] {
+               let result = results[selectedID] {
                 ClearanceSummaryView(result: result)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -139,7 +140,7 @@ struct RoomReviewView: View {
         }
     }
 
-    private var serviceObjectsSection: some View {
+    private func serviceObjectsSection(with results: [UUID: ClearanceResult]) -> some View {
         Section {
             if room.taggedObjects.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -155,7 +156,7 @@ struct RoomReviewView: View {
                     } label: {
                         TaggedObjectRowView(
                             object: object,
-                            clearanceStatus: clearanceResults[object.id]?.status
+                            clearanceStatus: results[object.id]?.status
                         )
                     }
                     .tint(.primary)
