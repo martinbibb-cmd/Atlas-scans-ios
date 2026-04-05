@@ -97,7 +97,7 @@ public func validateScanBundle(_ data: Data) -> ScanValidationResult {
 
 /// Valid raw values for `ScanConfidenceBand`, extracted once at module load
 /// to avoid recomputing per room during validation.
-private let validConfidenceValues: [String] = ScanConfidenceBand.allCases.map(\.rawValue)
+private let validScanConfidenceBandValues: [String] = ScanConfidenceBand.allCases.map(\.rawValue)
 
 private func validateRoom(_ room: [String: Any], path: String) -> [String] {
     var errors: [String] = []
@@ -128,8 +128,8 @@ private func validateRoom(_ room: [String: Any], path: String) -> [String] {
     }
     // Derive valid values from ScanConfidenceBand to avoid drift with the type definition.
     if let conf = room["confidence"] as? String {
-        if !validConfidenceValues.contains(conf) {
-            errors.append("\(path).confidence: must be one of: \(validConfidenceValues.joined(separator: ", ")).")
+        if !validScanConfidenceBandValues.contains(conf) {
+            errors.append("\(path).confidence: must be one of: \(validScanConfidenceBandValues.joined(separator: ", ")).")
         }
     } else {
         errors.append("\(path).confidence: must be a string.")
