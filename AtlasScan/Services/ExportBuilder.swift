@@ -176,6 +176,19 @@ final class ExportBuilder {
             }
         }
 
+        // Room adjacency links — kept as QA flags since atlas-contracts does not yet
+        // have a first-class field for inter-room connections.
+        for adjacency in job.roomAdjacencies {
+            if let payload = encodeAdjacency(adjacency) {
+                flags.append(ScanQAFlag(
+                    code: "atlas.room_adjacency",
+                    message: payload,
+                    severity: adjacency.isConfirmed ? "info" : "warning",
+                    entityId: adjacency.id.uuidString
+                ))
+            }
+        }
+
         return flags
     }
 
@@ -348,6 +361,27 @@ final class ExportBuilder {
         #else
         return "unknown"
         #endif
+    }
+
+    /// Encodes a RoomAdjacency into a compact JSON string for the atlas.room_adjacency QA flag.
+    private func encodeAdjacency(_ adjacency: RoomAdjacency) -> String? {
+        var dict: [String: Any] = [
+            "from_room_id": adjacency.fromRoomID.uuidString,
+            "to_room_id":   adjacency.toRoomID.uuidString,
+            "kind":         adjacency.kind.rawValue,
+            "confirmed":    adjacency.isConfirmed,
+        ]
+        if let openingID = adjacency.openingID {
+            dict["opening_id"] = openingID.uuidString
+        }
+        if !adjacency.notes.isEmpty {
+            dict["notes"] = adjacency.notes
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .sortedKeys),
+              let str = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return str
     }
 }
 

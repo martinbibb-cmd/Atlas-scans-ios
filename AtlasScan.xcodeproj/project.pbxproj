@@ -38,6 +38,14 @@ AA010028 /* ObjectPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef =
 AA010029 /* PlacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020029 /* PlacementService.swift */; };
 AA010030 /* RoomLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020030 /* RoomLayoutView.swift */; };
 AA010031 /* PlacementServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020031 /* PlacementServiceTests.swift */; };
+AA010032 /* ClearanceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020032 /* ClearanceEngine.swift */; };
+AA010033 /* ApplianceProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020033 /* ApplianceProfiles.swift */; };
+AA010034 /* ClearanceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020034 /* ClearanceEngineTests.swift */; };
+AA010035 /* ApplianceProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020035 /* ApplianceProfileTests.swift */; };
+AA010036 /* RoomAdjacency.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020036 /* RoomAdjacency.swift */; };
+AA010037 /* PropertyPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020037 /* PropertyPlanView.swift */; };
+AA010038 /* LinkRoomsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020038 /* LinkRoomsSheet.swift */; };
+AA010039 /* RoomAdjacencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020039 /* RoomAdjacencyTests.swift */; };
 AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -74,6 +82,14 @@ AA020028 /* ObjectPlacement.swift */ = {isa = PBXFileReference; lastKnownFileTyp
 AA020029 /* PlacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementService.swift; sourceTree = "<group>"; };
 AA020030 /* RoomLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLayoutView.swift; sourceTree = "<group>"; };
 AA020031 /* PlacementServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementServiceTests.swift; sourceTree = "<group>"; };
+AA020032 /* ClearanceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceEngine.swift; sourceTree = "<group>"; };
+AA020033 /* ApplianceProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplianceProfiles.swift; sourceTree = "<group>"; };
+AA020034 /* ClearanceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceEngineTests.swift; sourceTree = "<group>"; };
+AA020035 /* ApplianceProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplianceProfileTests.swift; sourceTree = "<group>"; };
+AA020036 /* RoomAdjacency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomAdjacency.swift; sourceTree = "<group>"; };
+AA020037 /* PropertyPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyPlanView.swift; sourceTree = "<group>"; };
+AA020038 /* LinkRoomsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRoomsSheet.swift; sourceTree = "<group>"; };
+AA020039 /* RoomAdjacencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomAdjacencyTests.swift; sourceTree = "<group>"; };
 AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -129,6 +145,7 @@ AA050011 /* RoomCapture */,
 AA050012 /* RoomReview */,
 AA050013 /* ObjectTagging */,
 AA050014 /* Export */,
+AA050015 /* PropertyPlan */,
 );
 path = Features;
 sourceTree = "<group>";
@@ -180,6 +197,15 @@ AA020011 /* ExportPreviewView.swift */,
 path = Export;
 sourceTree = "<group>";
 };
+AA050015 /* PropertyPlan */ = {
+isa = PBXGroup;
+children = (
+AA020037 /* PropertyPlanView.swift */,
+AA020038 /* LinkRoomsSheet.swift */,
+);
+path = PropertyPlan;
+sourceTree = "<group>";
+};
 AA050004 /* Models */ = {
 isa = PBXGroup;
 children = (
@@ -192,6 +218,7 @@ AA020017 /* TaggedPhoto.swift */,
 AA020018 /* ServiceObjectCategory.swift */,
 AA020019 /* ExportDraftState.swift */,
 AA020028 /* ObjectPlacement.swift */,
+AA020036 /* RoomAdjacency.swift */,
 );
 path = Models;
 sourceTree = "<group>";
@@ -202,6 +229,8 @@ children = (
 AA020020 /* ScanJobStore.swift */,
 AA020021 /* ExportBuilder.swift */,
 AA020029 /* PlacementService.swift */,
+AA020032 /* ClearanceEngine.swift */,
+AA020033 /* ApplianceProfiles.swift */,
 );
 path = Services;
 sourceTree = "<group>";
@@ -237,6 +266,9 @@ AA020024 /* ExportBuilderTests.swift */,
 AA020025 /* ModelTests.swift */,
 AA020027 /* RoomPlanMapperTests.swift */,
 AA020031 /* PlacementServiceTests.swift */,
+AA020034 /* ClearanceEngineTests.swift */,
+AA020035 /* ApplianceProfileTests.swift */,
+AA020039 /* RoomAdjacencyTests.swift */,
 );
 path = AtlasScanTests;
 sourceTree = "<group>";
@@ -385,6 +417,11 @@ AA010026 /* RoomPlanScannerAdapter.swift in Sources */,
 AA010028 /* ObjectPlacement.swift in Sources */,
 AA010029 /* PlacementService.swift in Sources */,
 AA010030 /* RoomLayoutView.swift in Sources */,
+AA010032 /* ClearanceEngine.swift in Sources */,
+AA010033 /* ApplianceProfiles.swift in Sources */,
+AA010036 /* RoomAdjacency.swift in Sources */,
+AA010037 /* PropertyPlanView.swift in Sources */,
+AA010038 /* LinkRoomsSheet.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -396,6 +433,9 @@ AA010024 /* ExportBuilderTests.swift in Sources */,
 AA010025 /* ModelTests.swift in Sources */,
 AA010027 /* RoomPlanMapperTests.swift in Sources */,
 AA010031 /* PlacementServiceTests.swift in Sources */,
+AA010034 /* ClearanceEngineTests.swift in Sources */,
+AA010035 /* ApplianceProfileTests.swift in Sources */,
+AA010039 /* RoomAdjacencyTests.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
