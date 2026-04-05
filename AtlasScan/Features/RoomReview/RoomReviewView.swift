@@ -6,6 +6,7 @@ import SwiftUI
 //   • rename the room
 //   • review/edit walls and openings
 //   • add/edit/delete tagged service objects
+//   • place objects on the room layout
 //   • mark the room as reviewed
 
 struct RoomReviewView: View {
@@ -19,6 +20,7 @@ struct RoomReviewView: View {
     @State private var selectedObject: TaggedObject?
     @State private var isEditingName = false
     @State private var editedName = ""
+    @State private var selectedObjectIDOnLayout: UUID?
 
     init(room: ScannedRoom, job: Binding<ScanJob>) {
         _room = State(initialValue: room)
@@ -27,6 +29,7 @@ struct RoomReviewView: View {
 
     var body: some View {
         List {
+            layoutSection
             geometrySection
             serviceObjectsSection
             notesSection
@@ -51,7 +54,7 @@ struct RoomReviewView: View {
             }
         }
         .sheet(isPresented: $showingAddObject) {
-            AddObjectSheet(roomID: room.id) { newObject in
+            AddObjectSheet(room: room) { newObject in
                 room.addTaggedObject(newObject)
                 persistRoom()
             }
@@ -74,6 +77,33 @@ struct RoomReviewView: View {
     }
 
     // MARK: - Sections
+
+    private var layoutSection: some View {
+        Section {
+            RoomLayoutView(
+                room: room,
+                selectedObjectID: selectedObjectIDOnLayout,
+                onTapRoom: nil,
+                onTapObject: { id in
+                    selectedObjectIDOnLayout = id
+                    selectedObject = room.taggedObjects.first { $0.id == id }
+                },
+                onMoveObject: { id, newPos in
+                    guard var obj = room.taggedObjects.first(where: { $0.id == id }) else { return }
+                    PlacementService.place(object: &obj, at: newPos, in: room)
+                    room.updateTaggedObject(obj)
+                    persistRoom()
+                }
+            )
+            .listRowInsets(EdgeInsets())
+            .frame(minHeight: 220)
+        } header: {
+            Text("Room Layout")
+        } footer: {
+            Text("Drag objects to reposition. Tap an object to edit.")
+                .font(.caption2)
+        }
+    }
 
     private var geometrySection: some View {
         Section {

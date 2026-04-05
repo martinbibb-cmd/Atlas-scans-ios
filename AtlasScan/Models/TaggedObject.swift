@@ -22,6 +22,18 @@ struct TaggedObject: Identifiable, Codable {
     /// Wall index the object is associated with (if applicable)
     var wallIndex: Int?
 
+    /// UUID of the ScannedWall the object is attached to, for wall-mounted objects
+    var attachedWallID: UUID?
+
+    /// How the object is placed in the room
+    var placementMode: PlacementMode
+
+    /// Rotation of the object about the vertical axis, in radians (0 = facing room centre)
+    var rotation: Double
+
+    /// Approximate physical footprint of the object
+    var boundingSize: PlacementSize?
+
     /// Quick-entry field values keyed by QuickField.key
     var quickFieldValues: [String: String]
 
@@ -46,6 +58,10 @@ struct TaggedObject: Identifiable, Codable {
         label: String = "",
         normalizedPosition: NormalizedPoint2D? = nil,
         wallIndex: Int? = nil,
+        attachedWallID: UUID? = nil,
+        placementMode: PlacementMode? = nil,
+        rotation: Double = 0.0,
+        boundingSize: PlacementSize? = nil,
         quickFieldValues: [String: String] = [:],
         notes: String = "",
         isConfirmed: Bool = false,
@@ -57,6 +73,10 @@ struct TaggedObject: Identifiable, Codable {
         self.label = label.isEmpty ? category.displayName : label
         self.normalizedPosition = normalizedPosition
         self.wallIndex = wallIndex
+        self.attachedWallID = attachedWallID
+        self.placementMode = placementMode ?? category.defaultPlacementMode
+        self.rotation = rotation
+        self.boundingSize = boundingSize
         self.quickFieldValues = quickFieldValues
         self.notes = notes
         self.isConfirmed = isConfirmed

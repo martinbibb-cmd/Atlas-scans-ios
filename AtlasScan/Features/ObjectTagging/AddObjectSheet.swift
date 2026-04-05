@@ -3,14 +3,22 @@ import SwiftUI
 // MARK: - AddObjectSheet
 //
 // Full-screen modal for quickly tagging a service object in a room.
-// Shows category tiles grouped by function, then a quick-entry form.
+// Flow:
+//   1. Category picker (grouped tiles with search)
+//   2. Placement step — tap the room layout to position the object
+//   3. Quick-entry form — label, category-specific fields, confidence, notes
 
 struct AddObjectSheet: View {
 
-    let roomID: UUID
+    /// Full room object so we can offer the layout placement step.
+    let room: ScannedRoom
     let onAdd: (TaggedObject) -> Void
 
     @Environment(\.dismiss) private var dismiss
+
+    // Step tracking
+    private enum Step { case categoryPick, placement, details }
+    @State private var step: Step = .categoryPick
 
     @State private var selectedCategory: ServiceObjectCategory?
     @State private var label = ""
@@ -19,31 +27,64 @@ struct AddObjectSheet: View {
     @State private var quickValues: [String: String] = [:]
     @State private var searchText = ""
 
+    // Placement state
+    @State private var pendingPosition: NormalizedPoint2D? = nil
+    @State private var pendingWallIndex: Int? = nil
+
     var body: some View {
         NavigationStack {
             Group {
-                if let category = selectedCategory {
-                    quickEntryForm(for: category)
-                } else {
+                switch step {
+                case .categoryPick:
                     categoryPicker
+                case .placement:
+                    placementStep
+                case .details:
+                    quickEntryForm(for: selectedCategory!)
                 }
             }
-            .navigationTitle(selectedCategory == nil ? "Add Service Object" : selectedCategory!.displayName)
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    if selectedCategory != nil {
-                        Button("Back") { selectedCategory = nil }
-                    } else {
-                        Button("Cancel") { dismiss() }
-                    }
+                    backButton
                 }
-                if selectedCategory != nil {
+                if step == .details {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Add") { addObject() }
                     }
                 }
+                if step == .placement {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Skip") { step = .details }
+                    }
+                }
             }
+        }
+    }
+
+    private var navigationTitle: String {
+        switch step {
+        case .categoryPick: return "Add Service Object"
+        case .placement:    return selectedCategory?.displayName ?? "Place Object"
+        case .details:      return selectedCategory?.displayName ?? "Object Details"
+        }
+    }
+
+    @ViewBuilder
+    private var backButton: some View {
+        switch step {
+        case .categoryPick:
+            Button("Cancel") { dismiss() }
+        case .placement:
+            Button("Back") {
+                selectedCategory = nil
+                pendingPosition = nil
+                pendingWallIndex = nil
+                step = .categoryPick
+            }
+        case .details:
+            Button("Back") { step = .placement }
         }
     }
 
@@ -73,6 +114,7 @@ struct AddObjectSheet: View {
                     CategoryTile(category: category) {
                         selectedCategory = category
                         label = category.displayName
+                        step = .placement
                     }
                 }
             }
@@ -104,10 +146,36 @@ struct AddObjectSheet: View {
         return groups
     }
 
+    // MARK: - Placement step
+
+    private var placementStep: some View {
+        VStack(spacing: 0) {
+            if let category = selectedCategory {
+                RoomLayoutPlacementView(room: room, category: category) { position, wallIdx in
+                    pendingPosition = position
+                    pendingWallIndex = wallIdx
+                    step = .details
+                }
+            }
+        }
+    }
+
     // MARK: - Quick-entry form
 
     private func quickEntryForm(for category: ServiceObjectCategory) -> some View {
         Form {
+            // Placement summary
+            if let pos = pendingPosition {
+                Section("Placement") {
+                    LabeledContent("Mode", value: category.defaultPlacementMode.displayName)
+                    LabeledContent("Position",
+                        value: String(format: "x %.0f%%, y %.0f%%", pos.x * 100, pos.y * 100))
+                    if let wallIdx = pendingWallIndex {
+                        LabeledContent("Wall", value: ScannedWall.displayName(forIndex: wallIdx))
+                    }
+                }
+            }
+
             Section("Label") {
                 TextField("Label", text: $label)
                     .autocorrectionDisabled()
@@ -141,14 +209,18 @@ struct AddObjectSheet: View {
 
     private func addObject() {
         guard let category = selectedCategory else { return }
-        let object = TaggedObject(
-            roomID: roomID,
+        var object = TaggedObject(
+            roomID: room.id,
             category: category,
             label: label.trimmingCharacters(in: .whitespaces),
+            wallIndex: pendingWallIndex,
             quickFieldValues: quickValues,
             notes: notes,
             confidence: confidence
         )
+        if let pos = pendingPosition {
+            PlacementService.place(object: &object, at: pos, in: room)
+        }
         onAdd(object)
         dismiss()
     }
@@ -252,6 +324,6 @@ private extension Color {
 
 #if DEBUG
 #Preview {
-    AddObjectSheet(roomID: UUID()) { _ in }
+    AddObjectSheet(room: MockData.livingRoom) { _ in }
 }
 #endif

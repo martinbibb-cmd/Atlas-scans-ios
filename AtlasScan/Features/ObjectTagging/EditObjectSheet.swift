@@ -52,9 +52,17 @@ struct EditObjectSheet: View {
                 }
 
                 if let pos = object.normalizedPosition {
-                    Section("Position") {
-                        LabeledContent("X (normalised)", value: String(format: "%.2f", pos.x))
-                        LabeledContent("Y (normalised)", value: String(format: "%.2f", pos.y))
+                    Section("Placement") {
+                        Picker("Mode", selection: $object.placementMode) {
+                            ForEach(PlacementMode.allCases, id: \.self) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
+                        }
+                        LabeledContent("Position",
+                            value: String(format: "x %.0f%%, y %.0f%%", pos.x * 100, pos.y * 100))
+                        if let wallIdx = object.wallIndex {
+                            LabeledContent("Wall", value: ScannedWall.displayName(forIndex: wallIdx))
+                        }
                     }
                 }
             }

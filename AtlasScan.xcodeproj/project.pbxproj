@@ -34,6 +34,10 @@ AA010024 /* ExportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRe
 AA010025 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020025 /* ModelTests.swift */; };
 AA010026 /* RoomPlanScannerAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020026 /* RoomPlanScannerAdapter.swift */; };
 AA010027 /* RoomPlanMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020027 /* RoomPlanMapperTests.swift */; };
+AA010028 /* ObjectPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020028 /* ObjectPlacement.swift */; };
+AA010029 /* PlacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020029 /* PlacementService.swift */; };
+AA010030 /* RoomLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020030 /* RoomLayoutView.swift */; };
+AA010031 /* PlacementServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020031 /* PlacementServiceTests.swift */; };
 AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -66,6 +70,10 @@ AA020024 /* ExportBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFile
 AA020025 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
 AA020026 /* RoomPlanScannerAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanScannerAdapter.swift; sourceTree = "<group>"; };
 AA020027 /* RoomPlanMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanMapperTests.swift; sourceTree = "<group>"; };
+AA020028 /* ObjectPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPlacement.swift; sourceTree = "<group>"; };
+AA020029 /* PlacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementService.swift; sourceTree = "<group>"; };
+AA020030 /* RoomLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLayoutView.swift; sourceTree = "<group>"; };
+AA020031 /* PlacementServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementServiceTests.swift; sourceTree = "<group>"; };
 AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -150,6 +158,7 @@ AA050012 /* RoomReview */ = {
 isa = PBXGroup;
 children = (
 AA020008 /* RoomReviewView.swift */,
+AA020030 /* RoomLayoutView.swift */,
 );
 path = RoomReview;
 sourceTree = "<group>";
@@ -182,6 +191,7 @@ AA020016 /* TaggedObject.swift */,
 AA020017 /* TaggedPhoto.swift */,
 AA020018 /* ServiceObjectCategory.swift */,
 AA020019 /* ExportDraftState.swift */,
+AA020028 /* ObjectPlacement.swift */,
 );
 path = Models;
 sourceTree = "<group>";
@@ -191,6 +201,7 @@ isa = PBXGroup;
 children = (
 AA020020 /* ScanJobStore.swift */,
 AA020021 /* ExportBuilder.swift */,
+AA020029 /* PlacementService.swift */,
 );
 path = Services;
 sourceTree = "<group>";
@@ -225,6 +236,7 @@ children = (
 AA020024 /* ExportBuilderTests.swift */,
 AA020025 /* ModelTests.swift */,
 AA020027 /* RoomPlanMapperTests.swift */,
+AA020031 /* PlacementServiceTests.swift */,
 );
 path = AtlasScanTests;
 sourceTree = "<group>";
@@ -370,6 +382,9 @@ AA010021 /* ExportBuilder.swift in Sources */,
 AA010022 /* ScanBundleV1.swift in Sources */,
 AA010023 /* MockData.swift in Sources */,
 AA010026 /* RoomPlanScannerAdapter.swift in Sources */,
+AA010028 /* ObjectPlacement.swift in Sources */,
+AA010029 /* PlacementService.swift in Sources */,
+AA010030 /* RoomLayoutView.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
@@ -380,6 +395,7 @@ files = (
 AA010024 /* ExportBuilderTests.swift in Sources */,
 AA010025 /* ModelTests.swift in Sources */,
 AA010027 /* RoomPlanMapperTests.swift in Sources */,
+AA010031 /* PlacementServiceTests.swift in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
