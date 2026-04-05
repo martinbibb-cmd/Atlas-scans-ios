@@ -123,10 +123,10 @@ private func validateRoom(_ room: [String: Any], path: String) -> [String] {
         errors.append("\(path).detectedObjects: must be an array.")
     }
     // Derive valid values from ScanConfidenceBand to avoid drift with the type definition.
-    let validConfidence = [ScanConfidenceBand.high, .medium, .low].map(\.rawValue)
+    let validConfidence = ScanConfidenceBand.allCases.map(\.rawValue)
     if let conf = room["confidence"] as? String {
         if !validConfidence.contains(conf) {
-            errors.append("\(path).confidence: must be '\(validConfidence.joined(separator: "' | '"))'.")
+            errors.append("\(path).confidence: must be one of: \(validConfidence.joined(separator: ", ")).")
         }
     } else {
         errors.append("\(path).confidence: must be a string.")

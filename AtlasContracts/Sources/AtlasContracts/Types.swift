@@ -13,7 +13,7 @@ public typealias ScanCoordinateConvention = String
 /// - high:   good coverage, measurement uncertainty < 5 cm
 /// - medium: partial coverage or occlusion, uncertainty 5–20 cm
 /// - low:    estimated / inferred, uncertainty > 20 cm
-public enum ScanConfidenceBand: String, Codable, Sendable {
+public enum ScanConfidenceBand: String, Codable, Sendable, CaseIterable {
     case high
     case medium
     case low

@@ -211,7 +211,10 @@ final class ExportBuilder {
     }
 
     private func contractOpening(from opening: ScannedOpening, wall: ScannedWall) -> ScanOpening {
-        let wallLength = wall.lengthMetres ?? ExportBuilder.defaultWallLengthM
+        let wallLength = wall.lengthMetres ?? defaultWallLengthM
+        // Offset is placed at the wall midpoint as a placeholder; once real
+        // RoomPlan geometry is integrated in the next PR, the actual measured
+        // offset from the wall's start point will be used here.
         return ScanOpening(
             id: opening.id.uuidString,
             widthM: opening.widthMetres ?? 0.9,
@@ -227,10 +230,10 @@ final class ExportBuilder {
         // can map normalised 0…1 positions to metric coordinates. Non-square
         // rooms will have some positional error here, but accuracy improves once
         // real RoomPlan geometry is integrated in the next PR.
-        let side = sqrt(room.areaSquareMetres ?? ExportBuilder.defaultRoomAreaM2)
+        let side = sqrt(room.areaSquareMetres ?? defaultRoomAreaM2)
         let cx = (object.normalizedPosition?.x ?? 0.5) * side
         let cy = (object.normalizedPosition?.y ?? 0.5) * side
-        let halfBoxSize = ExportBuilder.serviceObjectHalfBoxM
+        let halfBoxSize = serviceObjectHalfBoxM
 
         return ScanDetectedObject(
             id: object.id.uuidString,
@@ -258,7 +261,7 @@ final class ExportBuilder {
         var x = 0.0, y = 0.0
 
         for wall in walls {
-            let length = wall.lengthMetres ?? ExportBuilder.defaultWallLengthM
+            let length = wall.lengthMetres ?? defaultWallLengthM
             let bearing = (wall.bearingDegrees ?? 0.0) * .pi / 180.0
             let dx = length * sin(bearing)
             let dy = length * cos(bearing)
