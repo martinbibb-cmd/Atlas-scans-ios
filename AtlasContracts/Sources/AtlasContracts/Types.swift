@@ -158,6 +158,9 @@ public struct ScanDetectedObject: Codable, Sendable {
             maxX: Double, maxY: Double,
             minZ: Double, maxZ: Double
         ) {
+            precondition(minX <= maxX, "BoundingBox: minX (\(minX)) must be ≤ maxX (\(maxX))")
+            precondition(minY <= maxY, "BoundingBox: minY (\(minY)) must be ≤ maxY (\(maxY))")
+            precondition(minZ <= maxZ, "BoundingBox: minZ (\(minZ)) must be ≤ maxZ (\(maxZ))")
             self.minX = minX
             self.minY = minY
             self.maxX = maxX

@@ -16,11 +16,11 @@ final class ExportBuilder {
 
     /// Default wall length in metres, used when no geometry has been captured.
     /// 3 m is a representative minimum room dimension for typical UK residential rooms.
-    private static let defaultWallLengthM: Double = 3.0
+    private static let defaultWallLengthMetres: Double = 3.0
 
-    /// Default floor area in m², used when no geometry has been captured.
+    /// Default floor area in square metres, used when no geometry has been captured.
     /// 20 m² is a representative small-room size (e.g. a single bedroom).
-    private static let defaultRoomAreaM2: Double = 20.0
+    private static let defaultRoomAreaSquareMetres: Double = 20.0
 
     /// Half-width of the bounding box assigned to a tagged service object, in metres.
     /// Produces a 50 cm × 50 cm footprint, representative of a typical wall-mounted
@@ -211,7 +211,7 @@ final class ExportBuilder {
     }
 
     private func contractOpening(from opening: ScannedOpening, wall: ScannedWall) -> ScanOpening {
-        let wallLength = wall.lengthMetres ?? defaultWallLengthM
+        let wallLength = wall.lengthMetres ?? defaultWallLengthMetres
         // Offset is placed at the wall midpoint as a placeholder; once real
         // RoomPlan geometry is integrated in the next PR, the actual measured
         // offset from the wall's start point will be used here.
@@ -230,7 +230,7 @@ final class ExportBuilder {
         // can map normalised 0…1 positions to metric coordinates. Non-square
         // rooms will have some positional error here, but accuracy improves once
         // real RoomPlan geometry is integrated in the next PR.
-        let side = sqrt(room.areaSquareMetres ?? defaultRoomAreaM2)
+        let side = sqrt(room.areaSquareMetres ?? defaultRoomAreaSquareMetres)
         let cx = (object.normalizedPosition?.x ?? 0.5) * side
         let cy = (object.normalizedPosition?.y ?? 0.5) * side
 
@@ -260,7 +260,7 @@ final class ExportBuilder {
         var x = 0.0, y = 0.0
 
         for wall in walls {
-            let length = wall.lengthMetres ?? defaultWallLengthM
+            let length = wall.lengthMetres ?? defaultWallLengthMetres
             let bearing = (wall.bearingDegrees ?? 0.0) * .pi / 180.0
             let dx = length * sin(bearing)
             let dy = length * cos(bearing)
