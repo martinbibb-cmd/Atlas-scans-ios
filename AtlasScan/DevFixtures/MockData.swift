@@ -86,6 +86,8 @@ enum MockData {
                 label: "Radiator",
                 normalizedPosition: NormalizedPoint2D(x: 0.2, y: 0.05),
                 wallIndex: 0,
+                placementMode: .wallMounted,
+                rotation: 0.0,
                 quickFieldValues: [
                     "type": "Panel",
                     "width_estimate": "1200mm",
@@ -102,6 +104,8 @@ enum MockData {
                 label: "Room Thermostat",
                 normalizedPosition: NormalizedPoint2D(x: 0.8, y: 0.4),
                 wallIndex: 1,
+                placementMode: .wallMounted,
+                rotation: 0.0,
                 isConfirmed: true,
                 confidence: .high
             ),
@@ -131,6 +135,8 @@ enum MockData {
                 category: .radiator,
                 label: "Radiator",
                 normalizedPosition: NormalizedPoint2D(x: 0.5, y: 0.05),
+                placementMode: .wallMounted,
+                rotation: 0.0,
                 isConfirmed: true,
                 confidence: .medium
             ),
@@ -160,6 +166,8 @@ enum MockData {
                 category: .boiler,
                 label: "Boiler",
                 normalizedPosition: NormalizedPoint2D(x: 0.3, y: 0.1),
+                placementMode: .floorPlaced,
+                rotation: 0.0,
                 quickFieldValues: [
                     "type": "Combi",
                     "flue_direction": "Rear",
@@ -174,6 +182,8 @@ enum MockData {
                 category: .programmer,
                 label: "Programmer",
                 normalizedPosition: NormalizedPoint2D(x: 0.6, y: 0.4),
+                placementMode: .wallMounted,
+                rotation: 0.0,
                 isConfirmed: false,
                 confidence: .medium
             ),
@@ -203,6 +213,8 @@ enum MockData {
                 category: .boiler,
                 label: "Boiler",
                 normalizedPosition: NormalizedPoint2D(x: 0.5, y: 0.1),
+                placementMode: .floorPlaced,
+                rotation: 0.0,
                 quickFieldValues: ["type": "Heat-only", "enclosed": "true"],
                 isConfirmed: true,
                 confidence: .high
@@ -213,6 +225,8 @@ enum MockData {
                 category: .cylinder,
                 label: "Cylinder",
                 normalizedPosition: NormalizedPoint2D(x: 0.75, y: 0.3),
+                placementMode: .floorPlaced,
+                rotation: 0.0,
                 quickFieldValues: ["vented": "Unvented", "size": "210L"],
                 isConfirmed: true,
                 confidence: .high
@@ -223,6 +237,9 @@ enum MockData {
                 category: .flue,
                 label: "Flue",
                 normalizedPosition: NormalizedPoint2D(x: 0.5, y: 0.0),
+                wallIndex: 0,
+                placementMode: .wallMounted,
+                rotation: 0.0,
                 quickFieldValues: ["direction": "Rear"],
                 isConfirmed: true,
                 confidence: .high

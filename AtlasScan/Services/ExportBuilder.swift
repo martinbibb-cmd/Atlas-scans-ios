@@ -149,13 +149,25 @@ final class ExportBuilder {
 
         for room in job.rooms {
             for object in room.taggedObjects {
-                guard !object.quickFieldValues.isEmpty else { continue }
-                // Encode service-object quick fields as a QA info flag so the
-                // Atlas importer can extract engineering-specific metadata that
-                // has no first-class slot in ScanDetectedObject.
-                if let payload = encodeQuickFields(object.quickFieldValues) {
+                // Quick field values
+                if !object.quickFieldValues.isEmpty {
+                    if let payload = encodeQuickFields(object.quickFieldValues) {
+                        flags.append(ScanQAFlag(
+                            code: "atlas.service_fields",
+                            message: payload,
+                            severity: "info",
+                            entityId: object.id.uuidString
+                        ))
+                    }
+                }
+
+                // Placement metadata — carries mode, rotation, wall attachment and
+                // bounding size so the Atlas importer can reconstruct geometry.
+                // These fields have no first-class slot in ScanDetectedObject.
+                let placementData = encodePlacementData(object)
+                if let payload = placementData {
                     flags.append(ScanQAFlag(
-                        code: "atlas.service_fields",
+                        code: "atlas.placement",
                         message: payload,
                         severity: "info",
                         entityId: object.id.uuidString
@@ -293,6 +305,37 @@ final class ExportBuilder {
 
     private func encodeQuickFields(_ fields: [String: String]) -> String? {
         guard let data = try? JSONSerialization.data(withJSONObject: fields, options: .sortedKeys),
+              let str = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return str
+    }
+
+    /// Encodes placement metadata for a tagged object into a compact JSON string.
+    /// Returns nil when the object has no placement-specific data worth recording.
+    private func encodePlacementData(_ object: TaggedObject) -> String? {
+        var dict: [String: Any] = [
+            "mode": object.placementMode.rawValue,
+        ]
+        if object.rotation != 0.0 {
+            dict["rotation"] = object.rotation
+        }
+        if let wallIdx = object.wallIndex {
+            dict["wall_index"] = wallIdx
+        }
+        if let wallID = object.attachedWallID {
+            dict["wall_id"] = wallID.uuidString
+        }
+        if let size = object.boundingSize {
+            dict["bounding_width_m"] = size.widthMetres
+            dict["bounding_depth_m"] = size.depthMetres
+        }
+        // Only emit the flag when there is something beyond the bare minimum
+        let hasExtra = object.rotation != 0.0
+            || object.wallIndex != nil
+            || object.boundingSize != nil
+        guard hasExtra || object.placementMode != .unplaced else { return nil }
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .sortedKeys),
               let str = String(data: data, encoding: .utf8) else {
             return nil
         }
