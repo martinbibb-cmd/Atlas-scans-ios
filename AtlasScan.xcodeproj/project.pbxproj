@@ -1,0 +1,636 @@
+// !$*UTF8*$!
+{
+archiveVersion = 1;
+classes = {
+};
+objectVersion = 56;
+objects = {
+
+/* Begin PBXBuildFile section */
+AA010001 /* AtlasScanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020001 /* AtlasScanApp.swift */; };
+AA010002 /* ScanSessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020002 /* ScanSessionListView.swift */; };
+AA010003 /* ScanJobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020003 /* ScanJobDetailView.swift */; };
+AA010004 /* NewScanJobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020004 /* NewScanJobView.swift */; };
+AA010005 /* RoomCaptureContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020005 /* RoomCaptureContainerView.swift */; };
+AA010006 /* ScannerAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020006 /* ScannerAdapter.swift */; };
+AA010007 /* MockScannerAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020007 /* MockScannerAdapter.swift */; };
+AA010008 /* RoomReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020008 /* RoomReviewView.swift */; };
+AA010009 /* AddObjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020009 /* AddObjectSheet.swift */; };
+AA010010 /* EditObjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020010 /* EditObjectSheet.swift */; };
+AA010011 /* ExportPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020011 /* ExportPreviewView.swift */; };
+AA010012 /* ScanJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020012 /* ScanJob.swift */; };
+AA010013 /* ScannedRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020013 /* ScannedRoom.swift */; };
+AA010014 /* ScannedWall.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020014 /* ScannedWall.swift */; };
+AA010015 /* ScannedOpening.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020015 /* ScannedOpening.swift */; };
+AA010016 /* TaggedObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020016 /* TaggedObject.swift */; };
+AA010017 /* TaggedPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020017 /* TaggedPhoto.swift */; };
+AA010018 /* ServiceObjectCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020018 /* ServiceObjectCategory.swift */; };
+AA010019 /* ExportDraftState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020019 /* ExportDraftState.swift */; };
+AA010020 /* ScanJobStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020020 /* ScanJobStore.swift */; };
+AA010021 /* ExportBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020021 /* ExportBuilder.swift */; };
+AA010022 /* ScanBundleV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020022 /* ScanBundleV1.swift */; };
+AA010023 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020023 /* MockData.swift */; };
+AA010024 /* ExportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020024 /* ExportBuilderTests.swift */; };
+AA010025 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020025 /* ModelTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+AA020001 /* AtlasScanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanApp.swift; sourceTree = "<group>"; };
+AA020002 /* ScanSessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionListView.swift; sourceTree = "<group>"; };
+AA020003 /* ScanJobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanJobDetailView.swift; sourceTree = "<group>"; };
+AA020004 /* NewScanJobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewScanJobView.swift; sourceTree = "<group>"; };
+AA020005 /* RoomCaptureContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomCaptureContainerView.swift; sourceTree = "<group>"; };
+AA020006 /* ScannerAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerAdapter.swift; sourceTree = "<group>"; };
+AA020007 /* MockScannerAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockScannerAdapter.swift; sourceTree = "<group>"; };
+AA020008 /* RoomReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomReviewView.swift; sourceTree = "<group>"; };
+AA020009 /* AddObjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddObjectSheet.swift; sourceTree = "<group>"; };
+AA020010 /* EditObjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditObjectSheet.swift; sourceTree = "<group>"; };
+AA020011 /* ExportPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPreviewView.swift; sourceTree = "<group>"; };
+AA020012 /* ScanJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanJob.swift; sourceTree = "<group>"; };
+AA020013 /* ScannedRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannedRoom.swift; sourceTree = "<group>"; };
+AA020014 /* ScannedWall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannedWall.swift; sourceTree = "<group>"; };
+AA020015 /* ScannedOpening.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannedOpening.swift; sourceTree = "<group>"; };
+AA020016 /* TaggedObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedObject.swift; sourceTree = "<group>"; };
+AA020017 /* TaggedPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedPhoto.swift; sourceTree = "<group>"; };
+AA020018 /* ServiceObjectCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceObjectCategory.swift; sourceTree = "<group>"; };
+AA020019 /* ExportDraftState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportDraftState.swift; sourceTree = "<group>"; };
+AA020020 /* ScanJobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanJobStore.swift; sourceTree = "<group>"; };
+AA020021 /* ExportBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportBuilder.swift; sourceTree = "<group>"; };
+AA020022 /* ScanBundleV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanBundleV1.swift; sourceTree = "<group>"; };
+AA020023 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+AA020024 /* ExportBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportBuilderTests.swift; sourceTree = "<group>"; };
+AA020025 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+AA040001 /* Frameworks */ = {
+isa = PBXFrameworksBuildPhase;
+buildActionMask = 2147483647;
+files = (
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
+AA040002 /* Frameworks */ = {
+isa = PBXFrameworksBuildPhase;
+buildActionMask = 2147483647;
+files = (
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+AA050001 /* AtlasScan */ = {
+isa = PBXGroup;
+children = (
+AA050002 /* App */,
+AA050003 /* Features */,
+AA050004 /* Models */,
+AA050005 /* Services */,
+AA050006 /* Contracts */,
+AA050007 /* DevFixtures */,
+AA050008 /* Resources */,
+);
+path = AtlasScan;
+sourceTree = "<group>";
+};
+AA050002 /* App */ = {
+isa = PBXGroup;
+children = (
+AA020001 /* AtlasScanApp.swift */,
+);
+path = App;
+sourceTree = "<group>";
+};
+AA050003 /* Features */ = {
+isa = PBXGroup;
+children = (
+AA050010 /* ScanSession */,
+AA050011 /* RoomCapture */,
+AA050012 /* RoomReview */,
+AA050013 /* ObjectTagging */,
+AA050014 /* Export */,
+);
+path = Features;
+sourceTree = "<group>";
+};
+AA050010 /* ScanSession */ = {
+isa = PBXGroup;
+children = (
+AA020002 /* ScanSessionListView.swift */,
+AA020003 /* ScanJobDetailView.swift */,
+AA020004 /* NewScanJobView.swift */,
+);
+path = ScanSession;
+sourceTree = "<group>";
+};
+AA050011 /* RoomCapture */ = {
+isa = PBXGroup;
+children = (
+AA020005 /* RoomCaptureContainerView.swift */,
+AA020006 /* ScannerAdapter.swift */,
+AA020007 /* MockScannerAdapter.swift */,
+);
+path = RoomCapture;
+sourceTree = "<group>";
+};
+AA050012 /* RoomReview */ = {
+isa = PBXGroup;
+children = (
+AA020008 /* RoomReviewView.swift */,
+);
+path = RoomReview;
+sourceTree = "<group>";
+};
+AA050013 /* ObjectTagging */ = {
+isa = PBXGroup;
+children = (
+AA020009 /* AddObjectSheet.swift */,
+AA020010 /* EditObjectSheet.swift */,
+);
+path = ObjectTagging;
+sourceTree = "<group>";
+};
+AA050014 /* Export */ = {
+isa = PBXGroup;
+children = (
+AA020011 /* ExportPreviewView.swift */,
+);
+path = Export;
+sourceTree = "<group>";
+};
+AA050004 /* Models */ = {
+isa = PBXGroup;
+children = (
+AA020012 /* ScanJob.swift */,
+AA020013 /* ScannedRoom.swift */,
+AA020014 /* ScannedWall.swift */,
+AA020015 /* ScannedOpening.swift */,
+AA020016 /* TaggedObject.swift */,
+AA020017 /* TaggedPhoto.swift */,
+AA020018 /* ServiceObjectCategory.swift */,
+AA020019 /* ExportDraftState.swift */,
+);
+path = Models;
+sourceTree = "<group>";
+};
+AA050005 /* Services */ = {
+isa = PBXGroup;
+children = (
+AA020020 /* ScanJobStore.swift */,
+AA020021 /* ExportBuilder.swift */,
+);
+path = Services;
+sourceTree = "<group>";
+};
+AA050006 /* Contracts */ = {
+isa = PBXGroup;
+children = (
+AA020022 /* ScanBundleV1.swift */,
+);
+path = Contracts;
+sourceTree = "<group>";
+};
+AA050007 /* DevFixtures */ = {
+isa = PBXGroup;
+children = (
+AA020023 /* MockData.swift */,
+);
+path = DevFixtures;
+sourceTree = "<group>";
+};
+AA050008 /* Resources */ = {
+isa = PBXGroup;
+children = (
+AA030003 /* Info.plist */,
+);
+path = Resources;
+sourceTree = "<group>";
+};
+AA060001 /* AtlasScanTests */ = {
+isa = PBXGroup;
+children = (
+AA020024 /* ExportBuilderTests.swift */,
+AA020025 /* ModelTests.swift */,
+);
+path = AtlasScanTests;
+sourceTree = "<group>";
+};
+AA060002 /* Products */ = {
+isa = PBXGroup;
+children = (
+AA030001 /* AtlasScan.app */,
+AA030002 /* AtlasScanTests.xctest */,
+);
+name = Products;
+sourceTree = "<group>";
+};
+AA060000 /* root */ = {
+isa = PBXGroup;
+children = (
+AA050001 /* AtlasScan */,
+AA060001 /* AtlasScanTests */,
+AA060002 /* Products */,
+);
+sourceTree = "<group>";
+};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+AA070001 /* AtlasScan */ = {
+isa = PBXNativeTarget;
+buildConfigurationList = AA090001 /* Build configuration list for PBXNativeTarget "AtlasScan" */;
+buildPhases = (
+AA080001 /* Sources */,
+AA040001 /* Frameworks */,
+AA080003 /* Resources */,
+);
+buildRules = (
+);
+dependencies = (
+);
+name = AtlasScan;
+productName = AtlasScan;
+productReference = AA030001 /* AtlasScan.app */;
+productType = "com.apple.product-type.application";
+};
+AA070002 /* AtlasScanTests */ = {
+isa = PBXNativeTarget;
+buildConfigurationList = AA090002 /* Build configuration list for PBXNativeTarget "AtlasScanTests" */;
+buildPhases = (
+AA080002 /* Sources */,
+AA040002 /* Frameworks */,
+);
+buildRules = (
+);
+dependencies = (
+AA0A0001 /* PBXTargetDependency */,
+);
+name = AtlasScanTests;
+productName = AtlasScanTests;
+productReference = AA030002 /* AtlasScanTests.xctest */;
+productType = "com.apple.product-type.bundle.unit-test";
+};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+AA0B0001 /* Project object */ = {
+isa = PBXProject;
+attributes = {
+BuildIndependentTargetsInParallel = 1;
+LastSwiftUpdateCheck = 1500;
+LastUpgradeCheck = 1500;
+TargetAttributes = {
+AA070001 = {
+CreatedOnToolsVersion = 15.0;
+};
+AA070002 = {
+CreatedOnToolsVersion = 15.0;
+TestTargetID = AA070001;
+};
+};
+};
+buildConfigurationList = AA090003 /* Build configuration list for PBXProject "AtlasScan" */;
+compatibilityVersion = "Xcode 14.0";
+developmentRegion = en;
+hasScannedForEncodings = 0;
+knownRegions = (
+en,
+Base,
+);
+mainGroup = AA060000;
+productRefGroup = AA060002 /* Products */;
+projectDirPath = "";
+projectRoot = "";
+targets = (
+AA070001 /* AtlasScan */,
+AA070002 /* AtlasScanTests */,
+);
+};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+AA080003 /* Resources */ = {
+isa = PBXResourcesBuildPhase;
+buildActionMask = 2147483647;
+files = (
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+AA080001 /* Sources */ = {
+isa = PBXSourcesBuildPhase;
+buildActionMask = 2147483647;
+files = (
+AA010001 /* AtlasScanApp.swift in Sources */,
+AA010002 /* ScanSessionListView.swift in Sources */,
+AA010003 /* ScanJobDetailView.swift in Sources */,
+AA010004 /* NewScanJobView.swift in Sources */,
+AA010005 /* RoomCaptureContainerView.swift in Sources */,
+AA010006 /* ScannerAdapter.swift in Sources */,
+AA010007 /* MockScannerAdapter.swift in Sources */,
+AA010008 /* RoomReviewView.swift in Sources */,
+AA010009 /* AddObjectSheet.swift in Sources */,
+AA010010 /* EditObjectSheet.swift in Sources */,
+AA010011 /* ExportPreviewView.swift in Sources */,
+AA010012 /* ScanJob.swift in Sources */,
+AA010013 /* ScannedRoom.swift in Sources */,
+AA010014 /* ScannedWall.swift in Sources */,
+AA010015 /* ScannedOpening.swift in Sources */,
+AA010016 /* TaggedObject.swift in Sources */,
+AA010017 /* TaggedPhoto.swift in Sources */,
+AA010018 /* ServiceObjectCategory.swift in Sources */,
+AA010019 /* ExportDraftState.swift in Sources */,
+AA010020 /* ScanJobStore.swift in Sources */,
+AA010021 /* ExportBuilder.swift in Sources */,
+AA010022 /* ScanBundleV1.swift in Sources */,
+AA010023 /* MockData.swift in Sources */,
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
+AA080002 /* Sources */ = {
+isa = PBXSourcesBuildPhase;
+buildActionMask = 2147483647;
+files = (
+AA010024 /* ExportBuilderTests.swift in Sources */,
+AA010025 /* ModelTests.swift in Sources */,
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+AA0A0001 /* PBXTargetDependency */ = {
+isa = PBXTargetDependency;
+target = AA070001 /* AtlasScan */;
+targetProxy = AA0A0002 /* PBXContainerItemProxy */;
+};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+AA0A0002 /* PBXContainerItemProxy */ = {
+isa = PBXContainerItemProxy;
+containerPortal = AA0B0001 /* Project object */;
+proxyType = 1;
+remoteGlobalIDString = AA070001;
+remoteInfo = AtlasScan;
+};
+/* End PBXContainerItemProxy section */
+
+/* Begin XCBuildConfiguration section */
+AA0C0001 /* Debug */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ALWAYS_SEARCH_USER_PATHS = NO;
+ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+CLANG_ANALYZER_NONNULL = YES;
+CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+CLANG_ENABLE_MODULES = YES;
+CLANG_ENABLE_OBJC_ARC = YES;
+CLANG_ENABLE_OBJC_WEAK = YES;
+CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+CLANG_WARN_BOOL_CONVERSION = YES;
+CLANG_WARN_COMMA = YES;
+CLANG_WARN_CONSTANT_CONVERSION = YES;
+CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+CLANG_WARN_EMPTY_BODY = YES;
+CLANG_WARN_ENUM_CONVERSION = YES;
+CLANG_WARN_INFINITE_RECURSION = YES;
+CLANG_WARN_INT_CONVERSION = YES;
+CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+CLANG_WARN_STRICT_PROTOTYPES = YES;
+CLANG_WARN_SUSPICIOUS_MOVE = YES;
+CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+CLANG_WARN_UNREACHABLE_CODE = YES;
+CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+COPY_PHASE_STRIP = NO;
+DEBUG_INFORMATION_FORMAT = dwarf;
+ENABLE_STRICT_OBJC_MSGSEND = YES;
+ENABLE_TESTABILITY = YES;
+ENABLE_USER_SCRIPT_SANDBOXING = YES;
+GCC_C_LANGUAGE_STANDARD = gnu17;
+GCC_DYNAMIC_NO_PIC = NO;
+GCC_NO_COMMON_BLOCKS = YES;
+GCC_OPTIMIZATION_LEVEL = 0;
+GCC_PREPROCESSOR_DEFINITIONS = (
+"DEBUG=1",
+"$(inherited)",
+);
+GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+GCC_WARN_UNDECLARED_SELECTOR = YES;
+GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+GCC_WARN_UNUSED_FUNCTION = YES;
+GCC_WARN_UNUSED_VARIABLE = YES;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+MTL_FAST_MATH = YES;
+ONLY_ACTIVE_ARCH = YES;
+SDKROOT = iphoneos;
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+};
+name = Debug;
+};
+AA0C0002 /* Release */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ALWAYS_SEARCH_USER_PATHS = NO;
+ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+CLANG_ANALYZER_NONNULL = YES;
+CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+CLANG_ENABLE_MODULES = YES;
+CLANG_ENABLE_OBJC_ARC = YES;
+CLANG_ENABLE_OBJC_WEAK = YES;
+CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+CLANG_WARN_BOOL_CONVERSION = YES;
+CLANG_WARN_COMMA = YES;
+CLANG_WARN_CONSTANT_CONVERSION = YES;
+CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+CLANG_WARN_EMPTY_BODY = YES;
+CLANG_WARN_ENUM_CONVERSION = YES;
+CLANG_WARN_INFINITE_RECURSION = YES;
+CLANG_WARN_INT_CONVERSION = YES;
+CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+CLANG_WARN_STRICT_PROTOTYPES = YES;
+CLANG_WARN_SUSPICIOUS_MOVE = YES;
+CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+CLANG_WARN_UNREACHABLE_CODE = YES;
+CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+COPY_PHASE_STRIP = NO;
+DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+ENABLE_NS_ASSERTIONS = NO;
+ENABLE_STRICT_OBJC_MSGSEND = YES;
+ENABLE_USER_SCRIPT_SANDBOXING = YES;
+GCC_C_LANGUAGE_STANDARD = gnu17;
+GCC_NO_COMMON_BLOCKS = YES;
+GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+GCC_WARN_UNDECLARED_SELECTOR = YES;
+GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+GCC_WARN_UNUSED_FUNCTION = YES;
+GCC_WARN_UNUSED_VARIABLE = YES;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+MTL_FAST_MATH = YES;
+SDKROOT = iphoneos;
+SWIFT_COMPILATION_MODE = wholemodule;
+VALIDATE_PRODUCT = YES;
+};
+name = Release;
+};
+AA0C0003 /* Debug */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+CODE_SIGN_STYLE = Automatic;
+CURRENT_PROJECT_VERSION = 1;
+DEVELOPMENT_ASSET_PATHS = "\"AtlasScan/DevFixtures\"";
+ENABLE_PREVIEWS = YES;
+GENERATE_INFOPLIST_FILE = NO;
+INFOPLIST_FILE = AtlasScan/Resources/Info.plist;
+INFOPLIST_KEY_NSCameraUsageDescription = "Atlas Scan uses the camera to capture room geometry.";
+INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+LD_RUNPATH_SEARCH_PATHS = (
+"$(inherited)",
+"@executable_path/Frameworks",
+);
+MARKETING_VERSION = 1.0;
+PRODUCT_BUNDLE_IDENTIFIER = com.atlas.AtlasScan;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+SUPPORTS_MACCATALYST = NO;
+SWIFT_EMIT_LOC_STRINGS = YES;
+SWIFT_VERSION = 5.9;
+TARGETED_DEVICE_FAMILY = "1,2";
+};
+name = Debug;
+};
+AA0C0004 /* Release */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+CODE_SIGN_STYLE = Automatic;
+CURRENT_PROJECT_VERSION = 1;
+DEVELOPMENT_ASSET_PATHS = "\"AtlasScan/DevFixtures\"";
+ENABLE_PREVIEWS = YES;
+GENERATE_INFOPLIST_FILE = NO;
+INFOPLIST_FILE = AtlasScan/Resources/Info.plist;
+INFOPLIST_KEY_NSCameraUsageDescription = "Atlas Scan uses the camera to capture room geometry.";
+INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+LD_RUNPATH_SEARCH_PATHS = (
+"$(inherited)",
+"@executable_path/Frameworks",
+);
+MARKETING_VERSION = 1.0;
+PRODUCT_BUNDLE_IDENTIFIER = com.atlas.AtlasScan;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+SUPPORTS_MACCATALYST = NO;
+SWIFT_EMIT_LOC_STRINGS = YES;
+SWIFT_VERSION = 5.9;
+TARGETED_DEVICE_FAMILY = "1,2";
+};
+name = Release;
+};
+AA0C0005 /* Debug */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+BUNDLE_LOADER = "$(TEST_HOST)";
+CODE_SIGN_STYLE = Automatic;
+CURRENT_PROJECT_VERSION = 1;
+GENERATE_INFOPLIST_FILE = YES;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+MARKETING_VERSION = 1.0;
+PRODUCT_BUNDLE_IDENTIFIER = com.atlas.AtlasScanTests;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SWIFT_EMIT_LOC_STRINGS = NO;
+SWIFT_VERSION = 5.9;
+TARGETED_DEVICE_FAMILY = "1,2";
+TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AtlasScan.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AtlasScan";
+};
+name = Debug;
+};
+AA0C0006 /* Release */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+BUNDLE_LOADER = "$(TEST_HOST)";
+CODE_SIGN_STYLE = Automatic;
+CURRENT_PROJECT_VERSION = 1;
+GENERATE_INFOPLIST_FILE = YES;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+MARKETING_VERSION = 1.0;
+PRODUCT_BUNDLE_IDENTIFIER = com.atlas.AtlasScanTests;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SWIFT_EMIT_LOC_STRINGS = NO;
+SWIFT_VERSION = 5.9;
+TARGETED_DEVICE_FAMILY = "1,2";
+TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AtlasScan.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AtlasScan";
+};
+name = Release;
+};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+AA090001 /* Build configuration list for PBXNativeTarget "AtlasScan" */ = {
+isa = XCConfigurationList;
+buildConfigurations = (
+AA0C0003 /* Debug */,
+AA0C0004 /* Release */,
+);
+defaultConfigurationIsVisible = 0;
+defaultConfigurationName = Release;
+};
+AA090002 /* Build configuration list for PBXNativeTarget "AtlasScanTests" */ = {
+isa = XCConfigurationList;
+buildConfigurations = (
+AA0C0005 /* Debug */,
+AA0C0006 /* Release */,
+);
+defaultConfigurationIsVisible = 0;
+defaultConfigurationName = Release;
+};
+AA090003 /* Build configuration list for PBXProject "AtlasScan" */ = {
+isa = XCConfigurationList;
+buildConfigurations = (
+AA0C0001 /* Debug */,
+AA0C0002 /* Release */,
+);
+defaultConfigurationIsVisible = 0;
+defaultConfigurationName = Release;
+};
+/* End XCConfigurationList section */
+
+};
+rootObject = AA0B0001 /* Project object */;
+}

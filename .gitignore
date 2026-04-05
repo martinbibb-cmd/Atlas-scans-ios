@@ -1,0 +1,44 @@
+# Xcode build artifacts
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods (not used, but just in case)
+Pods/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.icloud
+
+# Xcode user-specific settings
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Playground executables
+*.playground/playground.xcworkspace
+
+# Instruments
+*.trace
+
+# Simulator
+*.app
+
+# Archives
+*.xcarchive
+
+# Simulator device state (large, device-specific)
+Library/
+
+# Temporary files
+*.tmp
+*.temp
