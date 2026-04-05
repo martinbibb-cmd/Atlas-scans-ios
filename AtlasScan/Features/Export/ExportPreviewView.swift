@@ -269,12 +269,14 @@ struct ExportPreviewView: View {
         let capturedJob = job
         let capturedJSON = bundleJSON
         let capturedInclude = includeEvidence
+        let capturedIssues = validationIssues
         Task {
             do {
                 let pkg = try packageBuilder.buildPackage(
                     from: capturedJob,
                     bundleJSON: capturedJSON,
-                    includeEvidence: capturedInclude
+                    includeEvidence: capturedInclude,
+                    validationIssues: capturedIssues
                 )
                 await MainActor.run {
                     pendingPackage = pkg
