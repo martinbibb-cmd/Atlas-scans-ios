@@ -22,6 +22,7 @@ struct ScanJobDetailView: View {
             jobHeaderSection
             roomsSection
             if !job.rooms.isEmpty {
+                propertyPlanSection
                 exportSection
             }
         }
@@ -86,6 +87,16 @@ struct ScanJobDetailView: View {
             }
         } header: {
             Text("Rooms")
+        }
+    }
+
+    private var propertyPlanSection: some View {
+        Section {
+            NavigationLink {
+                PropertyPlanView(job: $job)
+            } label: {
+                Label("Property Plan", systemImage: "map")
+            }
         }
     }
 

@@ -19,6 +19,23 @@ enum MockData {
         )
         job.rooms = [livingRoom, kitchen, utilityRoom]
         job.status = .inProgress
+
+        // Sample room adjacencies for preview / testing.
+        job.roomAdjacencies = [
+            RoomAdjacency(
+                fromRoomID: UUID(uuidString: "B1B2B3B4-0000-0000-0000-000000000001")!, // Living Room
+                toRoomID:   UUID(uuidString: "B1B2B3B4-0000-0000-0000-000000000002")!, // Kitchen
+                kind: .archway,
+                isConfirmed: true
+            ),
+            RoomAdjacency(
+                fromRoomID: UUID(uuidString: "B1B2B3B4-0000-0000-0000-000000000002")!, // Kitchen
+                toRoomID:   UUID(uuidString: "B1B2B3B4-0000-0000-0000-000000000003")!, // Utility Room
+                kind: .door,
+                isConfirmed: true
+            ),
+        ]
+
         return job
     }
 
