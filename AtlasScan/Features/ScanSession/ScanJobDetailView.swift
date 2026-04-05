@@ -12,6 +12,7 @@ struct ScanJobDetailView: View {
     @State private var showingExport = false
     @State private var newRoomName = ""
     @State private var newRoomFloor = 0
+    @State private var showingAddSitePhoto = false
 
     init(job: ScanJob) {
         _job = State(initialValue: job)
@@ -23,6 +24,9 @@ struct ScanJobDetailView: View {
             roomsSection
             if !job.rooms.isEmpty {
                 propertyPlanSection
+            }
+            evidenceSection
+            if !job.rooms.isEmpty {
                 exportSection
             }
         }
@@ -43,6 +47,12 @@ struct ScanJobDetailView: View {
         }
         .sheet(isPresented: $showingExport) {
             ExportPreviewView(job: $job)
+        }
+        .sheet(isPresented: $showingAddSitePhoto) {
+            AddPhotoSheet(roomID: nil, taggedObjectID: nil) { newPhoto in
+                job.addPhoto(newPhoto)
+                jobStore.save(job)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .roomUpdated)) { note in
             if let updated = note.object as? ScannedRoom, updated.jobID == job.id {
@@ -97,6 +107,44 @@ struct ScanJobDetailView: View {
             } label: {
                 Label("Property Plan", systemImage: "map")
             }
+        }
+    }
+
+    private var evidenceSection: some View {
+        Section {
+            PhotoGalleryView(
+                photos: job.photos,
+                onDelete: { photoID in
+                    if let photo = job.photos.first(where: { $0.id == photoID }) {
+                        PhotoStore.shared.deleteFiles(for: photo)
+                    }
+                    job.removePhoto(id: photoID)
+                    jobStore.save(job)
+                },
+                onUpdateCaption: { photoID, newCaption in
+                    guard let index = job.photos.firstIndex(where: { $0.id == photoID }) else { return }
+                    job.photos[index].caption = newCaption
+                    jobStore.save(job)
+                }
+            )
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+            Button {
+                showingAddSitePhoto = true
+            } label: {
+                Label("Add Site Photo", systemImage: "camera.badge.plus")
+            }
+        } header: {
+            HStack {
+                Text("Site Photos")
+                if job.totalPhotos > 0 {
+                    Text("(\(job.totalPhotos))")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } footer: {
+            Text("Site photos cover the property overall — front elevation, meter cupboard, loft hatch, etc.")
+                .font(.caption2)
         }
     }
 
@@ -204,6 +252,12 @@ struct RoomRowView: View {
                         Label("\(room.taggedObjects.count)", systemImage: "tag.fill")
                             .font(.caption)
                             .foregroundStyle(.blue)
+                    }
+
+                    if !room.photos.isEmpty {
+                        Label("\(room.photos.count)", systemImage: "photo.fill")
+                            .font(.caption)
+                            .foregroundStyle(.indigo)
                     }
                 }
             }

@@ -21,6 +21,7 @@ struct RoomReviewView: View {
     @State private var isEditingName = false
     @State private var editedName = ""
     @State private var selectedObjectIDOnLayout: UUID?
+    @State private var showingAddPhoto = false
 
     init(room: ScannedRoom, job: Binding<ScanJob>) {
         _room = State(initialValue: room)
@@ -33,6 +34,7 @@ struct RoomReviewView: View {
             layoutSection(with: results)
             geometrySection
             serviceObjectsSection(with: results)
+            photosSection
             notesSection
             reviewSection
         }
@@ -57,6 +59,12 @@ struct RoomReviewView: View {
         .sheet(isPresented: $showingAddObject) {
             AddObjectSheet(room: room) { newObject in
                 room.addTaggedObject(newObject)
+                persistRoom()
+            }
+        }
+        .sheet(isPresented: $showingAddPhoto) {
+            AddPhotoSheet(roomID: room.id, taggedObjectID: nil) { newPhoto in
+                room.addPhoto(newPhoto)
                 persistRoom()
             }
         }
@@ -177,6 +185,46 @@ struct RoomReviewView: View {
                 } label: {
                     Image(systemName: "plus.circle")
                 }
+            }
+        }
+    }
+
+    private var photosSection: some View {
+        Section {
+            PhotoGalleryView(
+                photos: room.photos,
+                onDelete: { photoID in
+                    if let photo = room.photos.first(where: { $0.id == photoID }) {
+                        PhotoStore.shared.deleteFiles(for: photo)
+                    }
+                    room.removePhoto(id: photoID)
+                    persistRoom()
+                },
+                onUpdateCaption: { photoID, newCaption in
+                    guard let index = room.photos.firstIndex(where: { $0.id == photoID }) else { return }
+                    room.photos[index].caption = newCaption
+                    persistRoom()
+                }
+            )
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        } header: {
+            HStack {
+                Text("Photos")
+                if !room.photos.isEmpty {
+                    Text("(\(room.photos.count))")
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    showingAddPhoto = true
+                } label: {
+                    Image(systemName: "camera.badge.plus")
+                }
+            }
+        } footer: {
+            if room.photos.isEmpty {
+                Text("Tap the camera icon to add evidence photos for this room.")
+                    .font(.caption2)
             }
         }
     }

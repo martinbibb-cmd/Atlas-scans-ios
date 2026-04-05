@@ -32,6 +32,12 @@ struct ScanJob: Identifiable, Codable {
     /// Positions are computed automatically from room index when no override exists.
     var roomPlacements: [RoomPlacementOverride]
 
+    // MARK: Job-level evidence (Layer 3 — site photos)
+
+    /// Site-level photos attached to the job as a whole (e.g. front elevation, meter cupboard, loft hatch).
+    /// Empty in jobs created before evidence capture was available.
+    var photos: [TaggedPhoto]
+
     // MARK: Status
 
     var status: ScanJobStatus
@@ -56,6 +62,7 @@ struct ScanJob: Identifiable, Codable {
         rooms: [ScannedRoom] = [],
         roomAdjacencies: [RoomAdjacency] = [],
         roomPlacements: [RoomPlacementOverride] = [],
+        photos: [TaggedPhoto] = [],
         status: ScanJobStatus = .draft
     ) {
         self.id = id
@@ -71,6 +78,7 @@ struct ScanJob: Identifiable, Codable {
         self.rooms = rooms
         self.roomAdjacencies = roomAdjacencies
         self.roomPlacements = roomPlacements
+        self.photos = photos
         self.status = status
         self.exportDraftState = nil
         self.createdAt = Date()
@@ -81,7 +89,7 @@ struct ScanJob: Identifiable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case id, jobReference, propertyAddress, engineerName, atlasJobID
-        case rooms, roomAdjacencies, roomPlacements
+        case rooms, roomAdjacencies, roomPlacements, photos
         case status, exportDraftState, createdAt, updatedAt
     }
 
@@ -96,6 +104,8 @@ struct ScanJob: Identifiable, Codable {
         // New fields — default to empty arrays for jobs saved before multi-room linking was added.
         roomAdjacencies  = try c.decodeIfPresent([RoomAdjacency].self,         forKey: .roomAdjacencies) ?? []
         roomPlacements   = try c.decodeIfPresent([RoomPlacementOverride].self, forKey: .roomPlacements)  ?? []
+        // New field — default to empty array for jobs saved before evidence capture was added.
+        photos           = try c.decodeIfPresent([TaggedPhoto].self,           forKey: .photos) ?? []
         status           = try c.decode(ScanJobStatus.self,         forKey: .status)
         exportDraftState = try c.decodeIfPresent(ExportDraftState.self, forKey: .exportDraftState)
         createdAt        = try c.decode(Date.self,                  forKey: .createdAt)
@@ -130,6 +140,8 @@ struct ScanJob: Identifiable, Codable {
         // Remove adjacencies and placement overrides that reference the deleted room.
         roomAdjacencies.removeAll { $0.fromRoomID == id || $0.toRoomID == id }
         roomPlacements.removeAll { $0.id == id }
+        // Remove any job-level photos that were explicitly linked to the deleted room.
+        photos.removeAll { $0.roomID == id }
         touch()
     }
 
@@ -137,6 +149,22 @@ struct ScanJob: Identifiable, Codable {
         guard let index = rooms.firstIndex(where: { $0.id == updated.id }) else { return }
         rooms[index] = updated
         touch()
+    }
+
+    // MARK: Job-level photo helpers
+
+    mutating func addPhoto(_ photo: TaggedPhoto) {
+        photos.append(photo)
+        touch()
+    }
+
+    mutating func removePhoto(id: UUID) {
+        photos.removeAll { $0.id == id }
+        touch()
+    }
+
+    var totalPhotos: Int {
+        photos.count + rooms.reduce(0) { $0 + $1.photos.count }
     }
 
     // MARK: Adjacency helpers
