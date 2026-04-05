@@ -127,9 +127,10 @@ final class ExportPackageBuilder {
         return copied
     }
 
+    private static let iso8601: ISO8601DateFormatter = ISO8601DateFormatter()
+
     /// Builds a manifest dictionary describing the package contents.
     private func buildManifest(for job: ScanJob, evidenceFiles: [URL]) -> [String: Any] {
-        let iso = ISO8601DateFormatter()
         let allPhotos = job.photos + job.rooms.flatMap(\.photos)
         var contents: [String] = ["scan_bundle.json", "manifest.json"]
         contents += evidenceFiles.map { "evidence/\($0.lastPathComponent)" }
@@ -143,7 +144,7 @@ final class ExportPackageBuilder {
             "total_photos":         allPhotos.count,
             "evidence_included":    !evidenceFiles.isEmpty,
             "evidence_file_count":  evidenceFiles.count,
-            "generated_at":         iso.string(from: Date()),
+            "generated_at":         Self.iso8601.string(from: Date()),
             "contents":             contents,
         ]
     }
