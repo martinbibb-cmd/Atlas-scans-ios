@@ -158,9 +158,12 @@ public struct ScanDetectedObject: Codable, Sendable {
             maxX: Double, maxY: Double,
             minZ: Double, maxZ: Double
         ) {
-            self.minX = minX; self.minY = minY
-            self.maxX = maxX; self.maxY = maxY
-            self.minZ = minZ; self.maxZ = maxZ
+            self.minX = minX
+            self.minY = minY
+            self.maxX = maxX
+            self.maxY = maxY
+            self.minZ = minZ
+            self.maxZ = maxZ
         }
     }
 

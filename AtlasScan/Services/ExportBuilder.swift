@@ -233,16 +233,15 @@ final class ExportBuilder {
         let side = sqrt(room.areaSquareMetres ?? defaultRoomAreaM2)
         let cx = (object.normalizedPosition?.x ?? 0.5) * side
         let cy = (object.normalizedPosition?.y ?? 0.5) * side
-        let halfBoxSize = serviceObjectHalfBoxM
 
         return ScanDetectedObject(
             id: object.id.uuidString,
             category: object.category.rawValue,
             label: object.displayLabel,
             boundingBox: ScanDetectedObject.BoundingBox(
-                minX: cx - halfBoxSize, minY: cy - halfBoxSize,
-                maxX: cx + halfBoxSize, maxY: cy + halfBoxSize,
-                minZ: 0.0, maxZ: halfBoxSize * 2
+                minX: cx - serviceObjectHalfBoxM, minY: cy - serviceObjectHalfBoxM,
+                maxX: cx + serviceObjectHalfBoxM, maxY: cy + serviceObjectHalfBoxM,
+                minZ: 0.0, maxZ: serviceObjectHalfBoxM * 2
             ),
             confidence: contractConfidence(from: object.confidence)
         )
