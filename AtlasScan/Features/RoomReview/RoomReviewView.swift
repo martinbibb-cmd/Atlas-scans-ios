@@ -83,6 +83,7 @@ struct RoomReviewView: View {
             RoomLayoutView(
                 room: room,
                 selectedObjectID: selectedObjectIDOnLayout,
+                clearanceResults: clearanceResults,
                 onTapRoom: nil,
                 onTapObject: { id in
                     selectedObjectIDOnLayout = id
@@ -97,6 +98,13 @@ struct RoomReviewView: View {
             )
             .listRowInsets(EdgeInsets())
             .frame(minHeight: 220)
+
+            if let selectedID = selectedObjectIDOnLayout,
+               let result = clearanceResults[selectedID] {
+                ClearanceSummaryView(result: result)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
+                    .listRowBackground(Color.clear)
+            }
         } header: {
             Text("Room Layout")
         } footer: {
@@ -145,7 +153,10 @@ struct RoomReviewView: View {
                     Button {
                         selectedObject = object
                     } label: {
-                        TaggedObjectRowView(object: object)
+                        TaggedObjectRowView(
+                            object: object,
+                            clearanceStatus: clearanceResults[object.id]?.status
+                        )
                     }
                     .tint(.primary)
                 }
@@ -198,12 +209,23 @@ struct RoomReviewView: View {
         jobStore.save(job)
         NotificationCenter.default.post(name: .roomUpdated, object: room)
     }
+
+    // MARK: - Clearance
+
+    private var clearanceResults: [UUID: ClearanceResult] {
+        room.taggedObjects.reduce(into: [:]) { dict, obj in
+            if let result = ClearanceEngine.evaluate(object: obj, in: room) {
+                dict[obj.id] = result
+            }
+        }
+    }
 }
 
 // MARK: - TaggedObjectRowView
 
 struct TaggedObjectRowView: View {
     let object: TaggedObject
+    var clearanceStatus: ClearanceStatus? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -234,6 +256,9 @@ struct TaggedObjectRowView: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 ConfidenceDot(confidence: object.confidence)
+                if let status = clearanceStatus {
+                    ClearanceDot(status: status)
+                }
                 if object.isConfirmed {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption)
@@ -277,6 +302,88 @@ struct ConfidenceDot: View {
         case .medium:  return .orange
         case .low:     return .red
         case .unknown: return .gray
+        }
+    }
+}
+
+// MARK: - ClearanceDot
+
+/// A small icon indicating the clearance status of a service object.
+struct ClearanceDot: View {
+    let status: ClearanceStatus
+
+    var body: some View {
+        Image(systemName: status.symbolName)
+            .font(.system(size: 8, weight: .semibold))
+            .foregroundStyle(color)
+    }
+
+    private var color: Color {
+        switch status {
+        case .clear:    return .green
+        case .warning:  return .orange
+        case .conflict: return .red
+        }
+    }
+}
+
+// MARK: - ClearanceSummaryView
+
+/// Compact panel showing the clearance evaluation result for a selected object.
+/// Displayed in the Room Layout section when an object with clearance data is tapped.
+struct ClearanceSummaryView: View {
+    let result: ClearanceResult
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: result.status.symbolName)
+                    .foregroundStyle(statusColor)
+                Text(result.status.displayMessage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(statusColor)
+                Spacer()
+                Text("Clearance Check")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            ForEach(Array(result.issues.enumerated()), id: \.offset) { _, issue in
+                Label(issue.message, systemImage: issueSFSymbol(for: issue))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let note = result.confidenceNote {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .italic()
+            }
+        }
+        .padding(12)
+        .background(.quaternary)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+    }
+
+    private var statusColor: Color {
+        switch result.status {
+        case .clear:    return .green
+        case .warning:  return .orange
+        case .conflict: return .red
+        }
+    }
+
+    private func issueSFSymbol(for issue: ClearanceIssue) -> String {
+        switch issue.kind {
+        case .frontAccessRestricted:     return "arrow.forward.circle"
+        case .tooCloseToSideWall:        return "arrow.left.arrow.right"
+        case .rearClearanceInsufficient: return "arrow.backward.circle"
+        case .openingWithinAccessZone:   return "door.left.hand.open"
+        case .ceilingHeightLimiting:     return "arrow.up.to.line"
+        case .enclosedInstallation:      return "cabinet.fill"
         }
     }
 }

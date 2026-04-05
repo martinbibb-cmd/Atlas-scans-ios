@@ -20,6 +20,10 @@ struct RoomLayoutView: View {
     let room: ScannedRoom
     var selectedObjectID: UUID?
 
+    /// Clearance evaluation results keyed by object ID.
+    /// When non-empty, translucent clearance overlays are drawn for each object that has a result.
+    var clearanceResults: [UUID: ClearanceResult]
+
     /// Called when the engineer taps an empty spot on the layout.
     /// Receives the normalized (0…1, 0…1) room coordinate.
     var onTapRoom: ((NormalizedPoint2D) -> Void)?
@@ -38,12 +42,14 @@ struct RoomLayoutView: View {
     init(
         room: ScannedRoom,
         selectedObjectID: UUID? = nil,
+        clearanceResults: [UUID: ClearanceResult] = [:],
         onTapRoom: ((NormalizedPoint2D) -> Void)? = nil,
         onTapObject: ((UUID) -> Void)? = nil,
         onMoveObject: ((UUID, NormalizedPoint2D) -> Void)? = nil
     ) {
         self.room = room
         self.selectedObjectID = selectedObjectID
+        self.clearanceResults = clearanceResults
         self.onTapRoom = onTapRoom
         self.onTapObject = onTapObject
         self.onMoveObject = onMoveObject
@@ -83,6 +89,28 @@ struct RoomLayoutView: View {
             path.closeSubpath()
             ctx.fill(path, with: .color(.secondary.opacity(0.08)))
             ctx.stroke(path, with: .color(.secondary.opacity(0.5)), lineWidth: 2)
+
+            // Clearance overlays — drawn after the room fill so they appear inside
+            for obj in room.taggedObjects {
+                guard let result = clearanceResults[obj.id] else { continue }
+                let isSelected = obj.id == selectedObjectID
+                let overlayColor = clearanceStatusColor(result.status)
+                let baseOpacity: Double = isSelected ? 1.0 : 0.55
+
+                // Clearance envelope (dashed border, very light fill)
+                let clRect = toScreenRect(result.clearanceRect, size: size)
+                ctx.fill(Path(clRect), with: .color(overlayColor.opacity(0.07 * baseOpacity)))
+                ctx.stroke(
+                    Path(clRect),
+                    with: .color(overlayColor.opacity(0.38 * baseOpacity)),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 3])
+                )
+
+                // Footprint (solid border, slightly more opaque)
+                let fpRect = toScreenRect(result.footprintRect, size: size)
+                ctx.fill(Path(fpRect), with: .color(overlayColor.opacity(0.16 * baseOpacity)))
+                ctx.stroke(Path(fpRect), with: .color(overlayColor.opacity(0.72 * baseOpacity)), lineWidth: 1.5)
+            }
 
             // Wall-edge labels ("W1", "W2", …)
             for i in 0..<polygon.count {
@@ -125,7 +153,8 @@ struct RoomLayoutView: View {
                 let screenPt = toScreen(CGPoint(x: pos.x, y: pos.y), size: size)
                 ObjectPin(
                     object: obj,
-                    isSelected: obj.id == selectedObjectID
+                    isSelected: obj.id == selectedObjectID,
+                    clearanceStatus: clearanceResults[obj.id]?.status
                 )
                 .position(screenPt)
                 .onTapGesture {
@@ -151,11 +180,28 @@ struct RoomLayoutView: View {
         )
     }
 
+    private func toScreenRect(_ normRect: CGRect, size: CGSize) -> CGRect {
+        CGRect(
+            x: normRect.minX * size.width,
+            y: normRect.minY * size.height,
+            width: normRect.width * size.width,
+            height: normRect.height * size.height
+        )
+    }
+
     private func toNormalized(_ screen: CGPoint, size: CGSize) -> NormalizedPoint2D {
         NormalizedPoint2D(
             x: size.width  > 0 ? screen.x / size.width  : 0.5,
             y: size.height > 0 ? screen.y / size.height : 0.5
         )
+    }
+
+    private func clearanceStatusColor(_ status: ClearanceStatus) -> Color {
+        switch status {
+        case .clear:    return .green
+        case .warning:  return .orange
+        case .conflict: return .red
+        }
     }
 
     // MARK: - Opening segment computation
@@ -187,6 +233,7 @@ struct RoomLayoutView: View {
 struct ObjectPin: View {
     let object: TaggedObject
     let isSelected: Bool
+    var clearanceStatus: ClearanceStatus? = nil
 
     private let size: CGFloat = 28
 
@@ -205,6 +252,19 @@ struct ObjectPin: View {
             Circle()
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2.5)
         )
+        .overlay(alignment: .topTrailing) {
+            if let status = clearanceStatus {
+                Circle()
+                    .fill(clearanceBadgeColor(status))
+                    .frame(width: 10, height: 10)
+                    .overlay(
+                        Image(systemName: status.symbolName)
+                            .font(.system(size: 6, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
+                    .offset(x: 4, y: -4)
+            }
+        }
         .scaleEffect(isSelected ? 1.2 : 1.0)
         .animation(.easeInOut(duration: 0.15), value: isSelected)
     }
@@ -217,6 +277,14 @@ struct ObjectPin: View {
         case "Controls":             return .purple
         case "Structural / Siting":  return .gray
         default:                     return Color(.systemGray3)
+        }
+    }
+
+    private func clearanceBadgeColor(_ status: ClearanceStatus) -> Color {
+        switch status {
+        case .clear:    return .green
+        case .warning:  return .orange
+        case .conflict: return .red
         }
     }
 }
