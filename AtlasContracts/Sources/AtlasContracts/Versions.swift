@@ -19,6 +19,9 @@ public func isSupportedVersion(_ version: String) -> Bool {
 ///
 /// Useful so callers can distinguish a structurally invalid bundle from one
 /// that comes from a newer (unsupported) contract version.
+///
+/// - Parameter input: A dictionary representation of the incoming bundle.
+/// - Returns: `true` when a non-empty, unrecognised version string is present.
 public func isUnsupportedVersion(_ input: [String: Any]) -> Bool {
     guard let v = input["version"] as? String, !v.isEmpty else { return false }
     return !isSupportedVersion(v)

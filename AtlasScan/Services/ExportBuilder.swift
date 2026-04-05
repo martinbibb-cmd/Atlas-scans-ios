@@ -120,7 +120,7 @@ final class ExportBuilder {
         }
 
         return ScanMeta(
-            capturedAt: iso8601.string(from: Date()),
+            capturedAt: iso8601.string(from: job.createdAt),
             deviceModel: currentDeviceModel(),
             scannerApp: "AtlasScan 1.0",
             coordinateConvention: "metric_m",
@@ -196,6 +196,8 @@ final class ExportBuilder {
     }
 
     private func contractOpening(from opening: ScannedOpening, wall: ScannedWall) -> ScanOpening {
+        // Default wall length: 3 m is a representative minimum room dimension
+        // used when no geometry has been captured yet.
         let wallLength = wall.lengthMetres ?? 3.0
         return ScanOpening(
             id: opening.id.uuidString,
@@ -208,19 +210,23 @@ final class ExportBuilder {
     }
 
     private func contractObject(from object: TaggedObject, room: ScannedRoom) -> ScanDetectedObject {
+        // Default area: 20 m² is a representative small-room size used when
+        // no floor area has been captured yet.
         let side = sqrt(room.areaSquareMetres ?? 20.0)
         let cx = (object.normalizedPosition?.x ?? 0.5) * side
         let cy = (object.normalizedPosition?.y ?? 0.5) * side
-        let half = 0.25
+        // Half-width of the object's bounding box (50 cm total = typical
+        // service-object footprint for boiler, radiator, etc.)
+        let halfBoxSize = 0.25
 
         return ScanDetectedObject(
             id: object.id.uuidString,
             category: object.category.rawValue,
             label: object.displayLabel,
             boundingBox: ScanDetectedObject.BoundingBox(
-                minX: cx - half, minY: cy - half,
-                maxX: cx + half, maxY: cy + half,
-                minZ: 0.0, maxZ: half * 2
+                minX: cx - halfBoxSize, minY: cy - halfBoxSize,
+                maxX: cx + halfBoxSize, maxY: cy + halfBoxSize,
+                minZ: 0.0, maxZ: halfBoxSize * 2
             ),
             confidence: contractConfidence(from: object.confidence)
         )
@@ -232,19 +238,22 @@ final class ExportBuilder {
 
     /// Computes approximate start/end 3-D coordinates for each wall by placing
     /// them head-to-tail from the origin using the wall's bearing as direction.
+    /// Both start and end z-coordinates are 0 (floor level); wall height is
+    /// carried separately in `ScanWall.heightM`.
     private func computeWallCoordinates(_ walls: [ScannedWall]) -> [WallCoords] {
         var result: [WallCoords] = []
         var x = 0.0, y = 0.0
 
         for wall in walls {
+            // Default wall length: 3 m is a representative minimum dimension
+            // used when no geometry has been captured yet.
             let length = wall.lengthMetres ?? 3.0
             let bearing = (wall.bearingDegrees ?? 0.0) * .pi / 180.0
             let dx = length * sin(bearing)
             let dy = length * cos(bearing)
-            let height = wall.heightMetres ?? 0.0
             result.append((
                 start: ScanPoint3D(x: x, y: y, z: 0.0),
-                end: ScanPoint3D(x: x + dx, y: y + dy, z: height)
+                end: ScanPoint3D(x: x + dx, y: y + dy, z: 0.0)
             ))
             x += dx
             y += dy
