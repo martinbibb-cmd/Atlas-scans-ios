@@ -189,6 +189,29 @@ final class ExportBuilder {
             }
         }
 
+        // Evidence counts — surface as QA info flags so Atlas can see evidence
+        // exists without requiring a contract change for the photo files themselves.
+        for room in job.rooms where !room.photos.isEmpty {
+            if let payload = encodeEvidenceCount(roomID: room.id, count: room.photos.count) {
+                flags.append(ScanQAFlag(
+                    code: "atlas.evidence_count",
+                    message: payload,
+                    severity: "info",
+                    entityId: room.id.uuidString
+                ))
+            }
+        }
+        if !job.photos.isEmpty {
+            if let payload = encodeEvidenceCount(roomID: nil, count: job.photos.count) {
+                flags.append(ScanQAFlag(
+                    code: "atlas.evidence_count",
+                    message: payload,
+                    severity: "info",
+                    entityId: nil
+                ))
+            }
+        }
+
         return flags
     }
 
@@ -376,6 +399,21 @@ final class ExportBuilder {
         }
         if !adjacency.notes.isEmpty {
             dict["notes"] = adjacency.notes
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .sortedKeys),
+              let str = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return str
+    }
+
+    /// Encodes an evidence count into a compact JSON string for the atlas.evidence_count QA flag.
+    private func encodeEvidenceCount(roomID: UUID?, count: Int) -> String? {
+        var dict: [String: Any] = ["photo_count": count]
+        if let id = roomID {
+            dict["room_id"] = id.uuidString
+        } else {
+            dict["scope"] = "job"
         }
         guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .sortedKeys),
               let str = String(data: data, encoding: .utf8) else {

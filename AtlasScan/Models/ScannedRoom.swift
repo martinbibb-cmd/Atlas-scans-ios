@@ -103,12 +103,32 @@ struct ScannedRoom: Identifiable, Codable {
 
     mutating func removeTaggedObject(id: UUID) {
         taggedObjects.removeAll { $0.id == id }
+        // Cascade: remove any photos linked to the deleted object.
+        photos.removeAll { $0.taggedObjectID == id }
         touch()
     }
 
     mutating func updateTaggedObject(_ updated: TaggedObject) {
         guard let index = taggedObjects.firstIndex(where: { $0.id == updated.id }) else { return }
         taggedObjects[index] = updated
+        touch()
+    }
+
+    // MARK: Photo helpers
+
+    mutating func addPhoto(_ photo: TaggedPhoto) {
+        photos.append(photo)
+        touch()
+    }
+
+    mutating func removePhoto(id: UUID) {
+        photos.removeAll { $0.id == id }
+        touch()
+    }
+
+    /// Remove all photos linked to a specific tagged object.
+    mutating func removePhotos(forObjectID objectID: UUID) {
+        photos.removeAll { $0.taggedObjectID == objectID }
         touch()
     }
 }

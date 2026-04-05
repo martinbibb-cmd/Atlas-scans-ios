@@ -46,6 +46,12 @@ AA010036 /* RoomAdjacency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A
 AA010037 /* PropertyPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020037 /* PropertyPlanView.swift */; };
 AA010038 /* LinkRoomsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020038 /* LinkRoomsSheet.swift */; };
 AA010039 /* RoomAdjacencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020039 /* RoomAdjacencyTests.swift */; };
+AA010040 /* PhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020040 /* PhotoStore.swift */; };
+AA010041 /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020041 /* ImagePickerView.swift */; };
+AA010042 /* AddPhotoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020042 /* AddPhotoSheet.swift */; };
+AA010043 /* PhotoGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020043 /* PhotoGalleryView.swift */; };
+AA010044 /* EvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020044 /* EvidenceTests.swift */; };
+
 AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -90,6 +96,12 @@ AA020036 /* RoomAdjacency.swift */ = {isa = PBXFileReference; lastKnownFileType 
 AA020037 /* PropertyPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyPlanView.swift; sourceTree = "<group>"; };
 AA020038 /* LinkRoomsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRoomsSheet.swift; sourceTree = "<group>"; };
 AA020039 /* RoomAdjacencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomAdjacencyTests.swift; sourceTree = "<group>"; };
+AA020040 /* PhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStore.swift; sourceTree = "<group>"; };
+AA020041 /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePickerView.swift; sourceTree = "<group>"; };
+AA020042 /* AddPhotoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPhotoSheet.swift; sourceTree = "<group>"; };
+AA020043 /* PhotoGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGalleryView.swift; sourceTree = "<group>"; };
+AA020044 /* EvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidenceTests.swift; sourceTree = "<group>"; };
+
 AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -146,6 +158,7 @@ AA050012 /* RoomReview */,
 AA050013 /* ObjectTagging */,
 AA050014 /* Export */,
 AA050015 /* PropertyPlan */,
+AA050016 /* Evidence */,
 );
 path = Features;
 sourceTree = "<group>";
@@ -206,6 +219,16 @@ AA020038 /* LinkRoomsSheet.swift */,
 path = PropertyPlan;
 sourceTree = "<group>";
 };
+AA050016 /* Evidence */ = {
+isa = PBXGroup;
+children = (
+AA020041 /* ImagePickerView.swift */,
+AA020042 /* AddPhotoSheet.swift */,
+AA020043 /* PhotoGalleryView.swift */,
+);
+path = Evidence;
+sourceTree = "<group>";
+};
 AA050004 /* Models */ = {
 isa = PBXGroup;
 children = (
@@ -231,6 +254,7 @@ AA020021 /* ExportBuilder.swift */,
 AA020029 /* PlacementService.swift */,
 AA020032 /* ClearanceEngine.swift */,
 AA020033 /* ApplianceProfiles.swift */,
+AA020040 /* PhotoStore.swift */,
 );
 path = Services;
 sourceTree = "<group>";
@@ -269,6 +293,7 @@ AA020031 /* PlacementServiceTests.swift */,
 AA020034 /* ClearanceEngineTests.swift */,
 AA020035 /* ApplianceProfileTests.swift */,
 AA020039 /* RoomAdjacencyTests.swift */,
+AA020044 /* EvidenceTests.swift */,
 );
 path = AtlasScanTests;
 sourceTree = "<group>";
