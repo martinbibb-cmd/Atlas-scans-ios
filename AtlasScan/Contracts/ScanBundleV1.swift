@@ -17,6 +17,9 @@
 //   • ScanAnchor         (new)
 //   • ScanQAFlag         (new)
 //   • ScanConfidenceBand (new)
+//   • ScanImportManifest            (new — typed manifest.json contract)
+//   • ScanImportManifest.ImportSummary (new — import summary nested type)
+//   • decodeImportManifest(_:)      (new — manifest.json decoder helper)
 //   • currentScanBundleVersion (was: BundleSchemaVersion.current)
 //   • validateScanBundle(_:)   (new)
 //
