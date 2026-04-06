@@ -182,7 +182,7 @@ enum RoomPlanMapper {
             walls: capturedRoom.walls
         )
         let area = computeFloorArea(capturedRoom.floors, walls: capturedRoom.walls)
-        let height = computeCeilingHeight(capturedRoom.walls, ceilings: capturedRoom.ceilings)
+        let height = computeCeilingHeight(capturedRoom.walls)
 
         return ScannedRoom(
             jobID: jobID,
@@ -325,19 +325,11 @@ enum RoomPlanMapper {
         return shorter * longer
     }
 
-    /// Average ceiling height from ceiling surface positions, falling back to wall heights.
-    private static func computeCeilingHeight(
-        _ walls: [CapturedRoom.Surface],
-        ceilings: [CapturedRoom.Surface]
-    ) -> Double? {
-        if !ceilings.isEmpty {
-            let heights = ceilings.map { Double($0.transform.columns.3.y) }
-            return heights.reduce(0, +) / Double(heights.count)
-        }
-        if !walls.isEmpty {
-            let heights = walls.map { Double($0.dimensions.y) }
-            return heights.reduce(0, +) / Double(heights.count)
-        }
-        return nil
+    /// Average ceiling height derived from wall surface heights (dimensions.y).
+    /// Returns nil when no walls are available.
+    private static func computeCeilingHeight(_ walls: [CapturedRoom.Surface]) -> Double? {
+        guard !walls.isEmpty else { return nil }
+        let heights = walls.map { Double($0.dimensions.y) }
+        return heights.reduce(0, +) / Double(heights.count)
     }
 }
