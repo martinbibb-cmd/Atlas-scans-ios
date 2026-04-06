@@ -312,7 +312,7 @@ final class ExportBuilder {
     }
 
     private func contractOpening(from opening: ScannedOpening, wall: ScannedWall) -> ScanOpening {
-        let effectiveWallLength = wall.lengthMetres ?? defaultWallLengthMetres
+        let effectiveWallLength = wall.lengthMetres ?? ExportBuilder.defaultWallLengthMetres
         // Offset is placed at the wall midpoint as a placeholder; once real
         // RoomPlan geometry is integrated in the next PR, the actual measured
         // offset from the wall's start point will be used here.
@@ -331,7 +331,7 @@ final class ExportBuilder {
         // can map normalised 0…1 positions to metric coordinates. Non-square
         // rooms will have some positional error here, but accuracy improves once
         // real RoomPlan geometry is integrated in the next PR.
-        let estimatedRoomSide = sqrt(room.areaSquareMetres ?? defaultRoomAreaSquareMetres)
+        let estimatedRoomSide = sqrt(room.areaSquareMetres ?? ExportBuilder.defaultRoomAreaSquareMetres)
         let cx = (object.normalizedPosition?.x ?? 0.5) * estimatedRoomSide
         let cy = (object.normalizedPosition?.y ?? 0.5) * estimatedRoomSide
 
@@ -340,9 +340,9 @@ final class ExportBuilder {
             category: object.category.rawValue,
             label: object.displayLabel,
             boundingBox: ScanDetectedObject.BoundingBox(
-                minX: cx - serviceObjectHalfBoxM, minY: cy - serviceObjectHalfBoxM,
-                maxX: cx + serviceObjectHalfBoxM, maxY: cy + serviceObjectHalfBoxM,
-                minZ: 0.0, maxZ: serviceObjectHalfBoxM * 2
+                minX: cx - ExportBuilder.serviceObjectHalfBoxM, minY: cy - ExportBuilder.serviceObjectHalfBoxM,
+                maxX: cx + ExportBuilder.serviceObjectHalfBoxM, maxY: cy + ExportBuilder.serviceObjectHalfBoxM,
+                minZ: 0.0, maxZ: ExportBuilder.serviceObjectHalfBoxM * 2
             ),
             confidence: contractConfidence(from: object.confidence)
         )
@@ -361,7 +361,7 @@ final class ExportBuilder {
         var x = 0.0, y = 0.0
 
         for wall in walls {
-            let length = wall.lengthMetres ?? defaultWallLengthMetres
+            let length = wall.lengthMetres ?? ExportBuilder.defaultWallLengthMetres
             let bearing = (wall.bearingDegrees ?? 0.0) * .pi / 180.0
             let dx = length * sin(bearing)
             let dy = length * cos(bearing)
