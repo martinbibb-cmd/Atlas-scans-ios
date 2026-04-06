@@ -373,6 +373,96 @@ final class HandoffTests: XCTestCase {
                       "Blocking issues from validate() must be reflected in the manifest")
     }
 
+    func test_buildPackage_manifest_jobReferencePreserved() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        job.jobReference = "JB-2024-0042"
+        job.rooms = [makeReviewedRoom(jobID: job.id)]
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.jobReference, "JB-2024-0042",
+                       "Job reference must be preserved in the manifest")
+    }
+
+    func test_buildPackage_manifest_totalObjectsIsAccurate() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        var room = makeReviewedRoom(jobID: job.id)
+        room.taggedObjects = [
+            TaggedObject(roomID: room.id, category: .boiler),
+            TaggedObject(roomID: room.id, category: .radiator),
+        ]
+        job.rooms = [room]
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.importSummary.totalObjects, 2,
+                       "totalObjects must match the tagged object count in the job")
+    }
+
+    func test_buildPackage_manifest_totalPhotosIsAccurate() throws {
+        var job = ScanJob(propertyAddress: "14 Test Street, Anytown")
+        var room = makeReviewedRoom(jobID: job.id)
+        room.addPhoto(TaggedPhoto(filename: "room1.jpg", roomID: room.id))
+        room.addPhoto(TaggedPhoto(filename: "room2.jpg", roomID: room.id))
+        job.rooms = [room]
+        job.photos = [TaggedPhoto(filename: "site.jpg")]
+
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertEqual(decoded.importSummary.totalPhotos, 3,
+                       "totalPhotos must include both room-level and job-level photos")
+    }
+
+    func test_buildPackage_manifest_evidenceFieldsWhenNotIncluded() throws {
+        let job = makeValidJob()
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json, includeEvidence: false)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertFalse(decoded.evidenceIncluded,
+                       "evidenceIncluded must be false when no evidence is packaged")
+        XCTAssertEqual(decoded.evidenceFileCount, 0,
+                       "evidenceFileCount must be 0 when no evidence is packaged")
+    }
+
+    func test_buildPackage_manifest_contentsIncludesBundleAndManifest() throws {
+        let job = makeValidJob()
+        let bundle = builder.buildBundle(from: job)
+        let json = String(decoding: try builder.encode(bundle: bundle), as: UTF8.self)
+
+        let pkg = try packageBuilder.buildPackage(from: job, bundleJSON: json)
+        defer { pkg.cleanup() }
+
+        let manifestData = try Data(contentsOf: pkg.manifestFile)
+        let decoded = try XCTUnwrap(decodeImportManifest(manifestData))
+        XCTAssertTrue(decoded.contents.contains("scan_bundle.json"),
+                      "contents must include scan_bundle.json")
+        XCTAssertTrue(decoded.contents.contains("manifest.json"),
+                      "contents must include manifest.json")
+    }
+
     // MARK: - Failure on blocking export conditions
 
     func test_blockingIssues_preventBundleEmission() {
