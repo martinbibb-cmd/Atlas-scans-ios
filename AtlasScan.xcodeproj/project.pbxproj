@@ -57,6 +57,10 @@
 		AA010048 /* LiDARClearanceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020048 /* LiDARClearanceSession.swift */; };
 		AA010049 /* LiDARClearanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020049 /* LiDARClearanceView.swift */; };
 		AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020050 /* LiDARClearanceMeasurementTests.swift */; };
+		AA010051 /* PropertyScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020051 /* PropertyScanSession.swift */; };
+		AA010052 /* ScanSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020052 /* ScanSessionStore.swift */; };
+		AA010053 /* AtlasSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020053 /* AtlasSync.swift */; };
+		AA010054 /* PropertyScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020054 /* PropertyScanSessionTests.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -122,6 +126,10 @@
 		AA020048 /* LiDARClearanceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARClearanceSession.swift; sourceTree = "<group>"; };
 		AA020049 /* LiDARClearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARClearanceView.swift; sourceTree = "<group>"; };
 		AA020050 /* LiDARClearanceMeasurementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARClearanceMeasurementTests.swift; sourceTree = "<group>"; };
+		AA020051 /* PropertyScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyScanSession.swift; sourceTree = "<group>"; };
+		AA020052 /* ScanSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionStore.swift; sourceTree = "<group>"; };
+		AA020053 /* AtlasSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSync.swift; sourceTree = "<group>"; };
+		AA020054 /* PropertyScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyScanSessionTests.swift; sourceTree = "<group>"; };
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -204,6 +212,7 @@
 				AA020019 /* ExportDraftState.swift */,
 				AA020028 /* ObjectPlacement.swift */,
 				AA020036 /* RoomAdjacency.swift */,
+				AA020051 /* PropertyScanSession.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -218,6 +227,8 @@
 				AA020033 /* ApplianceProfiles.swift */,
 				AA020040 /* PhotoStore.swift */,
 				AA020045 /* ExportPackageBuilder.swift */,
+				AA020052 /* ScanSessionStore.swift */,
+				AA020053 /* AtlasSync.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -345,6 +356,7 @@
 				AA020044 /* EvidenceTests.swift */,
 				AA020046 /* HandoffTests.swift */,
 				AA020050 /* LiDARClearanceMeasurementTests.swift */,
+				AA020054 /* PropertyScanSessionTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -497,6 +509,9 @@
 				AA010047 /* LiDARClearanceMeasurement.swift in Sources */,
 				AA010048 /* LiDARClearanceSession.swift in Sources */,
 				AA010049 /* LiDARClearanceView.swift in Sources */,
+				AA010051 /* PropertyScanSession.swift in Sources */,
+				AA010052 /* ScanSessionStore.swift in Sources */,
+				AA010053 /* AtlasSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -514,6 +529,7 @@
 				AA010044 /* EvidenceTests.swift in Sources */,
 				AA010046 /* HandoffTests.swift in Sources */,
 				AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */,
+				AA010054 /* PropertyScanSessionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,397 @@
+import Foundation
+
+// MARK: - PropertyScanSession
+//
+// Top-level entity for a whole-house capture session.
+// One session = one property. Rooms, tagged objects, photos, and validation issues
+// are all children of this single shared context.
+//
+// This model is the canonical container for the single-pass capture flow.
+// ScanJob (legacy room-level container) remains in use for export mapping;
+// PropertyScanSession wraps the same underlying rooms and extends them with
+// session-level state and offline/sync metadata.
+
+struct PropertyScanSession: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    // MARK: Job identity
+
+    var jobReference: String
+
+    var propertyAddress: String
+
+    var engineerName: String
+
+    /// Optional link to an Atlas job / recommendation ID.
+    var atlasJobID: String?
+
+    // MARK: Lifecycle state
+
+    /// Capture / field state of the session.
+    var scanState: ScanSessionState
+
+    /// Review / sign-off state of the session.
+    var reviewState: ReviewState
+
+    /// Atlas sync state for the session as a whole.
+    var syncState: SessionSyncState
+
+    // MARK: Children
+
+    /// Rooms discovered or manually added during the session.
+    /// Rooms are children of the session and can be refined after capture.
+    var rooms: [ScannedRoom]
+
+    /// Engineer-defined connections between rooms (doors, archways, etc.).
+    var roomAdjacencies: [RoomAdjacency]
+
+    /// Optional layout overrides for the property plan canvas.
+    var roomPlacements: [RoomPlacementOverride]
+
+    /// Objects tagged into the shared session model.
+    /// An object is attached to a room when `roomID` is set, but room attachment is
+    /// not required — objects can float at session level for unclassified items.
+    var taggedObjects: [TaggedObject]
+
+    /// Photos captured during the session.
+    /// Each photo carries its own syncState for fine-grained upload control.
+    var photos: [TaggedPhoto]
+
+    /// Validation issues collected during review or export validation.
+    var issues: [ValidationIssue]
+
+    // MARK: Timestamps
+
+    var createdAt: Date
+    var updatedAt: Date
+
+    // MARK: Init
+
+    init(
+        id: UUID = UUID(),
+        jobReference: String = "",
+        propertyAddress: String,
+        engineerName: String = "",
+        atlasJobID: String? = nil,
+        scanState: ScanSessionState = .notStarted,
+        reviewState: ReviewState = .pending,
+        syncState: SessionSyncState = .localOnly,
+        rooms: [ScannedRoom] = [],
+        roomAdjacencies: [RoomAdjacency] = [],
+        roomPlacements: [RoomPlacementOverride] = [],
+        taggedObjects: [TaggedObject] = [],
+        photos: [TaggedPhoto] = [],
+        issues: [ValidationIssue] = []
+    ) {
+        self.id = id
+        if jobReference.isEmpty {
+            let stamp = Int(Date().timeIntervalSince1970)
+            self.jobReference = "JOB-\(stamp)"
+        } else {
+            self.jobReference = jobReference
+        }
+        self.propertyAddress = propertyAddress
+        self.engineerName = engineerName
+        self.atlasJobID = atlasJobID
+        self.scanState = scanState
+        self.reviewState = reviewState
+        self.syncState = syncState
+        self.rooms = rooms
+        self.roomAdjacencies = roomAdjacencies
+        self.roomPlacements = roomPlacements
+        self.taggedObjects = taggedObjects
+        self.photos = photos
+        self.issues = issues
+        self.createdAt = Date()
+        self.updatedAt = Date()
+    }
+
+    // MARK: Decodable — backward-compatible with earlier session files
+
+    private enum CodingKeys: String, CodingKey {
+        case id, jobReference, propertyAddress, engineerName, atlasJobID
+        case scanState, reviewState, syncState
+        case rooms, roomAdjacencies, roomPlacements
+        case taggedObjects, photos, issues
+        case createdAt, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id               = try c.decode(UUID.self,           forKey: .id)
+        jobReference     = try c.decode(String.self,         forKey: .jobReference)
+        propertyAddress  = try c.decode(String.self,         forKey: .propertyAddress)
+        engineerName     = try c.decode(String.self,         forKey: .engineerName)
+        atlasJobID       = try c.decodeIfPresent(String.self, forKey: .atlasJobID)
+        scanState        = try c.decodeIfPresent(ScanSessionState.self,  forKey: .scanState)   ?? .notStarted
+        reviewState      = try c.decodeIfPresent(ReviewState.self,       forKey: .reviewState)  ?? .pending
+        syncState        = try c.decodeIfPresent(SessionSyncState.self,  forKey: .syncState)    ?? .localOnly
+        rooms            = try c.decodeIfPresent([ScannedRoom].self,          forKey: .rooms)            ?? []
+        roomAdjacencies  = try c.decodeIfPresent([RoomAdjacency].self,        forKey: .roomAdjacencies)  ?? []
+        roomPlacements   = try c.decodeIfPresent([RoomPlacementOverride].self, forKey: .roomPlacements)  ?? []
+        taggedObjects    = try c.decodeIfPresent([TaggedObject].self,          forKey: .taggedObjects)    ?? []
+        photos           = try c.decodeIfPresent([TaggedPhoto].self,           forKey: .photos)           ?? []
+        issues           = try c.decodeIfPresent([ValidationIssue].self,       forKey: .issues)           ?? []
+        createdAt        = try c.decode(Date.self,           forKey: .createdAt)
+        updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
+    }
+
+    // MARK: Helpers
+
+    mutating func touch() {
+        updatedAt = Date()
+    }
+
+    /// All tagged objects across session-level list and all rooms.
+    var allTaggedObjects: [TaggedObject] {
+        taggedObjects + rooms.flatMap(\.taggedObjects)
+    }
+
+    /// All photos across session-level list and all rooms.
+    var allPhotos: [TaggedPhoto] {
+        photos + rooms.flatMap(\.photos)
+    }
+
+    var totalTaggedObjects: Int { allTaggedObjects.count }
+
+    var totalPhotos: Int { allPhotos.count }
+
+    var totalReviewedRooms: Int { rooms.filter(\.isReviewed).count }
+
+    var isReadyToExport: Bool {
+        !rooms.isEmpty && rooms.allSatisfy(\.isReviewed)
+    }
+
+    var hasBlockingIssues: Bool {
+        issues.contains(where: { $0.severity == .blocking })
+    }
+
+    /// A filesystem-safe version of `jobReference`.
+    var safeFileNameReference: String {
+        jobReference
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "_")
+    }
+
+    // MARK: Room helpers
+
+    mutating func addRoom(_ room: ScannedRoom) {
+        rooms.append(room)
+        touch()
+    }
+
+    mutating func removeRoom(id: UUID) {
+        rooms.removeAll { $0.id == id }
+        roomAdjacencies.removeAll { $0.fromRoomID == id || $0.toRoomID == id }
+        roomPlacements.removeAll { $0.id == id }
+        // Remove photos explicitly linked to the deleted room.
+        photos.removeAll { $0.roomID == id }
+        // Remove session-level objects linked to the deleted room.
+        taggedObjects.removeAll { $0.roomID == id }
+        touch()
+    }
+
+    mutating func updateRoom(_ updated: ScannedRoom) {
+        guard let index = rooms.firstIndex(where: { $0.id == updated.id }) else { return }
+        rooms[index] = updated
+        touch()
+    }
+
+    // MARK: Session-level tagged object helpers
+
+    mutating func addTaggedObject(_ object: TaggedObject) {
+        taggedObjects.append(object)
+        touch()
+    }
+
+    mutating func removeTaggedObject(id: UUID) {
+        taggedObjects.removeAll { $0.id == id }
+        photos.removeAll { $0.taggedObjectID == id }
+        touch()
+    }
+
+    mutating func updateTaggedObject(_ updated: TaggedObject) {
+        guard let index = taggedObjects.firstIndex(where: { $0.id == updated.id }) else { return }
+        taggedObjects[index] = updated
+        touch()
+    }
+
+    // MARK: Session-level photo helpers
+
+    mutating func addPhoto(_ photo: TaggedPhoto) {
+        photos.append(photo)
+        touch()
+    }
+
+    mutating func removePhoto(id: UUID) {
+        photos.removeAll { $0.id == id }
+        touch()
+    }
+
+    // MARK: Adjacency helpers
+
+    mutating func addAdjacency(_ adjacency: RoomAdjacency) {
+        roomAdjacencies.append(adjacency)
+        touch()
+    }
+
+    mutating func removeAdjacency(id: UUID) {
+        roomAdjacencies.removeAll { $0.id == id }
+        touch()
+    }
+
+    mutating func updateAdjacency(_ updated: RoomAdjacency) {
+        guard let index = roomAdjacencies.firstIndex(where: { $0.id == updated.id }) else { return }
+        roomAdjacencies[index] = updated
+        touch()
+    }
+
+    func adjacencies(for roomID: UUID) -> [RoomAdjacency] {
+        roomAdjacencies.filter { $0.fromRoomID == roomID || $0.toRoomID == roomID }
+    }
+
+    // MARK: Room placement helpers
+
+    mutating func setRoomPlacement(_ placement: RoomPlacementOverride) {
+        if let index = roomPlacements.firstIndex(where: { $0.id == placement.id }) {
+            roomPlacements[index] = placement
+        } else {
+            roomPlacements.append(placement)
+        }
+        touch()
+    }
+
+    func roomPlacement(for roomID: UUID) -> RoomPlacementOverride? {
+        roomPlacements.first { $0.id == roomID }
+    }
+
+    // MARK: Issue helpers
+
+    mutating func addIssue(_ issue: ValidationIssue) {
+        issues.append(issue)
+        touch()
+    }
+
+    mutating func clearIssues() {
+        issues = []
+        touch()
+    }
+
+    // MARK: Conversion
+
+    /// Converts this session to a legacy `ScanJob` for export and contract mapping.
+    /// Session-level objects and photos are promoted to job-level equivalents.
+    func toScanJob() -> ScanJob {
+        var job = ScanJob(
+            id: id,
+            jobReference: jobReference,
+            propertyAddress: propertyAddress,
+            engineerName: engineerName,
+            atlasJobID: atlasJobID,
+            rooms: rooms,
+            roomAdjacencies: roomAdjacencies,
+            roomPlacements: roomPlacements,
+            photos: photos
+        )
+        // Preserve the session's updatedAt timestamp for accurate sort ordering.
+        job.updatedAt = updatedAt
+        return job
+    }
+}
+
+// MARK: - ScanSessionState
+
+/// Capture / field lifecycle state of a PropertyScanSession.
+enum ScanSessionState: String, Codable, CaseIterable {
+    case notStarted  = "not_started"
+    case inProgress  = "in_progress"
+    case paused      = "paused"
+    case completed   = "completed"
+    case incomplete  = "incomplete"
+
+    var displayName: String {
+        switch self {
+        case .notStarted:  return "Not Started"
+        case .inProgress:  return "In Progress"
+        case .paused:      return "Paused"
+        case .completed:   return "Completed"
+        case .incomplete:  return "Incomplete"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .notStarted:  return "doc"
+        case .inProgress:  return "camera.viewfinder"
+        case .paused:      return "pause.circle"
+        case .completed:   return "checkmark.circle"
+        case .incomplete:  return "exclamationmark.triangle"
+        }
+    }
+}
+
+// MARK: - ReviewState
+
+/// Engineer review / sign-off state.
+enum ReviewState: String, Codable, CaseIterable {
+    case pending        = "pending"
+    case inReview       = "in_review"
+    case reviewed       = "reviewed"
+    case needsAttention = "needs_attention"
+    case blocked        = "blocked"
+
+    var displayName: String {
+        switch self {
+        case .pending:        return "Pending"
+        case .inReview:       return "In Review"
+        case .reviewed:       return "Reviewed"
+        case .needsAttention: return "Needs Attention"
+        case .blocked:        return "Blocked / Incomplete"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .pending:        return "clock"
+        case .inReview:       return "magnifyingglass"
+        case .reviewed:       return "checkmark.seal.fill"
+        case .needsAttention: return "exclamationmark.circle.fill"
+        case .blocked:        return "xmark.circle.fill"
+        }
+    }
+}
+
+// MARK: - SessionSyncState
+
+/// Atlas sync state for a session or individual artifact.
+enum SessionSyncState: String, Codable, CaseIterable {
+    case localOnly      = "local_only"
+    case queued         = "queued"
+    case uploading      = "uploading"
+    case uploaded       = "uploaded"
+    case failed         = "failed"
+    case archived       = "archived"
+
+    var displayName: String {
+        switch self {
+        case .localOnly:  return "Local Only"
+        case .queued:     return "Queued for Atlas"
+        case .uploading:  return "Uploading…"
+        case .uploaded:   return "Uploaded"
+        case .failed:     return "Upload Failed"
+        case .archived:   return "Archived"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .localOnly:  return "iphone"
+        case .queued:     return "clock.arrow.circlepath"
+        case .uploading:  return "arrow.up.circle"
+        case .uploaded:   return "checkmark.icloud.fill"
+        case .failed:     return "exclamationmark.icloud.fill"
+        case .archived:   return "archivebox"
+        }
+    }
+}

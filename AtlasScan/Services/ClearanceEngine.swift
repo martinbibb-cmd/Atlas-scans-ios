@@ -66,11 +66,23 @@ struct ClearanceResult {
     var profileNote: String?
 
     /// Physical footprint of the object in normalised room coordinates.
+    /// Represents the installed envelope of the unit itself.
     var footprintRect: CGRect
 
-    /// Total required clearance envelope (footprint + service/access zones)
+    /// Install-minimum clearance zone in normalised room coordinates.
+    /// The tightest clearance that permits physical installation per manufacturer guidance.
+    var installMinimumRect: CGRect
+
+    /// Full service-access zone in normalised room coordinates.
+    /// The working space required for routine servicing and maintenance.
+    var serviceAccessRect: CGRect
+
+    /// Total required clearance envelope (install minimum + service access zones)
     /// in normalised room coordinates.
-    var clearanceRect: CGRect
+    /// Equivalent to `serviceAccessRect` for display purposes; retained for compatibility.
+    var clearanceRect: CGRect {
+        serviceAccessRect
+    }
 }
 
 // MARK: - ClearanceRule
@@ -84,6 +96,10 @@ struct ClearanceRule {
 
     /// Approximate installed depth (front to back) of the object.
     let footprintDepthMetres: Double
+
+    /// Minimum front clearance for physical installation (tighter than service access).
+    /// Represents the smallest space that permits the unit to be installed.
+    let installMinFrontMetres: Double
 
     /// Required clear working / service space in front of the object.
     let frontClearanceMetres: Double
@@ -147,7 +163,7 @@ enum ClearanceEngine {
         let polygon = PlacementService.layoutPolygon(for: room)
         let facing = determineFacing(pos: pos, roomWidth: roomWidth, roomHeight: roomHeight)
 
-        let (footprintRect, clearanceRect) = overlayRects(
+        let (footprintRect, installMinimumRect, serviceAccessRect) = overlayRects(
             pos: pos, rule: rule, facing: facing,
             roomWidth: roomWidth, roomHeight: roomHeight
         )
@@ -158,7 +174,7 @@ enum ClearanceEngine {
             roomWidth: roomWidth, roomHeight: roomHeight
         )
         issues += openingProximityIssues(
-            clearanceRect: clearanceRect,
+            clearanceRect: serviceAccessRect,
             room: room,
             polygon: polygon
         )
@@ -175,7 +191,8 @@ enum ClearanceEngine {
             confidenceNote: confidenceNote(for: object, room: room),
             profileNote: profileNote,
             footprintRect: footprintRect,
-            clearanceRect: clearanceRect
+            installMinimumRect: installMinimumRect,
+            serviceAccessRect: serviceAccessRect
         )
     }
 
@@ -187,6 +204,7 @@ enum ClearanceEngine {
             return ClearanceRule(
                 footprintWidthMetres:   0.60,
                 footprintDepthMetres:   0.50,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.15,
                 rearClearanceMetres:    0.05,
@@ -197,6 +215,7 @@ enum ClearanceEngine {
             return ClearanceRule(
                 footprintWidthMetres:   0.55,
                 footprintDepthMetres:   0.55,
+                installMinFrontMetres:  0.25,
                 frontClearanceMetres:   0.50,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.05,
@@ -207,6 +226,7 @@ enum ClearanceEngine {
             return ClearanceRule(
                 footprintWidthMetres:   0.50,
                 footprintDepthMetres:   0.15,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.00,
@@ -217,6 +237,7 @@ enum ClearanceEngine {
             return ClearanceRule(
                 footprintWidthMetres:   0.60,
                 footprintDepthMetres:   0.12,
+                installMinFrontMetres:  0.03,
                 frontClearanceMetres:   0.05,
                 sideClearanceMetres:    0.05,
                 rearClearanceMetres:    0.00,
@@ -296,14 +317,19 @@ enum ClearanceEngine {
 
     // MARK: - Private: overlay rectangles
 
-    /// Computes the normalised footprint and clearance envelope rectangles.
+    /// Computes the normalised footprint, install-minimum, and service-access rectangles.
+    ///
+    /// Returns three layered halos from innermost to outermost:
+    ///   1. `footprint`      — physical envelope of the installed unit
+    ///   2. `installMinimum` — tightest space permitting installation
+    ///   3. `serviceAccess`  — full working space for routine servicing
     static func overlayRects(
         pos: NormalizedPoint2D,
         rule: ClearanceRule,
         facing: ObjectFacing,
         roomWidth: Double,
         roomHeight: Double
-    ) -> (footprint: CGRect, clearance: CGRect) {
+    ) -> (footprint: CGRect, installMinimum: CGRect, serviceAccess: CGRect) {
         let fpHalfW = (rule.footprintWidthMetres / 2.0) / roomWidth
         let fpHalfD = (rule.footprintDepthMetres / 2.0) / roomHeight
 
@@ -312,42 +338,66 @@ enum ClearanceEngine {
             width: fpHalfW * 2,  height: fpHalfD * 2
         )
 
-        let frontN = rule.frontClearanceMetres
-        let sideN  = rule.sideClearanceMetres
-        let rearN  = rule.rearClearanceMetres
+        let installMinimumRect = buildClearanceRect(
+            pos: pos, rule: rule, facing: facing,
+            frontClearance: rule.installMinFrontMetres,
+            roomWidth: roomWidth, roomHeight: roomHeight,
+            fpHalfW: fpHalfW, fpHalfD: fpHalfD
+        )
 
-        let clearanceRect: CGRect
+        let serviceAccessRect = buildClearanceRect(
+            pos: pos, rule: rule, facing: facing,
+            frontClearance: rule.frontClearanceMetres,
+            roomWidth: roomWidth, roomHeight: roomHeight,
+            fpHalfW: fpHalfW, fpHalfD: fpHalfD
+        )
+
+        return (footprintRect, installMinimumRect, serviceAccessRect)
+    }
+
+    /// Builds a single clearance rectangle for the given front-clearance distance.
+    private static func buildClearanceRect(
+        pos: NormalizedPoint2D,
+        rule: ClearanceRule,
+        facing: ObjectFacing,
+        frontClearance: Double,
+        roomWidth: Double,
+        roomHeight: Double,
+        fpHalfW: Double,
+        fpHalfD: Double
+    ) -> CGRect {
+        let sideN = rule.sideClearanceMetres
+        let rearN = rule.rearClearanceMetres
+
         switch facing {
         case .down:
             // back = top wall, front extends downward
             let clHalfW = (rule.footprintWidthMetres / 2.0 + sideN) / roomWidth
-            let top     = pos.y - fpHalfD - rearN  / roomHeight
-            let bottom  = pos.y + fpHalfD + frontN / roomHeight
-            clearanceRect = CGRect(x: pos.x - clHalfW, y: top, width: clHalfW * 2, height: bottom - top)
+            let top     = pos.y - fpHalfD - rearN         / roomHeight
+            let bottom  = pos.y + fpHalfD + frontClearance / roomHeight
+            return CGRect(x: pos.x - clHalfW, y: top, width: clHalfW * 2, height: bottom - top)
 
         case .up:
             // back = bottom wall, front extends upward
             let clHalfW = (rule.footprintWidthMetres / 2.0 + sideN) / roomWidth
-            let top     = pos.y - fpHalfD - frontN / roomHeight
-            let bottom  = pos.y + fpHalfD + rearN  / roomHeight
-            clearanceRect = CGRect(x: pos.x - clHalfW, y: top, width: clHalfW * 2, height: bottom - top)
+            let top     = pos.y - fpHalfD - frontClearance / roomHeight
+            let bottom  = pos.y + fpHalfD + rearN          / roomHeight
+            return CGRect(x: pos.x - clHalfW, y: top, width: clHalfW * 2, height: bottom - top)
 
         case .right:
             // back = left wall, front extends rightward
             let clHalfH = (rule.footprintDepthMetres / 2.0 + sideN) / roomHeight
-            let left    = pos.x - fpHalfW - rearN  / roomWidth
-            let right   = pos.x + fpHalfW + frontN / roomWidth
-            clearanceRect = CGRect(x: left, y: pos.y - clHalfH, width: right - left, height: clHalfH * 2)
+            let left    = pos.x - fpHalfW - rearN          / roomWidth
+            let right   = pos.x + fpHalfW + frontClearance / roomWidth
+            return CGRect(x: left, y: pos.y - clHalfH, width: right - left, height: clHalfH * 2)
 
         case .left:
             // back = right wall, front extends leftward
             let clHalfH = (rule.footprintDepthMetres / 2.0 + sideN) / roomHeight
-            let left    = pos.x - fpHalfW - frontN / roomWidth
-            let right   = pos.x + fpHalfW + rearN  / roomWidth
-            clearanceRect = CGRect(x: left, y: pos.y - clHalfH, width: right - left, height: clHalfH * 2)
+            let left    = pos.x - fpHalfW - frontClearance / roomWidth
+            let right   = pos.x + fpHalfW + rearN          / roomWidth
+            return CGRect(x: left, y: pos.y - clHalfH, width: right - left, height: clHalfH * 2)
         }
-
-        return (footprintRect, clearanceRect)
     }
 
     // MARK: - Private: wall proximity

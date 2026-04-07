@@ -97,16 +97,25 @@ struct RoomLayoutView: View {
                 let overlayColor = clearanceStatusColor(result.status)
                 let baseOpacity: Double = isSelected ? 1.0 : 0.55
 
-                // Clearance envelope (dashed border, very light fill)
-                let clRect = toScreenRect(result.clearanceRect, size: size)
-                ctx.fill(Path(clRect), with: .color(overlayColor.opacity(0.07 * baseOpacity)))
+                // Layer 3: Service access zone (dashed border, very light fill)
+                let serviceRect = toScreenRect(result.serviceAccessRect, size: size)
+                ctx.fill(Path(serviceRect), with: .color(overlayColor.opacity(0.07 * baseOpacity)))
                 ctx.stroke(
-                    Path(clRect),
+                    Path(serviceRect),
                     with: .color(overlayColor.opacity(0.38 * baseOpacity)),
                     style: StrokeStyle(lineWidth: 1, dash: [4, 3])
                 )
 
-                // Footprint (solid border, slightly more opaque)
+                // Layer 2: Install minimum zone (dotted border, slightly more opaque)
+                let installRect = toScreenRect(result.installMinimumRect, size: size)
+                ctx.fill(Path(installRect), with: .color(overlayColor.opacity(0.10 * baseOpacity)))
+                ctx.stroke(
+                    Path(installRect),
+                    with: .color(overlayColor.opacity(0.50 * baseOpacity)),
+                    style: StrokeStyle(lineWidth: 1, dash: [2, 2])
+                )
+
+                // Layer 1: Physical footprint (solid border, strongest fill)
                 let fpRect = toScreenRect(result.footprintRect, size: size)
                 ctx.fill(Path(fpRect), with: .color(overlayColor.opacity(0.16 * baseOpacity)))
                 ctx.stroke(Path(fpRect), with: .color(overlayColor.opacity(0.72 * baseOpacity)), lineWidth: 1.5)

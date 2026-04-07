@@ -39,6 +39,18 @@ struct TaggedObject: Identifiable, Codable {
     /// Must match an `ApplianceProfile.id` in `ApplianceProfileLibrary`.
     var applianceProfileID: String?
 
+    /// Optional clearance profile identifier used by the clearance-check rendering layer.
+    /// When set, overrides the appliance profile for clearance zone geometry only.
+    /// Typically the same as `applianceProfileID`; split here for future extensibility.
+    var clearanceProfileID: String?
+
+    /// IDs of TaggedPhoto records linked to this object.
+    /// Maintained as a convenience index; the authoritative link is TaggedPhoto.taggedObjectID.
+    var linkedPhotoIDs: [UUID]
+
+    /// IDs of ValidationIssue records associated with this object.
+    var linkedIssueIDs: [UUID]
+
     /// Quick-entry field values keyed by QuickField.key
     var quickFieldValues: [String: String]
 
@@ -68,6 +80,9 @@ struct TaggedObject: Identifiable, Codable {
         rotation: Double = 0.0,
         boundingSize: PlacementSize? = nil,
         applianceProfileID: String? = nil,
+        clearanceProfileID: String? = nil,
+        linkedPhotoIDs: [UUID] = [],
+        linkedIssueIDs: [UUID] = [],
         quickFieldValues: [String: String] = [:],
         notes: String = "",
         isConfirmed: Bool = false,
@@ -84,6 +99,9 @@ struct TaggedObject: Identifiable, Codable {
         self.rotation = rotation
         self.boundingSize = boundingSize
         self.applianceProfileID = applianceProfileID
+        self.clearanceProfileID = clearanceProfileID
+        self.linkedPhotoIDs = linkedPhotoIDs
+        self.linkedIssueIDs = linkedIssueIDs
         self.quickFieldValues = quickFieldValues
         self.notes = notes
         self.isConfirmed = isConfirmed
@@ -100,6 +118,44 @@ struct TaggedObject: Identifiable, Codable {
 
     mutating func touch() {
         updatedAt = Date()
+    }
+
+    // MARK: Decodable — backward-compatible with pre-clearance-profile object records
+
+    private enum CodingKeys: String, CodingKey {
+        case id, roomID, category, label
+        case normalizedPosition, wallIndex, attachedWallID
+        case placementMode, rotation, boundingSize
+        case applianceProfileID, clearanceProfileID
+        case linkedPhotoIDs, linkedIssueIDs
+        case quickFieldValues, notes, isConfirmed, confidence
+        case createdAt, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                 = try c.decode(UUID.self,                    forKey: .id)
+        roomID             = try c.decode(UUID.self,                    forKey: .roomID)
+        category           = try c.decode(ServiceObjectCategory.self,   forKey: .category)
+        let rawLabel       = try c.decode(String.self,                  forKey: .label)
+        label              = rawLabel
+        normalizedPosition = try c.decodeIfPresent(NormalizedPoint2D.self, forKey: .normalizedPosition)
+        wallIndex          = try c.decodeIfPresent(Int.self,            forKey: .wallIndex)
+        attachedWallID     = try c.decodeIfPresent(UUID.self,           forKey: .attachedWallID)
+        placementMode      = try c.decode(PlacementMode.self,           forKey: .placementMode)
+        rotation           = try c.decode(Double.self,                  forKey: .rotation)
+        boundingSize       = try c.decodeIfPresent(PlacementSize.self,  forKey: .boundingSize)
+        applianceProfileID = try c.decodeIfPresent(String.self,         forKey: .applianceProfileID)
+        // New fields — default to nil/empty for objects saved before these were introduced.
+        clearanceProfileID = try c.decodeIfPresent(String.self,         forKey: .clearanceProfileID)
+        linkedPhotoIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedPhotoIDs)  ?? []
+        linkedIssueIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedIssueIDs)  ?? []
+        quickFieldValues   = try c.decode([String: String].self,        forKey: .quickFieldValues)
+        notes              = try c.decode(String.self,                  forKey: .notes)
+        isConfirmed        = try c.decode(Bool.self,                    forKey: .isConfirmed)
+        confidence         = try c.decode(ConfidenceLevel.self,         forKey: .confidence)
+        createdAt          = try c.decode(Date.self,                    forKey: .createdAt)
+        updatedAt          = try c.decode(Date.self,                    forKey: .updatedAt)
     }
 }
 
