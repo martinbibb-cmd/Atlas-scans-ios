@@ -69,6 +69,10 @@ AA010058 /* NewPropertySessionView.swift in Sources */ = {isa = PBXBuildFile; fi
 AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020059 /* SessionCaptureViewModelTests.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
+		AA01005B /* LiveViewTaggingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005B /* LiveViewTaggingViewModel.swift */; };
+		AA01005C /* LiveViewTaggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005C /* LiveViewTaggingView.swift */; };
+		AA01005D /* CameraFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005D /* CameraFeedView.swift */; };
+		AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005E /* LiveViewTaggingViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,6 +149,10 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA02005B /* LiveViewTaggingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingViewModel.swift; sourceTree = "<group>"; };
+		AA02005C /* LiveViewTaggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingView.swift; sourceTree = "<group>"; };
+		AA02005D /* CameraFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFeedView.swift; sourceTree = "<group>"; };
+		AA02005E /* LiveViewTaggingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -208,6 +216,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA050016 /* Evidence */,
 				AA050017 /* LiDARClearance */,
 				AA050018 /* SessionCapture */,
+				AA050019 /* LiveTagging */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -371,6 +380,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020050 /* LiDARClearanceMeasurementTests.swift */,
 				AA020054 /* PropertyScanSessionTests.swift */,
 				AA020059 /* SessionCaptureViewModelTests.swift */,
+				AA02005E /* LiveViewTaggingViewModelTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -396,6 +406,16 @@ AA020055 /* SessionCaptureViewModel.swift */,
 path = SessionCapture;
 sourceTree = "<group>";
 };
+		AA050019 /* LiveTagging */ = {
+			isa = PBXGroup;
+			children = (
+				AA02005B /* LiveViewTaggingViewModel.swift */,
+				AA02005C /* LiveViewTaggingView.swift */,
+				AA02005D /* CameraFeedView.swift */,
+			);
+			path = LiveTagging;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -543,6 +563,9 @@ sourceTree = "<group>";
 				AA010057 /* PropertySessionListView.swift in Sources */,
 				AA010058 /* NewPropertySessionView.swift in Sources */,
 				AA01005A /* ClearanceOverlayView.swift in Sources */,
+				AA01005B /* LiveViewTaggingViewModel.swift in Sources */,
+				AA01005C /* LiveViewTaggingView.swift in Sources */,
+				AA01005D /* CameraFeedView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -562,6 +585,7 @@ sourceTree = "<group>";
 				AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */,
 				AA010054 /* PropertyScanSessionTests.swift in Sources */,
 				AA010059 /* SessionCaptureViewModelTests.swift in Sources */,
+				AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

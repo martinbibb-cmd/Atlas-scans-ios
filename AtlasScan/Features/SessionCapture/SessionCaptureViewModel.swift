@@ -155,6 +155,21 @@ final class SessionCaptureViewModel: ObservableObject {
         scheduleAutosave()
     }
 
+    /// Updates an existing tagged object in-place, searching both session-level and room-level lists.
+    func updateObject(_ updated: TaggedObject) {
+        if session.taggedObjects.contains(where: { $0.id == updated.id }) {
+            session.updateTaggedObject(updated)
+        } else {
+            for i in session.rooms.indices {
+                if session.rooms[i].taggedObjects.contains(where: { $0.id == updated.id }) {
+                    session.rooms[i].updateTaggedObject(updated)
+                    break
+                }
+            }
+        }
+        scheduleAutosave()
+    }
+
     // MARK: - Photo management
 
     /// Saves a photo and attaches it to the current `pendingPhotoTarget`.

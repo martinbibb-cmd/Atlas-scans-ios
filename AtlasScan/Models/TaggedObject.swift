@@ -44,6 +44,10 @@ struct TaggedObject: Identifiable, Codable {
     /// Typically the same as `applianceProfileID`; split here for future extensibility.
     var clearanceProfileID: String?
 
+    /// Spatial anchor set when the object is placed directly from the live camera view.
+    /// Nil for objects added via the room-layout form flow.
+    var worldAnchor: WorldAnchor3D?
+
     /// IDs of TaggedPhoto records linked to this object.
     /// Maintained as a convenience index; the authoritative link is TaggedPhoto.taggedObjectID.
     var linkedPhotoIDs: [UUID]
@@ -81,6 +85,7 @@ struct TaggedObject: Identifiable, Codable {
         boundingSize: PlacementSize? = nil,
         applianceProfileID: String? = nil,
         clearanceProfileID: String? = nil,
+        worldAnchor: WorldAnchor3D? = nil,
         linkedPhotoIDs: [UUID] = [],
         linkedIssueIDs: [UUID] = [],
         quickFieldValues: [String: String] = [:],
@@ -100,6 +105,7 @@ struct TaggedObject: Identifiable, Codable {
         self.boundingSize = boundingSize
         self.applianceProfileID = applianceProfileID
         self.clearanceProfileID = clearanceProfileID
+        self.worldAnchor = worldAnchor
         self.linkedPhotoIDs = linkedPhotoIDs
         self.linkedIssueIDs = linkedIssueIDs
         self.quickFieldValues = quickFieldValues
@@ -133,7 +139,7 @@ struct TaggedObject: Identifiable, Codable {
         case id, roomID, category, label
         case normalizedPosition, wallIndex, attachedWallID
         case placementMode, rotation, boundingSize
-        case applianceProfileID, clearanceProfileID
+        case applianceProfileID, clearanceProfileID, worldAnchor
         case linkedPhotoIDs, linkedIssueIDs
         case quickFieldValues, notes, isConfirmed, confidence
         case createdAt, updatedAt
@@ -155,6 +161,7 @@ struct TaggedObject: Identifiable, Codable {
         applianceProfileID = try c.decodeIfPresent(String.self,         forKey: .applianceProfileID)
         // New fields — default to nil/empty for objects saved before these were introduced.
         clearanceProfileID = try c.decodeIfPresent(String.self,         forKey: .clearanceProfileID)
+        worldAnchor        = try c.decodeIfPresent(WorldAnchor3D.self,  forKey: .worldAnchor)
         linkedPhotoIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedPhotoIDs)  ?? []
         linkedIssueIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedIssueIDs)  ?? []
         quickFieldValues   = try c.decode([String: String].self,        forKey: .quickFieldValues)
@@ -187,12 +194,54 @@ enum ConfidenceLevel: String, Codable, CaseIterable {
 // MARK: - NormalizedPoint2D
 
 /// A 2D point normalised to 0…1 within a room's bounding rectangle.
-struct NormalizedPoint2D: Codable {
+struct NormalizedPoint2D: Codable, Equatable {
     var x: Double
     var y: Double
 
     init(x: Double, y: Double) {
         self.x = max(0, min(1, x))
         self.y = max(0, min(1, y))
+    }
+}
+
+// MARK: - WorldAnchor3D
+
+/// A spatial anchor recording where a tagged object was placed in the live camera view.
+///
+/// `screenX` and `screenY` store the normalised view position (0…1) at the moment
+/// the engineer tapped, so the pin can be re-rendered at the correct screen location.
+/// `x`, `y`, `z` store an approximate session-space position in metres; for the
+/// camera-only (non-ARKit) path these default to the screen position projected onto
+/// a unit floor plane (y = 0).  A future ARKit path may populate these with true
+/// world coordinates from a raycast against the LiDAR mesh.
+struct WorldAnchor3D: Codable, Equatable {
+
+    /// Approximate world-space x position in metres (session origin).
+    var x: Double
+
+    /// Approximate world-space y position in metres (0 = floor plane).
+    var y: Double
+
+    /// Approximate world-space z position in metres (session origin).
+    var z: Double
+
+    /// Normalised horizontal screen position at placement time (0 = left, 1 = right).
+    var screenX: Double
+
+    /// Normalised vertical screen position at placement time (0 = top, 1 = bottom).
+    var screenY: Double
+
+    init(
+        x: Double = 0,
+        y: Double = 0,
+        z: Double = 0,
+        screenX: Double,
+        screenY: Double
+    ) {
+        self.x = x
+        self.y = y
+        self.z = z
+        self.screenX = max(0, min(1, screenX))
+        self.screenY = max(0, min(1, screenY))
     }
 }
