@@ -1,0 +1,15 @@
+{
+  "originHash" : "b635c5ad0b8f568e724003751b44149218bbaed1a021ea20ac82a1dd8b1cfef4",
+  "pins" : [
+    {
+      "identity" : "atlas-contracts",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/martinbibb-cmd/Atlas-contracts",
+      "state" : {
+        "branch" : "main",
+        "revision" : "b8f5c36c33400a6e50a06a465c4d2432b10aa4fc"
+      }
+    }
+  ],
+  "version" : 3
+}

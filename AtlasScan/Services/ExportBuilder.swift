@@ -12,6 +12,12 @@ import UIKit
 
 final class ExportBuilder {
 
+    // MARK: - Contract constants
+
+    /// Current ScanBundle contract version string for ScanBundleV1 payloads.
+    /// Keep this in sync with AtlasContracts ScanBundleV1 expectations.
+    private static let currentScanBundleVersion: String = "1.0"
+
     // MARK: - Geometry fallback constants
 
     /// Default wall length in metres, used when no geometry has been captured.
@@ -149,7 +155,7 @@ final class ExportBuilder {
     /// Translation: local app models → export mapper → AtlasContracts bundle.
     func buildBundle(from job: ScanJob) -> ScanBundleV1 {
         ScanBundleV1(
-            version: currentScanBundleVersion,
+            version: ExportBuilder.currentScanBundleVersion,
             bundleId: UUID().uuidString,
             rooms: job.rooms.map { contractRoom(from: $0) },
             anchors: [],
@@ -191,7 +197,7 @@ final class ExportBuilder {
             capturedAt: iso8601.string(from: job.createdAt),
             deviceModel: currentDeviceModel(),
             scannerApp: "AtlasScan 1.0",
-            coordinateConvention: "metric_m",
+            coordinateConvention: .metricM,
             propertyRef: job.atlasJobID,
             operatorNotes: notes.isEmpty ? nil : notes.joined(separator: "; ")
         )
@@ -208,7 +214,7 @@ final class ExportBuilder {
                         flags.append(ScanQAFlag(
                             code: "atlas.service_fields",
                             message: payload,
-                            severity: "info",
+                            severity: .info,
                             entityId: object.id.uuidString
                         ))
                     }
@@ -222,7 +228,7 @@ final class ExportBuilder {
                     flags.append(ScanQAFlag(
                         code: "atlas.placement",
                         message: payload,
-                        severity: "info",
+                        severity: .info,
                         entityId: object.id.uuidString
                     ))
                 }
@@ -236,7 +242,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.room_adjacency",
                     message: payload,
-                    severity: adjacency.isConfirmed ? "info" : "warning",
+                    severity: (adjacency.isConfirmed ? .info : .warning),
                     entityId: adjacency.id.uuidString
                 ))
             }
@@ -249,7 +255,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.evidence_count",
                     message: payload,
-                    severity: "info",
+                    severity: .info,
                     entityId: room.id.uuidString
                 ))
             }
@@ -259,7 +265,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.evidence_count",
                     message: payload,
-                    severity: "info",
+                    severity: .info,
                     entityId: nil
                 ))
             }
@@ -305,7 +311,7 @@ final class ExportBuilder {
             end: coords.end,
             heightM: wall.heightMetres ?? 0.0,
             thicknessMm: 0.0,
-            kind: wall.isExternalWall ? "external" : "internal",
+            kind: wall.isExternalWall ? .external : .internal,
             openings: openings.map { contractOpening(from: $0, wall: wall) },
             confidence: .medium
         )
@@ -321,7 +327,7 @@ final class ExportBuilder {
             widthM: opening.widthMetres ?? 0.9,
             heightM: opening.heightMetres ?? 2.1,
             offsetM: effectiveWallLength / 2.0,
-            type: openingType(from: opening.kind),
+            type: (opening.kind == .door ? .door : opening.kind == .window ? .window : .unknown),
             confidence: .medium
         )
     }
@@ -339,7 +345,7 @@ final class ExportBuilder {
             id: object.id.uuidString,
             category: object.category.rawValue,
             label: object.displayLabel,
-            boundingBox: ScanDetectedObject.BoundingBox(
+            boundingBox: ScanBoundingBox(
                 minX: cx - ExportBuilder.serviceObjectHalfBoxM, minY: cy - ExportBuilder.serviceObjectHalfBoxM,
                 maxX: cx + ExportBuilder.serviceObjectHalfBoxM, maxY: cy + ExportBuilder.serviceObjectHalfBoxM,
                 minZ: 0.0, maxZ: ExportBuilder.serviceObjectHalfBoxM * 2
@@ -374,14 +380,6 @@ final class ExportBuilder {
         }
 
         return result
-    }
-
-    private func openingType(from kind: OpeningKind) -> String {
-        switch kind {
-        case .door:   return "door"
-        case .window: return "window"
-        default:      return "unknown"
-        }
     }
 
     private func contractConfidence(from level: ConfidenceLevel) -> ScanConfidenceBand {

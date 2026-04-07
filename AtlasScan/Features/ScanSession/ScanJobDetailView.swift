@@ -26,6 +26,7 @@ struct ScanJobDetailView: View {
                 propertyPlanSection
             }
             evidenceSection
+            toolsSection
             if !job.rooms.isEmpty {
                 exportSection
             }
@@ -107,6 +108,21 @@ struct ScanJobDetailView: View {
             } label: {
                 Label("Property Plan", systemImage: "map")
             }
+        }
+    }
+
+    private var toolsSection: some View {
+        Section {
+            NavigationLink {
+                LiDARClearanceView()
+            } label: {
+                Label("LiDAR Clearance Check", systemImage: "ruler.fill")
+            }
+        } header: {
+            Text("Tools")
+        } footer: {
+            Text("Use the device LiDAR sensor to measure real-world clearances around an appliance — no printed markers required.")
+                .font(.caption2)
         }
     }
 

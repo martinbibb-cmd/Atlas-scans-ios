@@ -251,7 +251,7 @@ struct CategoryTile: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity)
-            .background(.secondarySystemBackground)
+            .background(Color.secondarySystemBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)

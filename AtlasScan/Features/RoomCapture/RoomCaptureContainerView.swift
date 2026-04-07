@@ -64,9 +64,10 @@ struct RoomCaptureContainerView: View {
         .onAppear {
             viewModel.startCapture()
         }
-        .onChange(of: viewModel.capturedRoom) { _, room in
-            guard let room else { return }
-            onRoomCaptured(room)
+        .onChange(of: viewModel.capturedRoom?.id) { _, _ in
+            if let room = viewModel.capturedRoom {
+                onRoomCaptured(room)
+            }
         }
         .sheet(isPresented: $showingAddObject) {
             AddObjectSheet(room: placeholderRoom) { newObject in
@@ -372,3 +373,4 @@ final class RoomCaptureViewModel: ObservableObject {
     }
 }
 #endif
+
