@@ -81,6 +81,10 @@ final class LiveViewTaggingViewModel: ObservableObject {
     func placeObject(category: ServiceObjectCategory, at position: NormalizedPoint2D) {
         let roomID = sessionViewModel.selectedRoomID ?? sessionViewModel.session.id
         var obj = TaggedObject(roomID: roomID, category: category)
+        // World-space coordinates are approximate placeholders for the camera-only path.
+        // x and z are derived from the screen position (treating the view as a top-down
+        // unit floor plan); y is 0 (floor plane).  A future ARKit integration would
+        // replace these with raycasted world coordinates from the LiDAR mesh.
         obj.worldAnchor = WorldAnchor3D(
             x: Double(position.x),
             y: 0.0,

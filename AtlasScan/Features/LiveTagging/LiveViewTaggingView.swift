@@ -258,12 +258,9 @@ struct LiveViewTaggingView: View {
 
             // Photo count badge
             if !obj.linkedPhotoIDs.isEmpty {
-                Label(
-                    "\(obj.linkedPhotoIDs.count) photo\(obj.linkedPhotoIDs.count == 1 ? "" : "s") attached",
-                    systemImage: "photo.fill"
-                )
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.8))
+                Label(photoCountDescription(obj.linkedPhotoIDs.count), systemImage: "photo.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.8))
             }
         }
         .padding(14)
@@ -297,6 +294,10 @@ struct LiveViewTaggingView: View {
             .foregroundStyle(isDestructive ? .red : .white)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
+    }
+
+    private func photoCountDescription(_ count: Int) -> String {
+        "\(count) photo\(count == 1 ? "" : "s") attached"
     }
 }
 
