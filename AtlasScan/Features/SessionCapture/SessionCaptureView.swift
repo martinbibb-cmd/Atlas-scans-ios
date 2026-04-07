@@ -197,9 +197,12 @@ struct SessionCaptureView: View {
     private func clearanceOverlayRow(for obj: TaggedObject) -> some View {
         let room = viewModel.selectedRoom
             ?? viewModel.session.rooms.first(where: { $0.id == obj.roomID })
-        if let room, let result = ClearanceEngine.evaluate(object: obj, in: room) {
-            ClearanceOverlayView(result: result, object: obj)
-                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+        if let room {
+            let otherObjects = room.taggedObjects.filter { $0.id != obj.id }
+            if let result = ClearanceEngine.evaluate(object: obj, in: room, otherObjects: otherObjects) {
+                ClearanceOverlayView(result: result, object: obj, otherObjects: otherObjects)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+            }
         }
     }
 
@@ -210,7 +213,11 @@ struct SessionCaptureView: View {
     private func clearanceSummaryRow(for obj: TaggedObject) -> some View {
         let room = viewModel.selectedRoom
             ?? viewModel.session.rooms.first(where: { $0.id == obj.roomID })
-        if let room, let result = ClearanceEngine.evaluate(object: obj, in: room) {
+        if let room,
+           let result = ClearanceEngine.evaluate(
+               object: obj, in: room,
+               otherObjects: room.taggedObjects.filter { $0.id != obj.id }
+           ) {
             HStack(spacing: 8) {
                 Image(systemName: result.status.symbolName)
                     .foregroundStyle(clearanceStatusColor(result.status))

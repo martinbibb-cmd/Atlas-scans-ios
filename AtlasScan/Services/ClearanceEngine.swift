@@ -68,6 +68,9 @@ struct ClearanceIssue {
         case openingWithinAccessZone    = "opening_access"
         case ceilingHeightLimiting      = "ceiling_limiting"
         case enclosedInstallation       = "enclosed"
+        /// Another tagged object physically intrudes into this object's clearance zone.
+        /// `source` will be `.object(UUID)` identifying the intruding object.
+        case objectIntrusion            = "object_intrusion"
     }
 
     enum Severity {
@@ -104,12 +107,17 @@ struct ClearanceIssue {
 
     /// A human-readable description of what is causing the conflict, suitable for
     /// display in the issue sheet below the primary message.
-    /// Returns `nil` when no source is available.
-    var sourceDescription: String? {
+    ///
+    /// - Parameter objectName: Display name for the intruding object when `source` is
+    ///   `.object(UUID)`. Pass the object's `displayLabel` when available so the UI
+    ///   shows "Blocked by hot water cylinder" instead of a raw UUID.
+    ///   Falls back to "Blocked by adjacent object" when `nil`.
+    /// - Returns: `nil` when no source is available.
+    func sourceDescription(objectName: String? = nil) -> String? {
         switch source {
         case .wall:             return "Blocked by wall"
         case .ceiling:          return "Blocked by ceiling"
-        case .object(let id):   return "Blocked by object (\(id.uuidString.prefix(8))…)"
+        case .object:           return "Blocked by \(objectName ?? "adjacent object")"
         case .unknown:          return "Source not determined"
         case nil:               return nil
         }
@@ -224,7 +232,23 @@ enum ClearanceEngine {
     /// When the object has an `applianceProfileID` that matches a profile in
     /// `ApplianceProfileLibrary`, that profile's rule and guidance note are used.
     /// Otherwise the default category rule applies.
-    static func evaluate(object: TaggedObject, in room: ScannedRoom) -> ClearanceResult? {
+    ///
+    /// - Parameters:
+    ///   - object: The object being evaluated.
+    ///   - room: The room the object is placed in.
+    ///   - otherObjects: Other tagged objects in the same room used for
+    ///     object-to-object collision detection. Pass `room.taggedObjects` (excluding
+    ///     `object`) to detect when another placed object intrudes into this object's
+    ///     clearance zones. Defaults to empty (boundary-only evaluation).
+    ///
+    /// - Note: Object-to-object collision detection is 2D/rect-based using normalised
+    ///   room coordinates. Only the physical footprint of each other object is
+    ///   compared against the selected object's install-minimum and service-access zones.
+    static func evaluate(
+        object: TaggedObject,
+        in room: ScannedRoom,
+        otherObjects: [TaggedObject] = []
+    ) -> ClearanceResult? {
         guard supportedCategories.contains(object.category),
               let pos = object.normalizedPosition
         else { return nil }
@@ -260,6 +284,15 @@ enum ClearanceEngine {
             clearanceRect: serviceAccessRect,
             room: room,
             polygon: polygon
+        )
+        issues += objectIntrusionIssues(
+            selected: object,
+            pos: pos,
+            installMinimumRect: installMinimumRect,
+            serviceAccessRect: serviceAccessRect,
+            otherObjects: otherObjects,
+            roomWidth: roomWidth,
+            roomHeight: roomHeight
         )
         if let issue = ceilingIssue(rule: rule, room: room) {
             issues.append(issue)
@@ -629,6 +662,121 @@ enum ClearanceEngine {
             message: "Enclosed — check cupboard working space",
             source: .unknown
         )
+    }
+
+    // MARK: - Private: object-to-object intrusion
+
+    /// Detects clearance conflicts caused by other tagged objects in the same room.
+    ///
+    /// For each `other` object that has a normalised position, this method computes
+    /// its physical footprint rect and checks whether it overlaps with:
+    ///   - `installMinimumRect` — emits a `.conflict` issue (hard block)
+    ///   - `serviceAccessRect`  — emits a `.warning` issue (access constrained)
+    ///
+    /// Footprint dimensions come from the other object's appliance-profile rule when
+    /// available, or the category default rule, or a 0.5 m × 0.5 m fallback.
+    ///
+    /// - Note: This is 2D/rect-based; object height and depth orientation are not
+    ///   modelled. Each issue carries `source: .object(other.id)` so the UI can
+    ///   resolve the UUID to a human-readable label.
+    private static func objectIntrusionIssues(
+        selected: TaggedObject,
+        pos: NormalizedPoint2D,
+        installMinimumRect: CGRect,
+        serviceAccessRect: CGRect,
+        otherObjects: [TaggedObject],
+        roomWidth: Double,
+        roomHeight: Double
+    ) -> [ClearanceIssue] {
+        var issues: [ClearanceIssue] = []
+
+        for other in otherObjects {
+            guard other.id != selected.id,
+                  let otherPos = other.normalizedPosition
+            else { continue }
+
+            let otherFootprint = footprintRect(
+                for: other, pos: otherPos,
+                roomWidth: roomWidth, roomHeight: roomHeight
+            )
+
+            guard otherFootprint.intersects(installMinimumRect)
+                    || otherFootprint.intersects(serviceAccessRect)
+            else { continue }
+
+            let sideLabel = intrusionSideLabel(
+                fromSelected: pos, toOther: otherPos
+            )
+
+            if otherFootprint.intersects(installMinimumRect) {
+                issues.append(ClearanceIssue(
+                    kind: .objectIntrusion,
+                    severity: .conflict,
+                    message: "Install space blocked by adjacent object",
+                    sideLabel: sideLabel,
+                    source: .object(other.id)
+                ))
+            } else {
+                // Overlaps service access zone only
+                issues.append(ClearanceIssue(
+                    kind: .objectIntrusion,
+                    severity: .warning,
+                    message: "Service zone overlaps adjacent object",
+                    sideLabel: sideLabel,
+                    source: .object(other.id)
+                ))
+            }
+        }
+
+        return issues
+    }
+
+    /// Computes a normalised footprint rect for an object given its position.
+    ///
+    /// Prefers the object's appliance-profile rule, then the category default rule,
+    /// then falls back to a 0.5 m × 0.5 m bounding box.
+    private static func footprintRect(
+        for object: TaggedObject,
+        pos: NormalizedPoint2D,
+        roomWidth: Double,
+        roomHeight: Double
+    ) -> CGRect {
+        let (fw, fd): (Double, Double)
+        if let profileID = object.applianceProfileID,
+           let profile = ApplianceProfileLibrary.profile(id: profileID) {
+            fw = profile.rule.footprintWidthMetres
+            fd = profile.rule.footprintDepthMetres
+        } else if let r = Self.rule(for: object.category) {
+            fw = r.footprintWidthMetres
+            fd = r.footprintDepthMetres
+        } else {
+            fw = Self.defaultFallbackFootprintWidthMetres
+            fd = Self.defaultFallbackFootprintDepthMetres
+        }
+        let hw = (fw / 2.0) / roomWidth
+        let hd = (fd / 2.0) / roomHeight
+        return CGRect(x: pos.x - hw, y: pos.y - hd, width: hw * 2, height: hd * 2)
+    }
+
+    /// Fallback footprint width (metres) for objects with no rule or profile.
+    private static let defaultFallbackFootprintWidthMetres: Double = 0.5
+
+    /// Fallback footprint depth (metres) for objects with no rule or profile.
+    private static let defaultFallbackFootprintDepthMetres: Double = 0.5
+
+    /// Returns a directional label ("left", "right", "top", "bottom") describing
+    /// where `otherPos` sits relative to `selectedPos` in normalised room coordinates.
+    private static func intrusionSideLabel(
+        fromSelected selectedPos: NormalizedPoint2D,
+        toOther otherPos: NormalizedPoint2D
+    ) -> String {
+        let dx = otherPos.x - selectedPos.x
+        let dy = otherPos.y - selectedPos.y
+        if abs(dx) >= abs(dy) {
+            return dx >= 0 ? "right" : "left"
+        } else {
+            return dy >= 0 ? "bottom" : "top"
+        }
     }
 
     // MARK: - Private: confidence note

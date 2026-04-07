@@ -32,6 +32,9 @@ struct ClearanceOverlayView: View {
 
     let result: ClearanceResult
     let object: TaggedObject
+    /// Other tagged objects in the same room; used by the issue sheet to resolve
+    /// `.object(UUID)` source references to human-readable names.
+    var otherObjects: [TaggedObject] = []
 
     @State private var showingIssueSheet = false
 
@@ -86,7 +89,7 @@ struct ClearanceOverlayView: View {
                 .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 1)
         )
         .sheet(isPresented: $showingIssueSheet) {
-            ClearanceIssueSheet(result: result, object: object)
+            ClearanceIssueSheet(result: result, object: object, otherObjects: otherObjects)
         }
     }
 
@@ -370,6 +373,9 @@ struct ClearanceIssueSheet: View {
 
     let result: ClearanceResult
     let object: TaggedObject
+    /// Other tagged objects in the same room, used to resolve `.object(UUID)` source
+    /// references to human-readable names in the issue list.
+    var otherObjects: [TaggedObject] = []
 
     @Environment(\.dismiss) private var dismiss
 
@@ -451,7 +457,7 @@ struct ClearanceIssueSheet: View {
                 }
                 Text(issue.message)
                     .font(.subheadline)
-                if let sourceText = issue.sourceDescription {
+                if let sourceText = issue.sourceDescription(objectName: objectName(for: issue)) {
                     Text(sourceText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -461,11 +467,19 @@ struct ClearanceIssueSheet: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [issue.sideLabel.map { "\($0): " }, issue.message, issue.sourceDescription]
+            [issue.sideLabel.map { "\($0): " }, issue.message,
+             issue.sourceDescription(objectName: objectName(for: issue))]
                 .compactMap { $0 }
                 .joined(separator: " — ")
         )
         .accessibilityValue(issue.severity == .conflict ? "Conflict" : "Warning")
+    }
+
+    /// Resolves the display name of the object referenced by an issue's source,
+    /// returning `nil` for non-object sources or when the object cannot be found.
+    private func objectName(for issue: ClearanceIssue) -> String? {
+        guard case .object(let id) = issue.source else { return nil }
+        return otherObjects.first(where: { $0.id == id })?.displayLabel
     }
 
     private var statusColor: Color {
