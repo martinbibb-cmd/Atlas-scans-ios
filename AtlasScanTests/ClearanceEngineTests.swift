@@ -478,6 +478,112 @@ final class ClearanceEngineTests: XCTestCase {
         XCTAssertNil(issue.sideLabel, "Default sideLabel must be nil for backward compatibility")
     }
 
+    // MARK: - ClearanceIssue source
+
+    func test_clearanceIssue_defaultInit_sourceIsNil() {
+        let issue = ClearanceIssue(kind: .enclosedInstallation, severity: .warning, message: "test")
+        XCTAssertNil(issue.source, "Default source must be nil for backward compatibility")
+    }
+
+    func test_wallProximityIssue_hasWallSource() {
+        // 1.5 m × 1.5 m room — triggers front conflict against a wall.
+        let room = roomWithDimensions(width: 1.5, height: 1.5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let frontIssue = result.issues.first { $0.kind == .frontAccessRestricted }
+        XCTAssertNotNil(frontIssue, "Should have a front access issue")
+        XCTAssertEqual(frontIssue?.source, .wall,
+            "Wall-proximity issue should have source .wall")
+    }
+
+    func test_sideWallIssue_hasWallSource() {
+        // 0.8 m wide × 5 m tall room — triggers side-wall conflict.
+        let room = roomWithDimensions(width: 0.8, height: 5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.05)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let sideIssue = result.issues.first { $0.kind == .tooCloseToSideWall }
+        XCTAssertNotNil(sideIssue, "Should have a side-wall issue")
+        XCTAssertEqual(sideIssue?.source, .wall,
+            "Side-wall issue should have source .wall")
+    }
+
+    func test_ceilingIssue_hasCeilingSource() {
+        var room = roomWithDimensions(width: 5, height: 4)
+        room.ceilingHeightMetres = 1.7   // boiler requires 2.0 m
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let ceilingIssue = result.issues.first { $0.kind == .ceilingHeightLimiting }
+        XCTAssertNotNil(ceilingIssue, "Should have a ceiling issue")
+        XCTAssertEqual(ceilingIssue?.source, .ceiling,
+            "Ceiling issue should have source .ceiling")
+    }
+
+    func test_enclosedIssue_hasUnknownSource() {
+        let room = roomWithDimensions(width: 6, height: 6)
+        var obj = TaggedObject(
+            roomID: room.id, category: .boiler,
+            quickFieldValues: ["enclosed": "true"]
+        )
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let enclosedIssue = result.issues.first { $0.kind == .enclosedInstallation }
+        XCTAssertNotNil(enclosedIssue, "Should have an enclosed issue")
+        XCTAssertEqual(enclosedIssue?.source, .unknown,
+            "Enclosed-installation issue should have source .unknown")
+    }
+
+    func test_openingIssue_hasWallSource() {
+        // 5 m × 5 m room; boiler close to top wall; door on wall index 0.
+        var room = roomWithDimensions(width: 5, height: 5)
+        room.ceilingHeightMetres = 2.5
+        room.openings = [ScannedOpening(kind: .door, wallIndex: 0)]
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.04)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let openingIssue = result.issues.first { $0.kind == .openingWithinAccessZone }
+        XCTAssertNotNil(openingIssue, "Door in clearance zone should produce opening issue")
+        XCTAssertEqual(openingIssue?.source, .wall,
+            "Opening-within-access-zone issue should have source .wall")
+    }
+
+    func test_sourceDescription_wall() {
+        let issue = ClearanceIssue(kind: .frontAccessRestricted, severity: .conflict,
+                                   message: "test", source: .wall)
+        XCTAssertEqual(issue.sourceDescription, "Blocked by wall")
+    }
+
+    func test_sourceDescription_ceiling() {
+        let issue = ClearanceIssue(kind: .ceilingHeightLimiting, severity: .conflict,
+                                   message: "test", source: .ceiling)
+        XCTAssertEqual(issue.sourceDescription, "Blocked by ceiling")
+    }
+
+    func test_sourceDescription_unknown() {
+        let issue = ClearanceIssue(kind: .enclosedInstallation, severity: .warning,
+                                   message: "test", source: .unknown)
+        XCTAssertEqual(issue.sourceDescription, "Source not determined")
+    }
+
+    func test_sourceDescription_object() {
+        let id = UUID()
+        let issue = ClearanceIssue(kind: .frontAccessRestricted, severity: .conflict,
+                                   message: "test", source: .object(id))
+        let desc = issue.sourceDescription
+        XCTAssertNotNil(desc)
+        XCTAssertTrue(desc?.hasPrefix("Blocked by object") ?? false,
+            "Object source description should start with 'Blocked by object'")
+    }
+
+    func test_sourceDescription_nilSource() {
+        let issue = ClearanceIssue(kind: .enclosedInstallation, severity: .warning,
+                                   message: "test")
+        XCTAssertNil(issue.sourceDescription,
+            "Nil source should yield nil sourceDescription")
+    }
+
     // MARK: - Helpers
 
     private func roomWithDimensions(width: Double, height: Double) -> ScannedRoom {

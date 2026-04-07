@@ -451,14 +451,19 @@ struct ClearanceIssueSheet: View {
                 }
                 Text(issue.message)
                     .font(.subheadline)
+                if let sourceText = issue.sourceDescription {
+                    Text(sourceText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [issue.sideLabel.map { "\($0): " }, issue.message]
+            [issue.sideLabel.map { "\($0): " }, issue.message, issue.sourceDescription]
                 .compactMap { $0 }
-                .joined()
+                .joined(separator: " — ")
         )
         .accessibilityValue(issue.severity == .conflict ? "Conflict" : "Warning")
     }
