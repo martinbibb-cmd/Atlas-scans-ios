@@ -552,36 +552,176 @@ final class ClearanceEngineTests: XCTestCase {
     func test_sourceDescription_wall() {
         let issue = ClearanceIssue(kind: .frontAccessRestricted, severity: .conflict,
                                    message: "test", source: .wall)
-        XCTAssertEqual(issue.sourceDescription, "Blocked by wall")
+        XCTAssertEqual(issue.sourceDescription(), "Blocked by wall")
     }
 
     func test_sourceDescription_ceiling() {
         let issue = ClearanceIssue(kind: .ceilingHeightLimiting, severity: .conflict,
                                    message: "test", source: .ceiling)
-        XCTAssertEqual(issue.sourceDescription, "Blocked by ceiling")
+        XCTAssertEqual(issue.sourceDescription(), "Blocked by ceiling")
     }
 
     func test_sourceDescription_unknown() {
         let issue = ClearanceIssue(kind: .enclosedInstallation, severity: .warning,
                                    message: "test", source: .unknown)
-        XCTAssertEqual(issue.sourceDescription, "Source not determined")
+        XCTAssertEqual(issue.sourceDescription(), "Source not determined")
     }
 
-    func test_sourceDescription_object() {
+    func test_sourceDescription_object_noName_usesAdjacentFallback() {
         let id = UUID()
-        let issue = ClearanceIssue(kind: .frontAccessRestricted, severity: .conflict,
+        let issue = ClearanceIssue(kind: .objectIntrusion, severity: .conflict,
                                    message: "test", source: .object(id))
-        let desc = issue.sourceDescription
+        let desc = issue.sourceDescription()
         XCTAssertNotNil(desc)
-        XCTAssertTrue(desc?.hasPrefix("Blocked by object") ?? false,
-            "Object source description should start with 'Blocked by object'")
+        XCTAssertEqual(desc, "Blocked by adjacent object",
+            "Object source without a name should fall back to 'Blocked by adjacent object'")
+    }
+
+    func test_sourceDescription_object_withName_showsName() {
+        let id = UUID()
+        let issue = ClearanceIssue(kind: .objectIntrusion, severity: .conflict,
+                                   message: "test", source: .object(id))
+        let desc = issue.sourceDescription(objectName: "Hot Water Cylinder")
+        XCTAssertEqual(desc, "Blocked by Hot Water Cylinder")
     }
 
     func test_sourceDescription_nilSource() {
         let issue = ClearanceIssue(kind: .enclosedInstallation, severity: .warning,
                                    message: "test")
-        XCTAssertNil(issue.sourceDescription,
+        XCTAssertNil(issue.sourceDescription(),
             "Nil source should yield nil sourceDescription")
+    }
+
+    // MARK: - Object-to-object intrusion
+
+    func test_evaluate_objectIntrudingInstallMinimum_producesConflict() {
+        // 6 m × 6 m room. Boiler at (0.5, 0.5). Cylinder placed at (0.55, 0.5) —
+        // extremely close, its footprint overlaps the boiler's install-minimum zone.
+        let roomID = UUID()
+        let room = roomWithDimensions(width: 6, height: 6)
+        var boiler = TaggedObject(roomID: roomID, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+
+        var cylinder = TaggedObject(roomID: roomID, category: .cylinder)
+        cylinder.normalizedPosition = NormalizedPoint2D(x: 0.55, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(
+            object: boiler, in: room, otherObjects: [cylinder]
+        )
+        XCTAssertNotNil(result)
+        let intrusionIssue = result?.issues.first { $0.kind == .objectIntrusion }
+        XCTAssertNotNil(intrusionIssue,
+            "Cylinder in the boiler's install zone should produce an objectIntrusion issue")
+        XCTAssertEqual(intrusionIssue?.severity, .conflict)
+        XCTAssertEqual(intrusionIssue?.source, .object(cylinder.id))
+    }
+
+    func test_evaluate_objectIntrudingServiceAccessOnly_producesWarning() {
+        // 6 m × 6 m room. Boiler at (0.1, 0.5) — faces right (nearest wall is left).
+        // installMinimumRect.maxX ≈ 0.200; serviceAccessRect.maxX ≈ 0.250 (in normalised coords).
+        // Cylinder at x = 0.25 — footprint.minX ≈ 0.204, which is outside the install-minimum
+        // zone (0.204 > 0.200) but inside the service-access zone (0.204 < 0.250).
+        let roomID = UUID()
+        let room = roomWithDimensions(width: 6, height: 6)
+        var boiler = TaggedObject(roomID: roomID, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.1, y: 0.5)
+
+        var cylinder = TaggedObject(roomID: roomID, category: .cylinder)
+        cylinder.normalizedPosition = NormalizedPoint2D(x: 0.25, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(
+            object: boiler, in: room, otherObjects: [cylinder]
+        )
+        XCTAssertNotNil(result)
+        let intrusionIssue = result?.issues.first { $0.kind == .objectIntrusion }
+        XCTAssertNotNil(intrusionIssue)
+        XCTAssertEqual(intrusionIssue?.severity, .warning,
+            "Object in service zone but not install minimum should produce a warning")
+    }
+
+    func test_evaluate_objectFarAway_noIntrusionIssue() {
+        // Two objects at opposite ends of the room should not produce an intrusion issue.
+        let roomID = UUID()
+        let room = roomWithDimensions(width: 8, height: 8)
+        var boiler = TaggedObject(roomID: roomID, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.1, y: 0.5)
+
+        var cylinder = TaggedObject(roomID: roomID, category: .cylinder)
+        cylinder.normalizedPosition = NormalizedPoint2D(x: 0.9, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(
+            object: boiler, in: room, otherObjects: [cylinder]
+        )
+        XCTAssertNotNil(result)
+        let hasIntrusion = result?.issues.contains { $0.kind == .objectIntrusion } ?? false
+        XCTAssertFalse(hasIntrusion,
+            "Objects at opposite ends of the room should not produce an intrusion issue")
+    }
+
+    func test_evaluate_noOtherObjects_noIntrusionIssue() {
+        // Passing an empty otherObjects array should never produce an objectIntrusion issue.
+        let room = roomWithDimensions(width: 5, height: 5)
+        var boiler = TaggedObject(roomID: room.id, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(object: boiler, in: room, otherObjects: [])
+        let hasIntrusion = result?.issues.contains { $0.kind == .objectIntrusion } ?? false
+        XCTAssertFalse(hasIntrusion, "No other objects means no intrusion issues")
+    }
+
+    func test_evaluate_objectIntrusionIssue_hasObjectSource() {
+        let roomID = UUID()
+        let room = roomWithDimensions(width: 6, height: 6)
+        var boiler = TaggedObject(roomID: roomID, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+
+        var cylinder = TaggedObject(roomID: roomID, category: .cylinder)
+        cylinder.normalizedPosition = NormalizedPoint2D(x: 0.55, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(
+            object: boiler, in: room, otherObjects: [cylinder]
+        )!
+        let intrusionIssue = result.issues.first { $0.kind == .objectIntrusion }
+        XCTAssertNotNil(intrusionIssue)
+        if case .object(let id) = intrusionIssue?.source {
+            XCTAssertEqual(id, cylinder.id,
+                "Intrusion issue source should reference the intruding object's UUID")
+        } else {
+            XCTFail("Intrusion issue should have .object source")
+        }
+    }
+
+    func test_evaluate_objectIntrusionIssue_sourceDescriptionUsesName() {
+        let roomID = UUID()
+        let room = roomWithDimensions(width: 6, height: 6)
+        var boiler = TaggedObject(roomID: roomID, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+
+        var cylinder = TaggedObject(roomID: roomID, category: .cylinder, label: "Main Cylinder")
+        cylinder.normalizedPosition = NormalizedPoint2D(x: 0.55, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(
+            object: boiler, in: room, otherObjects: [cylinder]
+        )!
+        let intrusionIssue = result.issues.first { $0.kind == .objectIntrusion }
+        XCTAssertNotNil(intrusionIssue)
+        XCTAssertEqual(
+            intrusionIssue?.sourceDescription(objectName: cylinder.displayLabel),
+            "Blocked by Main Cylinder"
+        )
+    }
+
+    func test_evaluate_defaultEvaluate_noObjectsParameterNeeded() {
+        // Existing call-sites that do not pass otherObjects still compile and work.
+        let room = roomWithDimensions(width: 5, height: 5)
+        var boiler = TaggedObject(roomID: room.id, category: .boiler)
+        boiler.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+
+        let result = ClearanceEngine.evaluate(object: boiler, in: room)
+        XCTAssertNotNil(result, "evaluate without otherObjects must still return a result")
+        let hasIntrusion = result?.issues.contains { $0.kind == .objectIntrusion } ?? false
+        XCTAssertFalse(hasIntrusion,
+            "evaluate without otherObjects should not produce intrusion issues")
     }
 
     // MARK: - Helpers
