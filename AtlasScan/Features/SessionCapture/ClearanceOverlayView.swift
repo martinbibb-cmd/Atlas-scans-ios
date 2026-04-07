@@ -28,6 +28,8 @@ struct ClearanceOverlayView: View {
             Canvas { ctx, size in
                 draw(ctx: ctx, size: size)
             }
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(accessibilityValue)
 
             if !result.issues.isEmpty {
                 issueBadge
@@ -44,6 +46,20 @@ struct ClearanceOverlayView: View {
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 1)
         )
+    }
+
+    // MARK: - Accessibility
+
+    private var accessibilityLabel: String {
+        "\(object.displayLabel) clearance zones"
+    }
+
+    private var accessibilityValue: String {
+        var parts = [result.status.displayMessage]
+        if !result.issues.isEmpty {
+            parts.append("\(result.issues.count) issue\(result.issues.count == 1 ? "" : "s") detected")
+        }
+        return parts.joined(separator: ". ")
     }
 
     // MARK: - Aspect ratio
@@ -147,6 +163,7 @@ struct ClearanceOverlayView: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .background(badgeColor.opacity(0.12), in: Capsule())
+            .accessibilityLabel("\(count) clearance issue\(count == 1 ? "" : "s") detected")
     }
 
     // MARK: - Legend
