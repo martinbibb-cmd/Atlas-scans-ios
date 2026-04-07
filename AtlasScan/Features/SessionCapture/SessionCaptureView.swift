@@ -41,6 +41,10 @@ struct SessionCaptureView: View {
                 selectedObjectSection
             }
             roomsSection
+            if let focusedRoom = viewModel.selectedRoom,
+               !focusedRoom.taggedObjects.isEmpty {
+                focusedRoomObjectsSection(focusedRoom)
+            }
             if !viewModel.sessionLevelObjects.isEmpty {
                 sessionObjectsSection
             }
@@ -138,7 +142,7 @@ struct SessionCaptureView: View {
 
     // MARK: - Selected object section
 
-    /// Shown when an object is selected. Provides inline clearance summary and photo shortcut.
+    /// Shown when an object is selected. Provides the primary clearance overlay and photo shortcut.
     @ViewBuilder
     private var selectedObjectSection: some View {
         if let obj = viewModel.selectedObject {
@@ -164,7 +168,10 @@ struct SessionCaptureView: View {
                     .buttonStyle(.plain)
                 }
 
-                // Clearance summary — rendered when room geometry is available
+                // Primary visual: three-layer clearance overlay
+                clearanceOverlayRow(for: obj)
+
+                // Secondary support: compact text clearance summary
                 clearanceSummaryRow(for: obj)
 
                 // Quick photo attach
@@ -183,10 +190,21 @@ struct SessionCaptureView: View {
         }
     }
 
-    /// Compact clearance summary row for the selected object.
-    /// Renders a traffic-light status and issue count when room geometry permits evaluation.
-    /// The three clearance rects (footprint / install minimum / service access) are
-    /// computed by ClearanceEngine — ready for the next PR to render as overlay halos.
+    /// Primary clearance visual for the selected object.
+    /// Renders footprintRect, installMinimumRect, and serviceAccessRect as layered halos.
+    /// Colour follows ClearanceStatus: green / orange / red.
+    @ViewBuilder
+    private func clearanceOverlayRow(for obj: TaggedObject) -> some View {
+        let room = viewModel.selectedRoom
+            ?? viewModel.session.rooms.first(where: { $0.id == obj.roomID })
+        if let room, let result = ClearanceEngine.evaluate(object: obj, in: room) {
+            ClearanceOverlayView(result: result, object: obj)
+                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+        }
+    }
+
+    /// Secondary text summary row for the selected object.
+    /// Traffic-light status and issue count when room geometry permits evaluation.
     @ViewBuilder
     private func clearanceSummaryRow(for obj: TaggedObject) -> some View {
         let room = viewModel.selectedRoom
@@ -257,6 +275,33 @@ struct SessionCaptureView: View {
                 Text("Focus: \(room.name). New objects and photos attach to this room.")
                     .font(.caption2)
             }
+        }
+    }
+
+    // MARK: - Focused room objects section
+
+    /// Shows all tagged objects belonging to the currently focused room.
+    /// Each row is tappable to select/deselect the object, triggering the
+    /// clearance overlay in `selectedObjectSection`.
+    private func focusedRoomObjectsSection(_ room: ScannedRoom) -> some View {
+        Section {
+            ForEach(room.taggedObjects) { obj in
+                SessionObjectRow(
+                    object: obj,
+                    isSelected: viewModel.selectedObjectID == obj.id
+                ) {
+                    if viewModel.selectedObjectID == obj.id {
+                        viewModel.selectObject(nil)
+                    } else {
+                        viewModel.selectObject(obj.id)
+                    }
+                }
+            }
+        } header: {
+            Text("Objects — \(room.name)")
+        } footer: {
+            Text("Tap an object to select it and view its clearance zones.")
+                .font(.caption2)
         }
     }
 

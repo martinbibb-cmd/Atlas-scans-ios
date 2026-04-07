@@ -65,6 +65,7 @@ AA010055 /* SessionCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; f
 AA010056 /* SessionCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020056 /* SessionCaptureView.swift */; };
 AA010057 /* PropertySessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020057 /* PropertySessionListView.swift */; };
 AA010058 /* NewPropertySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020058 /* NewPropertySessionView.swift */; };
+		AA01005A /* ClearanceOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005A /* ClearanceOverlayView.swift */; };
 AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020059 /* SessionCaptureViewModelTests.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
@@ -139,6 +140,7 @@ AA020055 /* SessionCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnow
 AA020056 /* SessionCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureView.swift; sourceTree = "<group>"; };
 AA020057 /* PropertySessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertySessionListView.swift; sourceTree = "<group>"; };
 AA020058 /* NewPropertySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPropertySessionView.swift; sourceTree = "<group>"; };
+		AA02005A /* ClearanceOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceOverlayView.swift; sourceTree = "<group>"; };
 AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModelTests.swift; sourceTree = "<group>"; };
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -386,9 +388,10 @@ AA050018 /* SessionCapture */ = {
 isa = PBXGroup;
 children = (
 AA020055 /* SessionCaptureViewModel.swift */,
-AA020056 /* SessionCaptureView.swift */,
-AA020057 /* PropertySessionListView.swift */,
-AA020058 /* NewPropertySessionView.swift */,
+				AA020056 /* SessionCaptureView.swift */,
+				AA020057 /* PropertySessionListView.swift */,
+				AA020058 /* NewPropertySessionView.swift */,
+				AA02005A /* ClearanceOverlayView.swift */,
 );
 path = SessionCapture;
 sourceTree = "<group>";
@@ -539,6 +542,7 @@ sourceTree = "<group>";
 				AA010056 /* SessionCaptureView.swift in Sources */,
 				AA010057 /* PropertySessionListView.swift in Sources */,
 				AA010058 /* NewPropertySessionView.swift in Sources */,
+				AA01005A /* ClearanceOverlayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
