@@ -1,8 +1,19 @@
 import Foundation
 
 // MARK: - ScanJob
+//
+// EXPORT CONTRACT MODEL — not the canonical capture state.
+//
+// ScanJob is the legacy room-level model consumed by the export pipeline
+// (ExportPackageBuilder → ScanBundleV1). It is NOT used as the primary
+// in-app capture state; that role now belongs to PropertyScanSession.
+//
+// Do not add new capture-side state here. Add it to PropertyScanSession instead.
+// PropertyScanSession.toScanJob() maps the session into this shape for export.
 
-/// Top-level container for a scan session at a single property.
+/// Export-contract model for a scan job at a single property.
+/// Produced by `PropertyScanSession.toScanJob()` for use by the export pipeline.
+/// Not the canonical in-app capture state — use `PropertyScanSession` for that.
 struct ScanJob: Identifiable, Codable {
 
     var id: UUID = UUID()

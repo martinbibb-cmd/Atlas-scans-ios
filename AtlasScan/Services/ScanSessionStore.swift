@@ -2,11 +2,15 @@ import Foundation
 
 // MARK: - ScanSessionStore
 //
-// Persists PropertyScanSession records to the app's local documents directory.
-// Each session is stored as a separate file: <sessionID>.session.json
+// OFFLINE-FIRST PERSISTENCE for PropertyScanSession.
 //
-// Offline-first: all writes go to local storage immediately.
-// Atlas sync is handled separately by AtlasSync.
+// Each session is stored as a separate file: Documents/ScanSessions/<uuid>.session.json
+// All writes go to local storage immediately — Atlas sync is handled independently
+// by AtlasSync and does not block or gate local saves.
+//
+// This is the canonical persistence layer for the session model. ScanJobStore
+// (Documents/ScanJobs/) remains available for the legacy ScanJob records but is
+// NOT used for sessions created via PropertyScanSession.
 
 final class ScanSessionStore: ObservableObject {
 

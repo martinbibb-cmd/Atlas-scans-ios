@@ -11,8 +11,11 @@ import Foundation
 //   - No dependency on AtlasContracts internals — the sync layer maps models to
 //     the shared export contract types for transmission.
 //
-// Current implementation: stub/offline-first skeleton.
-// Real HTTP transport is wired in when an Atlas API endpoint is available.
+// NOT YET WIRED — transport stubs only.
+// `performPhotoUpload` and `performSessionMetadataUpload` are stubs that simulate
+// a network delay and return synthetic values. Replace them with real URLSession
+// calls when the Atlas API endpoint is available. Queue management, retry logic,
+// delegate callbacks, and per-item state transitions are fully implemented.
 
 // MARK: - AtlasSyncDelegate
 
@@ -221,10 +224,17 @@ final class AtlasSync: ObservableObject {
         updateUploadingState()
     }
 
-    // MARK: Private: transport stubs
+    // MARK: Private: transport stubs (NOT YET WIRED)
+    //
+    // Replace these two methods with real URLSession calls when the Atlas API
+    // endpoint is available. Everything above this point — queue management,
+    // retry scheduling, delegate callbacks, and per-item state transitions —
+    // is fully implemented and does not need to change.
 
     /// Uploads a photo file and its metadata to Atlas.
     /// Returns the remote asset identifier assigned by Atlas.
+    ///
+    /// STUB — simulates a network delay and returns a synthetic remote ID.
     private func performPhotoUpload(_ photo: TaggedPhoto, baseURL: URL) async throws -> String {
         // Transport stub — replace with real URLSession multipart upload when API is available.
         // For now: simulate a network delay and return a synthetic remote ID.
@@ -233,6 +243,8 @@ final class AtlasSync: ObservableObject {
     }
 
     /// Uploads session metadata to Atlas.
+    ///
+    /// STUB — simulates a network delay; no data is actually transmitted.
     private func performSessionMetadataUpload(_ session: PropertyScanSession, baseURL: URL) async throws {
         // Transport stub — replace with real URLSession JSON upload when API is available.
         try await Task.sleep(nanoseconds: 50_000_000)   // 0.05 s stub

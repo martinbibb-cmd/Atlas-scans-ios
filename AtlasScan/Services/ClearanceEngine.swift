@@ -55,6 +55,23 @@ struct ClearanceIssue {
 
 /// Full result of a clearance evaluation for one placed object.
 /// Includes visual overlay geometry expressed in normalised room coordinates (0…1).
+///
+/// Three-layer clearance geometry:
+///
+///   footprintRect       — physical installed envelope of the unit itself.
+///                         Solid border, strongest fill. Outermost container for the
+///                         other two zones.
+///
+///   installMinimumRect  — tightest clearance that permits physical installation
+///                         per manufacturer guidance.
+///                         Dotted border, medium fill. Always contains footprintRect.
+///
+///   serviceAccessRect   — full working space required for routine service / maintenance.
+///                         Dashed border, light fill. Always contains installMinimumRect.
+///
+/// COMPATIBILITY — clearanceRect is a backward-compatible computed alias for
+/// serviceAccessRect. Existing callers that read clearanceRect continue to work
+/// without change.
 struct ClearanceResult {
     var status: ClearanceStatus
     var issues: [ClearanceIssue]
@@ -77,9 +94,10 @@ struct ClearanceResult {
     /// The working space required for routine servicing and maintenance.
     var serviceAccessRect: CGRect
 
-    /// Total required clearance envelope (install minimum + service access zones)
-    /// in normalised room coordinates.
-    /// Equivalent to `serviceAccessRect` for display purposes; retained for compatibility.
+    /// COMPATIBILITY ALIAS — equals `serviceAccessRect`.
+    /// Retained so that existing callers of `clearanceRect` continue to compile
+    /// and behave correctly without modification. New code should use
+    /// `serviceAccessRect` directly.
     var clearanceRect: CGRect {
         serviceAccessRect
     }

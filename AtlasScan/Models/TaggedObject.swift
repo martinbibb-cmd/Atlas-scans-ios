@@ -121,6 +121,13 @@ struct TaggedObject: Identifiable, Codable {
     }
 
     // MARK: Decodable — backward-compatible with pre-clearance-profile object records
+    //
+    // COMPATIBILITY GLUE: decodeIfPresent with explicit defaults ensures that
+    // TaggedObject records saved before the following fields were introduced still
+    // decode cleanly:
+    //   clearanceProfileID  (added with layered clearance geometry)
+    //   linkedPhotoIDs      (added for direct object → photo cross-linking)
+    //   linkedIssueIDs      (added for object → validation issue cross-linking)
 
     private enum CodingKeys: String, CodingKey {
         case id, roomID, category, label
