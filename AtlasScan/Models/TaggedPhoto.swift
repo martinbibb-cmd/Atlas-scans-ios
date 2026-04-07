@@ -70,6 +70,24 @@ struct TaggedPhoto: Identifiable, Codable {
 
     var capturedAt: Date
 
+    // MARK: Sync metadata (offline-first)
+
+    /// Per-photo Atlas sync state.
+    /// Default is `.localOnly` — photos are always saved locally first.
+    var syncState: PhotoSyncState
+
+    /// Remote asset identifier assigned by Atlas after a successful upload.
+    /// Nil until the photo has been uploaded.
+    var remoteAssetID: String?
+
+    /// Approximate camera pose at capture time, when available (e.g. ARKit session).
+    var cameraPose: CameraPose?
+
+    // MARK: Optional issue tag
+
+    /// Optional issue tag for photos capturing a specific defect or concern.
+    var issueTag: String?
+
     // MARK: Init
 
     init(
@@ -80,7 +98,11 @@ struct TaggedPhoto: Identifiable, Codable {
         thumbnailPath: String? = nil,
         caption: String = "",
         kind: EvidenceKind = .other,
-        isKeyEvidence: Bool = false
+        isKeyEvidence: Bool = false,
+        syncState: PhotoSyncState = .localOnly,
+        remoteAssetID: String? = nil,
+        cameraPose: CameraPose? = nil,
+        issueTag: String? = nil
     ) {
         self.id = id
         self.roomID = roomID
@@ -91,14 +113,19 @@ struct TaggedPhoto: Identifiable, Codable {
         self.kind = kind
         self.isKeyEvidence = isKeyEvidence
         self.capturedAt = Date()
+        self.syncState = syncState
+        self.remoteAssetID = remoteAssetID
+        self.cameraPose = cameraPose
+        self.issueTag = issueTag
     }
 
-    // MARK: Decodable — backward-compatible with pre-evidence-kind photo records
+    // MARK: Decodable — backward-compatible with pre-sync photo records
 
     private enum CodingKeys: String, CodingKey {
         case id, roomID, taggedObjectID
         case filename, thumbnailPath
         case caption, kind, isKeyEvidence, capturedAt
+        case syncState, remoteAssetID, cameraPose, issueTag
     }
 
     init(from decoder: Decoder) throws {
@@ -114,5 +141,79 @@ struct TaggedPhoto: Identifiable, Codable {
         kind          = try c.decodeIfPresent(EvidenceKind.self, forKey: .kind) ?? .other
         isKeyEvidence = try c.decode(Bool.self,             forKey: .isKeyEvidence)
         capturedAt    = try c.decode(Date.self,             forKey: .capturedAt)
+        // Sync fields — default to .localOnly for photos saved before sync tracking was added.
+        syncState     = try c.decodeIfPresent(PhotoSyncState.self, forKey: .syncState) ?? .localOnly
+        remoteAssetID = try c.decodeIfPresent(String.self,         forKey: .remoteAssetID)
+        cameraPose    = try c.decodeIfPresent(CameraPose.self,     forKey: .cameraPose)
+        issueTag      = try c.decodeIfPresent(String.self,         forKey: .issueTag)
+    }
+}
+
+// MARK: - PhotoSyncState
+
+/// Sync state for an individual captured photo.
+/// Photos default to `.localOnly` and transition through the upload pipeline.
+enum PhotoSyncState: String, Codable, CaseIterable {
+    case localOnly  = "local_only"
+    case queued     = "queued"
+    case uploading  = "uploading"
+    case uploaded   = "uploaded"
+    case failed     = "failed"
+    case archived   = "archived"
+
+    var displayName: String {
+        switch self {
+        case .localOnly:  return "Local Only"
+        case .queued:     return "Queued for Atlas"
+        case .uploading:  return "Uploading…"
+        case .uploaded:   return "Uploaded"
+        case .failed:     return "Upload Failed"
+        case .archived:   return "Archived"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .localOnly:  return "iphone"
+        case .queued:     return "clock.arrow.circlepath"
+        case .uploading:  return "arrow.up.circle"
+        case .uploaded:   return "checkmark.icloud.fill"
+        case .failed:     return "exclamationmark.icloud.fill"
+        case .archived:   return "archivebox"
+        }
+    }
+
+    /// Whether this photo is eligible to be enqueued for upload.
+    var canQueue: Bool {
+        self == .localOnly || self == .failed
+    }
+}
+
+// MARK: - CameraPose
+
+/// Approximate camera position and orientation at photo capture time.
+/// Expressed in ARKit world coordinates when available; nil otherwise.
+struct CameraPose: Codable {
+
+    /// Camera position in metres relative to session world origin.
+    var positionX: Double
+    var positionY: Double
+    var positionZ: Double
+
+    /// Camera facing direction as a unit vector (x, y, z).
+    var directionX: Double
+    var directionY: Double
+    var directionZ: Double
+
+    init(
+        positionX: Double, positionY: Double, positionZ: Double,
+        directionX: Double, directionY: Double, directionZ: Double
+    ) {
+        self.positionX = positionX
+        self.positionY = positionY
+        self.positionZ = positionZ
+        self.directionX = directionX
+        self.directionY = directionY
+        self.directionZ = directionZ
     }
 }

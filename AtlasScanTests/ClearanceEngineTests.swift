@@ -272,7 +272,15 @@ final class ClearanceEngineTests: XCTestCase {
         let result = ClearanceEngine.evaluate(object: obj, in: room)!
         XCTAssertTrue(
             result.clearanceRect.contains(result.footprintRect),
-            "Clearance rect should fully contain the footprint rect"
+            "Service access rect should fully contain the footprint rect"
+        )
+        XCTAssertTrue(
+            result.installMinimumRect.contains(result.footprintRect),
+            "Install minimum rect should fully contain the footprint rect"
+        )
+        XCTAssertTrue(
+            result.serviceAccessRect.contains(result.installMinimumRect),
+            "Service access rect should fully contain the install minimum rect"
         )
     }
 
@@ -342,7 +350,7 @@ final class ClearanceEngineTests: XCTestCase {
     func test_overlayRects_clearanceAlwaysLargerThanFootprint() {
         let rule = ClearanceEngine.rule(for: .boiler)!
         let pos  = NormalizedPoint2D(x: 0.5, y: 0.5)
-        let (fp, cl) = ClearanceEngine.overlayRects(
+        let (fp, _, cl) = ClearanceEngine.overlayRects(
             pos: pos, rule: rule, facing: .down,
             roomWidth: 5.0, roomHeight: 5.0
         )

@@ -69,6 +69,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.60,
                 footprintDepthMetres:   0.50,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.15,
                 rearClearanceMetres:    0.05,
@@ -84,6 +85,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.44,
                 footprintDepthMetres:   0.36,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.05,
@@ -99,6 +101,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.70,
                 footprintDepthMetres:   0.50,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.15,
                 rearClearanceMetres:    0.05,
@@ -114,6 +117,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.70,
                 footprintDepthMetres:   0.55,
+                installMinFrontMetres:  0.35,
                 frontClearanceMetres:   0.70,
                 sideClearanceMetres:    0.20,
                 rearClearanceMetres:    0.05,
@@ -134,6 +138,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.55,
                 footprintDepthMetres:   0.55,
+                installMinFrontMetres:  0.25,
                 frontClearanceMetres:   0.50,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.05,
@@ -149,6 +154,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.40,
                 footprintDepthMetres:   0.40,
+                installMinFrontMetres:  0.25,
                 frontClearanceMetres:   0.50,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.05,
@@ -164,6 +170,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.45,
                 footprintDepthMetres:   0.45,
+                installMinFrontMetres:  0.25,
                 frontClearanceMetres:   0.50,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.05,
@@ -184,6 +191,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.40,
                 footprintDepthMetres:   0.15,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.00,
@@ -199,6 +207,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.60,
                 footprintDepthMetres:   0.15,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.00,
@@ -214,6 +223,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.80,
                 footprintDepthMetres:   0.15,
+                installMinFrontMetres:  0.30,
                 frontClearanceMetres:   0.60,
                 sideClearanceMetres:    0.10,
                 rearClearanceMetres:    0.00,
@@ -234,6 +244,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.55,
                 footprintDepthMetres:   0.12,
+                installMinFrontMetres:  0.03,
                 frontClearanceMetres:   0.05,
                 sideClearanceMetres:    0.05,
                 rearClearanceMetres:    0.00,
@@ -249,6 +260,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.75,
                 footprintDepthMetres:   0.12,
+                installMinFrontMetres:  0.03,
                 frontClearanceMetres:   0.05,
                 sideClearanceMetres:    0.05,
                 rearClearanceMetres:    0.00,
@@ -264,6 +276,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   1.05,
                 footprintDepthMetres:   0.12,
+                installMinFrontMetres:  0.03,
                 frontClearanceMetres:   0.05,
                 sideClearanceMetres:    0.05,
                 rearClearanceMetres:    0.00,
@@ -279,6 +292,7 @@ enum ApplianceProfileLibrary {
             rule: ClearanceRule(
                 footprintWidthMetres:   0.60,
                 footprintDepthMetres:   0.18,
+                installMinFrontMetres:  0.03,
                 frontClearanceMetres:   0.05,
                 sideClearanceMetres:    0.05,
                 rearClearanceMetres:    0.00,
