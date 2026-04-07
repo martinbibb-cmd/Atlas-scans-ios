@@ -36,6 +36,26 @@ enum ClearanceStatus {
     }
 }
 
+// MARK: - ClearanceSource
+
+/// Identifies what is causing a clearance conflict.
+///
+/// Used in `ClearanceIssue.source` to give engineers actionable context —
+/// e.g. "Blocked by wall" vs "Blocked by adjacent object".
+///
+/// Current detection is boundary-based (normalised room bounds [0,1]);
+/// object-to-object collision detection is not yet included.
+enum ClearanceSource: Equatable {
+    /// The conflict is caused by a room wall or boundary.
+    case wall
+    /// The conflict is caused by another placed object (identified by its UUID).
+    case object(UUID)
+    /// The conflict is caused by ceiling height limitation.
+    case ceiling
+    /// The source cannot be determined from current scan data.
+    case unknown
+}
+
 // MARK: - ClearanceIssue
 
 /// A single identified clearance concern with a severity level and human-readable message.
@@ -64,11 +84,35 @@ struct ClearanceIssue {
     /// `nil` when the issue is not side-specific (e.g., ceiling height, enclosed install).
     let sideLabel: String?
 
-    init(kind: Kind, severity: Severity, message: String, sideLabel: String? = nil) {
+    /// What is causing this clearance conflict.
+    /// `nil` when the source is not yet populated (e.g., legacy call sites).
+    let source: ClearanceSource?
+
+    init(
+        kind: Kind,
+        severity: Severity,
+        message: String,
+        sideLabel: String? = nil,
+        source: ClearanceSource? = nil
+    ) {
         self.kind = kind
         self.severity = severity
         self.message = message
         self.sideLabel = sideLabel
+        self.source = source
+    }
+
+    /// A human-readable description of what is causing the conflict, suitable for
+    /// display in the issue sheet below the primary message.
+    /// Returns `nil` when no source is available.
+    var sourceDescription: String? {
+        switch source {
+        case .wall:             return "Blocked by wall"
+        case .ceiling:          return "Blocked by ceiling"
+        case .object(let id):   return "Blocked by object (\(id.uuidString.prefix(8))…)"
+        case .unknown:          return "Source not determined"
+        case nil:               return nil
+        }
     }
 }
 
@@ -486,14 +530,16 @@ enum ClearanceEngine {
                 kind: .frontAccessRestricted,
                 severity: .conflict,
                 message: "Front service space restricted",
-                sideLabel: "front"
+                sideLabel: "front",
+                source: .wall
             ))
         } else if frontDist < requiredFront * 1.20 {
             issues.append(ClearanceIssue(
                 kind: .frontAccessRestricted,
                 severity: .warning,
                 message: "Tight clearance in front — check manually",
-                sideLabel: "front"
+                sideLabel: "front",
+                source: .wall
             ))
         }
 
@@ -505,14 +551,16 @@ enum ClearanceEngine {
                 kind: .tooCloseToSideWall,
                 severity: .conflict,
                 message: "Too close to side wall",
-                sideLabel: tightSideLabel
+                sideLabel: tightSideLabel,
+                source: .wall
             ))
         } else if minSide < requiredSide * 1.30 {
             issues.append(ClearanceIssue(
                 kind: .tooCloseToSideWall,
                 severity: .warning,
                 message: "Tight on side — check manually",
-                sideLabel: tightSideLabel
+                sideLabel: tightSideLabel,
+                source: .wall
             ))
         }
 
@@ -540,7 +588,7 @@ enum ClearanceEngine {
             let msg = opening.kind == .door
                 ? "Door swing overlaps working area"
                 : "Opening/obstruction within access zone"
-            issues.append(ClearanceIssue(kind: .openingWithinAccessZone, severity: .warning, message: msg))
+            issues.append(ClearanceIssue(kind: .openingWithinAccessZone, severity: .warning, message: msg, source: .wall))
             break   // one opening warning per object is sufficient
         }
         return issues
@@ -554,14 +602,16 @@ enum ClearanceEngine {
             return ClearanceIssue(
                 kind: .ceilingHeightLimiting,
                 severity: .conflict,
-                message: "Ceiling height may be limiting"
+                message: "Ceiling height may be limiting",
+                source: .ceiling
             )
         }
         if ceilingH < rule.minCeilingHeightMetres * 1.05 {
             return ClearanceIssue(
                 kind: .ceilingHeightLimiting,
                 severity: .warning,
-                message: "Ceiling height — check manually"
+                message: "Ceiling height — check manually",
+                source: .ceiling
             )
         }
         return nil
@@ -576,7 +626,8 @@ enum ClearanceEngine {
         return ClearanceIssue(
             kind: .enclosedInstallation,
             severity: .warning,
-            message: "Enclosed — check cupboard working space"
+            message: "Enclosed — check cupboard working space",
+            source: .unknown
         )
     }
 
