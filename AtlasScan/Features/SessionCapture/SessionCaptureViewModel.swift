@@ -1,0 +1,257 @@
+import SwiftUI
+import Combine
+
+// MARK: - PhotoAttachmentTarget
+
+/// Describes which entity a new photo should be attached to during a capture session.
+enum PhotoAttachmentTarget: Equatable {
+    case session
+    case room(UUID)
+    case object(UUID)
+
+    var displayName: String {
+        switch self {
+        case .session: return "Session"
+        case .room:    return "Room"
+        case .object:  return "Object"
+        }
+    }
+}
+
+// MARK: - SessionCaptureViewModel
+
+/// Coordinator ViewModel for the single-pass session capture surface.
+///
+/// Owns:
+///   - active `PropertyScanSession`
+///   - current room / object selection state
+///   - photo attachment target (session / room / object)
+///   - debounced autosave (800 ms)
+///   - Atlas sync queue summary
+///
+/// Design:
+///   Selection model is intentionally kept outside legacy ScanJob / export types.
+///   All mutations go through this ViewModel so autosave is always triggered.
+@MainActor
+final class SessionCaptureViewModel: ObservableObject {
+
+    // MARK: Session
+
+    @Published private(set) var session: PropertyScanSession
+
+    // MARK: Selection state
+
+    /// The room currently in focus. Objects and photos default to this room context.
+    @Published private(set) var selectedRoomID: UUID?
+
+    /// The tagged object currently selected for clearance / photo attachment.
+    @Published private(set) var selectedObjectID: UUID?
+
+    /// Where the next captured photo will be attached.
+    @Published private(set) var pendingPhotoTarget: PhotoAttachmentTarget = .session
+
+    // MARK: Save state
+
+    enum SaveState: Equatable {
+        case saved
+        case saving
+        case unsaved
+    }
+
+    @Published private(set) var saveState: SaveState = .saved
+
+    // MARK: Dependencies
+
+    private let store: ScanSessionStore
+    let atlasSync: AtlasSync
+
+    // MARK: Private
+
+    private var autosaveTask: Task<Void, Never>?
+
+    // MARK: Init
+
+    init(session: PropertyScanSession, store: ScanSessionStore, atlasSync: AtlasSync) {
+        self.session = session
+        self.store = store
+        self.atlasSync = atlasSync
+        // Mark session as active the moment the capture surface opens.
+        if session.scanState == .notStarted {
+            self.session.scanState = .inProgress
+        }
+    }
+
+    // MARK: - Selection
+
+    func selectRoom(_ id: UUID?) {
+        selectedRoomID = id
+        selectedObjectID = nil
+        pendingPhotoTarget = id.map { .room($0) } ?? .session
+    }
+
+    func selectObject(_ id: UUID?) {
+        selectedObjectID = id
+        if let id {
+            pendingPhotoTarget = .object(id)
+        } else if let roomID = selectedRoomID {
+            pendingPhotoTarget = .room(roomID)
+        } else {
+            pendingPhotoTarget = .session
+        }
+    }
+
+    // MARK: - Room management
+
+    func addRoom(_ room: ScannedRoom) {
+        session.addRoom(room)
+        selectedRoomID = room.id
+        pendingPhotoTarget = .room(room.id)
+        scheduleAutosave()
+    }
+
+    func removeRoom(id: UUID) {
+        session.removeRoom(id: id)
+        if selectedRoomID == id {
+            selectedRoomID = nil
+            selectedObjectID = nil
+            pendingPhotoTarget = .session
+        }
+        scheduleAutosave()
+    }
+
+    func updateRoom(_ room: ScannedRoom) {
+        session.updateRoom(room)
+        scheduleAutosave()
+    }
+
+    // MARK: - Object management
+
+    /// Adds a tagged object, associating it with the selected room when one is active.
+    /// After adding, automatically selects the object and updates the photo target.
+    func addObject(_ obj: TaggedObject) {
+        var updated = obj
+        if let roomID = selectedRoomID,
+           let idx = session.rooms.firstIndex(where: { $0.id == roomID }) {
+            updated.roomID = roomID
+            session.rooms[idx].addTaggedObject(updated)
+        } else {
+            session.addTaggedObject(updated)
+        }
+        selectedObjectID = updated.id
+        pendingPhotoTarget = .object(updated.id)
+        scheduleAutosave()
+    }
+
+    func removeObject(id: UUID) {
+        // Remove from rooms before session-level; both paths are safe to call.
+        for i in session.rooms.indices {
+            session.rooms[i].removeTaggedObject(id: id)
+        }
+        session.removeTaggedObject(id: id)
+        if selectedObjectID == id {
+            selectedObjectID = nil
+            pendingPhotoTarget = selectedRoomID.map { .room($0) } ?? .session
+        }
+        scheduleAutosave()
+    }
+
+    // MARK: - Photo management
+
+    /// Saves a photo and attaches it to the current `pendingPhotoTarget`.
+    /// The photo is always persisted locally; Atlas upload is handled separately.
+    func addPhoto(_ photo: TaggedPhoto) {
+        var p = photo
+        switch pendingPhotoTarget {
+        case .session:
+            session.addPhoto(p)
+
+        case .room(let roomID):
+            p.roomID = roomID
+            if let idx = session.rooms.firstIndex(where: { $0.id == roomID }) {
+                session.rooms[idx].addPhoto(p)
+            } else {
+                session.addPhoto(p)
+            }
+
+        case .object(let objID):
+            p.taggedObjectID = objID
+            // Locate the object — check session-level first, then room-level.
+            if let idx = session.taggedObjects.firstIndex(where: { $0.id == objID }) {
+                p.roomID = session.taggedObjects[idx].roomID
+                session.taggedObjects[idx].linkedPhotoIDs.append(p.id)
+                session.addPhoto(p)
+            } else {
+                for ri in session.rooms.indices {
+                    if let oi = session.rooms[ri].taggedObjects.firstIndex(where: { $0.id == objID }) {
+                        p.roomID = session.rooms[ri].id
+                        session.rooms[ri].taggedObjects[oi].linkedPhotoIDs.append(p.id)
+                        session.rooms[ri].addPhoto(p)
+                        break
+                    }
+                }
+            }
+        }
+        scheduleAutosave()
+    }
+
+    // MARK: - Autosave
+
+    /// Schedules a debounced save (800 ms). Cancels any pending save task first.
+    private func scheduleAutosave() {
+        saveState = .unsaved
+        autosaveTask?.cancel()
+        autosaveTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled, let self else { return }
+            self.saveNow()
+        }
+    }
+
+    /// Saves the session to disk immediately. Updates `saveState` around the write.
+    func saveNow() {
+        saveState = .saving
+        store.save(session)
+        saveState = .saved
+    }
+
+    // MARK: - Atlas sync
+
+    /// Enqueues the session and all unsynced photos for Atlas upload.
+    func queueForAtlasSync() {
+        atlasSync.enqueueSession(session)
+        atlasSync.enqueuePhotos(session.allPhotos.filter { $0.syncState.canQueue })
+        atlasSync.processQueue()
+    }
+
+    // MARK: - Computed helpers
+
+    var selectedRoom: ScannedRoom? {
+        guard let id = selectedRoomID else { return nil }
+        return session.rooms.first { $0.id == id }
+    }
+
+    var selectedObject: TaggedObject? {
+        guard let id = selectedObjectID else { return nil }
+        return session.allTaggedObjects.first { $0.id == id }
+    }
+
+    /// Objects not assigned to any specific room (floating / session-level).
+    var sessionLevelObjects: [TaggedObject] {
+        session.taggedObjects
+    }
+
+    var syncQueueCount: Int {
+        atlasSync.uploadQueue.count
+    }
+
+    /// A placeholder room used by `AddObjectSheet` when no real room is selected.
+    /// Provides a unit-square canvas for rough placement; exact position can be
+    /// refined once the room is scanned.
+    func makePlaceholderRoom() -> ScannedRoom {
+        ScannedRoom(
+            jobID: session.id,
+            name: selectedRoom?.name ?? session.propertyAddress,
+            floor: selectedRoom?.floor ?? 0
+        )
+    }
+}

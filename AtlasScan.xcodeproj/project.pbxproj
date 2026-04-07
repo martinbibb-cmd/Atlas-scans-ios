@@ -61,6 +61,11 @@
 		AA010052 /* ScanSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020052 /* ScanSessionStore.swift */; };
 		AA010053 /* AtlasSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020053 /* AtlasSync.swift */; };
 		AA010054 /* PropertyScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020054 /* PropertyScanSessionTests.swift */; };
+AA010055 /* SessionCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020055 /* SessionCaptureViewModel.swift */; };
+AA010056 /* SessionCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020056 /* SessionCaptureView.swift */; };
+AA010057 /* PropertySessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020057 /* PropertySessionListView.swift */; };
+AA010058 /* NewPropertySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020058 /* NewPropertySessionView.swift */; };
+AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020059 /* SessionCaptureViewModelTests.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -130,6 +135,11 @@
 		AA020052 /* ScanSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionStore.swift; sourceTree = "<group>"; };
 		AA020053 /* AtlasSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSync.swift; sourceTree = "<group>"; };
 		AA020054 /* PropertyScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyScanSessionTests.swift; sourceTree = "<group>"; };
+AA020055 /* SessionCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModel.swift; sourceTree = "<group>"; };
+AA020056 /* SessionCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureView.swift; sourceTree = "<group>"; };
+AA020057 /* PropertySessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertySessionListView.swift; sourceTree = "<group>"; };
+AA020058 /* NewPropertySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPropertySessionView.swift; sourceTree = "<group>"; };
+AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModelTests.swift; sourceTree = "<group>"; };
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -195,6 +205,7 @@
 				AA050015 /* PropertyPlan */,
 				AA050016 /* Evidence */,
 				AA050017 /* LiDARClearance */,
+				AA050018 /* SessionCapture */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -357,6 +368,7 @@
 				AA020046 /* HandoffTests.swift */,
 				AA020050 /* LiDARClearanceMeasurementTests.swift */,
 				AA020054 /* PropertyScanSessionTests.swift */,
+				AA020059 /* SessionCaptureViewModelTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -370,6 +382,17 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+AA050018 /* SessionCapture */ = {
+isa = PBXGroup;
+children = (
+AA020055 /* SessionCaptureViewModel.swift */,
+AA020056 /* SessionCaptureView.swift */,
+AA020057 /* PropertySessionListView.swift */,
+AA020058 /* NewPropertySessionView.swift */,
+);
+path = SessionCapture;
+sourceTree = "<group>";
+};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -512,6 +535,10 @@
 				AA010051 /* PropertyScanSession.swift in Sources */,
 				AA010052 /* ScanSessionStore.swift in Sources */,
 				AA010053 /* AtlasSync.swift in Sources */,
+				AA010055 /* SessionCaptureViewModel.swift in Sources */,
+				AA010056 /* SessionCaptureView.swift in Sources */,
+				AA010057 /* PropertySessionListView.swift in Sources */,
+				AA010058 /* NewPropertySessionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -530,6 +557,7 @@
 				AA010046 /* HandoffTests.swift in Sources */,
 				AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */,
 				AA010054 /* PropertyScanSessionTests.swift in Sources */,
+				AA010059 /* SessionCaptureViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

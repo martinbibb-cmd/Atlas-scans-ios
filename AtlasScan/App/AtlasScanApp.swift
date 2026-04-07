@@ -4,11 +4,25 @@ import SwiftUI
 struct AtlasScanApp: App {
 
     @StateObject private var jobStore = ScanJobStore()
+    @StateObject private var sessionStore = ScanSessionStore()
+    @StateObject private var atlasSync = AtlasSync()
 
     var body: some Scene {
         WindowGroup {
-            ScanSessionListView()
-                .environmentObject(jobStore)
+            TabView {
+                ScanSessionListView()
+                    .environmentObject(jobStore)
+                    .tabItem {
+                        Label("Jobs", systemImage: "folder")
+                    }
+
+                PropertySessionListView()
+                    .environmentObject(sessionStore)
+                    .environmentObject(atlasSync)
+                    .tabItem {
+                        Label("Sessions", systemImage: "camera.viewfinder")
+                    }
+            }
         }
     }
 }
