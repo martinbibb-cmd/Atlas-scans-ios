@@ -23,6 +23,21 @@ struct ClearanceOverlayView: View {
     let result: ClearanceResult
     let object: TaggedObject
 
+    // MARK: - Layout constants
+
+    /// Aspect ratio used when the service-access zone has zero area.
+    private static let defaultAspectRatio: CGFloat = 1.5
+
+    /// Lower bound for the displayed aspect ratio (prevents very tall narrow panels).
+    private static let minAspectRatio: CGFloat = 0.5
+
+    /// Upper bound for the displayed aspect ratio (prevents very wide shallow panels).
+    private static let maxAspectRatio: CGFloat = 3.0
+
+    /// Fractional padding added around the service-access zone on each side,
+    /// so the outermost layer has breathing room and doesn't touch the panel edge.
+    private static let canvasPaddingRatio: Double = 0.12
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Canvas { ctx, size in
@@ -68,8 +83,8 @@ struct ClearanceOverlayView: View {
     private var aspectRatio: CGFloat {
         let w = result.serviceAccessRect.width
         let h = result.serviceAccessRect.height
-        guard w > 0, h > 0 else { return 1.5 }
-        return max(0.5, min(3.0, CGFloat(w / h)))
+        guard w > 0, h > 0 else { return Self.defaultAspectRatio }
+        return max(Self.minAspectRatio, min(Self.maxAspectRatio, CGFloat(w / h)))
     }
 
     // MARK: - Status colour
@@ -86,10 +101,9 @@ struct ClearanceOverlayView: View {
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         // Build a padded source rect so all three layers have breathing room.
-        let padding = 0.12
         let src = result.serviceAccessRect.insetBy(
-            dx: -result.serviceAccessRect.width  * padding,
-            dy: -result.serviceAccessRect.height * padding
+            dx: -result.serviceAccessRect.width  * Self.canvasPaddingRatio,
+            dy: -result.serviceAccessRect.height * Self.canvasPaddingRatio
         )
 
         let scaleX = src.width  > 0 ? Double(size.width)  / src.width  : 1.0
