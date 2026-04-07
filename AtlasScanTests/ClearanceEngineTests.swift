@@ -366,7 +366,116 @@ final class ClearanceEngineTests: XCTestCase {
         for status: ClearanceStatus in [.clear, .warning, .conflict] {
             XCTAssertFalse(status.displayMessage.isEmpty)
             XCTAssertFalse(status.symbolName.isEmpty)
+            XCTAssertFalse(status.shortLabel.isEmpty)
         }
+    }
+
+    func test_clearanceStatus_shortLabels_matchExpected() {
+        XCTAssertEqual(ClearanceStatus.clear.shortLabel,    "Pass")
+        XCTAssertEqual(ClearanceStatus.warning.shortLabel,  "Tight fit")
+        XCTAssertEqual(ClearanceStatus.conflict.shortLabel, "Blocked")
+    }
+
+    func test_clearanceStatus_displayMessages_outcomeFirst() {
+        // Verify that each message starts with the outcome keyword, so the
+        // most important information is readable at a glance.
+        XCTAssertTrue(ClearanceStatus.clear.displayMessage.hasPrefix("Pass"),
+            "Pass status message should start with 'Pass'")
+        XCTAssertTrue(ClearanceStatus.warning.displayMessage.hasPrefix("Tight fit"),
+            "Warning status message should start with 'Tight fit'")
+        XCTAssertTrue(ClearanceStatus.conflict.displayMessage.hasPrefix("Blocked"),
+            "Conflict status message should start with 'Blocked'")
+    }
+
+    // MARK: - ClearanceIssue sideLabel
+
+    func test_frontIssue_hasFrontSideLabel() {
+        // 1.5 m × 1.5 m room — boiler centred triggers a front conflict.
+        let room = roomWithDimensions(width: 1.5, height: 1.5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let frontIssue = result.issues.first { $0.kind == .frontAccessRestricted }
+        XCTAssertNotNil(frontIssue, "Boiler in tiny room should have a front issue")
+        XCTAssertEqual(frontIssue?.sideLabel, "front",
+            "Front-access issue should carry sideLabel 'front'")
+    }
+
+    func test_sideIssue_hasSideSideLabel() {
+        // 0.8 m wide × 5 m tall room — boiler near top wall triggers side conflict.
+        let room = roomWithDimensions(width: 0.8, height: 5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.05)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let sideIssue = result.issues.first { $0.kind == .tooCloseToSideWall }
+        XCTAssertNotNil(sideIssue, "Narrow room should produce a side-wall issue")
+        // Object is centred horizontally, so left and right distances are equal.
+        // Either "left" or "right" is acceptable — just verify a label is set.
+        XCTAssertNotNil(sideIssue?.sideLabel,
+            "Side-wall issue should carry a sideLabel (left or right)")
+        let validSideLabels: Set<String> = ["left", "right", "top", "bottom"]
+        XCTAssertTrue(validSideLabels.contains(sideIssue?.sideLabel ?? ""),
+            "sideLabel must be one of left / right / top / bottom")
+    }
+
+    func test_ceilingIssue_hasNilSideLabel() {
+        var room = roomWithDimensions(width: 5, height: 4)
+        room.ceilingHeightMetres = 1.7   // boiler requires 2.0 m
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let ceilingIssue = result.issues.first { $0.kind == .ceilingHeightLimiting }
+        XCTAssertNotNil(ceilingIssue)
+        XCTAssertNil(ceilingIssue?.sideLabel,
+            "Ceiling issue is not side-specific — sideLabel should be nil")
+    }
+
+    func test_enclosedIssue_hasNilSideLabel() {
+        let room = roomWithDimensions(width: 6, height: 6)
+        var obj = TaggedObject(
+            roomID: room.id, category: .boiler,
+            quickFieldValues: ["enclosed": "true"]
+        )
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let enclosedIssue = result.issues.first { $0.kind == .enclosedInstallation }
+        XCTAssertNotNil(enclosedIssue)
+        XCTAssertNil(enclosedIssue?.sideLabel,
+            "Enclosed-installation issue is not side-specific — sideLabel should be nil")
+    }
+
+    func test_sideIssue_nearLeftWall_hasLeftLabel() {
+        // 1.5 m wide × 5 m tall room — boiler near top wall (facing .down).
+        // x = 0.1 → distLeft = 0.1 × 1.5 = 0.15 m, distRight = 0.9 × 1.5 = 1.35 m.
+        // Left side is tighter → sideLabel should be "left".
+        let room = roomWithDimensions(width: 1.5, height: 5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.1, y: 0.05)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let sideIssue = result.issues.first { $0.kind == .tooCloseToSideWall }
+        XCTAssertNotNil(sideIssue, "Object near left wall in narrow room should produce side issue")
+        XCTAssertEqual(sideIssue?.sideLabel, "left",
+            "Tighter left side should produce sideLabel 'left'")
+    }
+
+    func test_sideIssue_nearRightWall_hasRightLabel() {
+        // 1.5 m wide × 5 m tall room — boiler near top wall (facing .down).
+        // x = 0.9 → distLeft = 0.9 × 1.5 = 1.35 m, distRight = 0.1 × 1.5 = 0.15 m.
+        // Right side is tighter → sideLabel should be "right".
+        let room = roomWithDimensions(width: 1.5, height: 5)
+        var obj = TaggedObject(roomID: room.id, category: .boiler)
+        obj.normalizedPosition = NormalizedPoint2D(x: 0.9, y: 0.05)
+        let result = ClearanceEngine.evaluate(object: obj, in: room)!
+        let sideIssue = result.issues.first { $0.kind == .tooCloseToSideWall }
+        XCTAssertNotNil(sideIssue, "Object near right wall in narrow room should produce side issue")
+        XCTAssertEqual(sideIssue?.sideLabel, "right",
+            "Tighter right side should produce sideLabel 'right'")
+    }
+
+    func test_clearanceIssue_defaultInit_sideLabelIsNil() {
+        // Verify the backward-compatible default: omitting sideLabel yields nil.
+        let issue = ClearanceIssue(kind: .ceilingHeightLimiting, severity: .warning, message: "test")
+        XCTAssertNil(issue.sideLabel, "Default sideLabel must be nil for backward compatibility")
     }
 
     // MARK: - Helpers

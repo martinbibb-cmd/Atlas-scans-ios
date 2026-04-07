@@ -204,7 +204,8 @@ struct SessionCaptureView: View {
     }
 
     /// Secondary text summary row for the selected object.
-    /// Traffic-light status and issue count when room geometry permits evaluation.
+    /// Shows explicit pass / tight fit / blocked outcome text so the status
+    /// is clear without relying on colour alone.
     @ViewBuilder
     private func clearanceSummaryRow(for obj: TaggedObject) -> some View {
         let room = viewModel.selectedRoom
@@ -213,13 +214,27 @@ struct SessionCaptureView: View {
             HStack(spacing: 8) {
                 Image(systemName: result.status.symbolName)
                     .foregroundStyle(clearanceStatusColor(result.status))
-                Text(result.status.displayMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(clearanceStatusColor(result.status))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(result.status.shortLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(clearanceStatusColor(result.status))
+                    Text(result.status.displayMessage)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 if !result.issues.isEmpty {
-                    Text("\(result.issues.count) issue\(result.issues.count == 1 ? "" : "s")")
-                        .font(.caption2).foregroundStyle(.secondary)
+                    let allLabels = result.issues.compactMap(\.sideLabel)
+                    let directions = allLabels.reduce(into: [String]()) { acc, label in
+                        if !acc.contains(label) { acc.append(label) }
+                    }
+                    if directions.isEmpty {
+                        Text("\(result.issues.count) issue\(result.issues.count == 1 ? "" : "s")")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    } else {
+                        Text(directions.joined(separator: " · "))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(.vertical, 2)

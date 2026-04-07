@@ -12,9 +12,18 @@ enum ClearanceStatus {
 
     var displayMessage: String {
         switch self {
-        case .clear:    return "Likely fits"
-        case .warning:  return "Tight clearance — check manually"
-        case .conflict: return "Restricted access likely"
+        case .clear:    return "Pass — service and install clearances available"
+        case .warning:  return "Tight fit — install possible, servicing constrained"
+        case .conflict: return "Blocked — clearance conflict detected"
+        }
+    }
+
+    /// Short outcome label (one word). Used in summary banners and accessibility values.
+    var shortLabel: String {
+        switch self {
+        case .clear:    return "Pass"
+        case .warning:  return "Tight fit"
+        case .conflict: return "Blocked"
         }
     }
 
@@ -49,6 +58,18 @@ struct ClearanceIssue {
     let kind: Kind
     let severity: Severity
     let message: String
+
+    /// Directional label identifying which side or zone is affected.
+    /// Examples: "front", "left", "right", "rear", "top".
+    /// `nil` when the issue is not side-specific (e.g., ceiling height, enclosed install).
+    let sideLabel: String?
+
+    init(kind: Kind, severity: Severity, message: String, sideLabel: String? = nil) {
+        self.kind = kind
+        self.severity = severity
+        self.message = message
+        self.sideLabel = sideLabel
+    }
 }
 
 // MARK: - ClearanceResult
@@ -136,8 +157,8 @@ struct ClearanceRule {
 
 /// Local geometry-based clearance guidance for placed service objects.
 ///
-/// All results are guidance only — not compliance approval. Wording is deliberately
-/// hedged ("Likely fits", "check manually") to avoid false certainty.
+/// All results are guidance only — not compliance approval. Status messages are
+/// outcome-first ("Pass", "Tight fit", "Blocked") with hedged detail text.
 ///
 /// Architecture: no RoomPlan or UIKit dependencies; uses only Foundation + CoreGraphics
 /// and the app's local room/object models.
@@ -440,16 +461,23 @@ enum ClearanceEngine {
         let frontDist: Double
         let sideDist1: Double
         let sideDist2: Double
+        // Direction labels relative to the object's orientation.
+        let sideLabel1: String   // "left" or "top" depending on facing
+        let sideLabel2: String   // "right" or "bottom"
 
         switch facing {
         case .down:
-            frontDist = distBottom; sideDist1 = distLeft;  sideDist2 = distRight
+            frontDist = distBottom; sideDist1 = distLeft;   sideDist2 = distRight
+            sideLabel1 = "left";    sideLabel2 = "right"
         case .up:
-            frontDist = distTop;    sideDist1 = distLeft;  sideDist2 = distRight
+            frontDist = distTop;    sideDist1 = distLeft;   sideDist2 = distRight
+            sideLabel1 = "left";    sideLabel2 = "right"
         case .right:
-            frontDist = distRight;  sideDist1 = distTop;   sideDist2 = distBottom
+            frontDist = distRight;  sideDist1 = distTop;    sideDist2 = distBottom
+            sideLabel1 = "top";     sideLabel2 = "bottom"
         case .left:
-            frontDist = distLeft;   sideDist1 = distTop;   sideDist2 = distBottom
+            frontDist = distLeft;   sideDist1 = distTop;    sideDist2 = distBottom
+            sideLabel1 = "top";     sideLabel2 = "bottom"
         }
 
         // Front clearance
@@ -457,29 +485,34 @@ enum ClearanceEngine {
             issues.append(ClearanceIssue(
                 kind: .frontAccessRestricted,
                 severity: .conflict,
-                message: "Front service space restricted"
+                message: "Front service space restricted",
+                sideLabel: "front"
             ))
         } else if frontDist < requiredFront * 1.20 {
             issues.append(ClearanceIssue(
                 kind: .frontAccessRestricted,
                 severity: .warning,
-                message: "Tight clearance in front — check manually"
+                message: "Tight clearance in front — check manually",
+                sideLabel: "front"
             ))
         }
 
-        // Side clearance (flag if either side is tight)
+        // Side clearance — identify which side is tighter for the directional label.
         let minSide = min(sideDist1, sideDist2)
+        let tightSideLabel = sideDist1 <= sideDist2 ? sideLabel1 : sideLabel2
         if minSide < requiredSide {
             issues.append(ClearanceIssue(
                 kind: .tooCloseToSideWall,
                 severity: .conflict,
-                message: "Too close to side wall"
+                message: "Too close to side wall",
+                sideLabel: tightSideLabel
             ))
         } else if minSide < requiredSide * 1.30 {
             issues.append(ClearanceIssue(
                 kind: .tooCloseToSideWall,
                 severity: .warning,
-                message: "Tight on side — check manually"
+                message: "Tight on side — check manually",
+                sideLabel: tightSideLabel
             ))
         }
 
