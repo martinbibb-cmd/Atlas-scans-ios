@@ -66,7 +66,7 @@ struct ClearanceOverlayView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        "\(object.displayLabel) clearance zones"
+        "\(object.displayLabel) clearance zones — \(result.status.displayMessage)"
     }
 
     private var accessibilityValue: String {
@@ -217,6 +217,8 @@ struct ClearanceOverlayView: View {
 
 #if DEBUG
 #Preview {
+    // Object placed near the top wall (y = 0.1) so ClearanceEngine produces
+    // a front-facing clearance result — good for demonstrating all three overlay layers.
     let obj = TaggedObject(
         roomID: UUID(),
         category: .boiler,
