@@ -2,14 +2,23 @@ import Foundation
 
 // MARK: - PropertyScanSession
 //
-// Top-level entity for a whole-house capture session.
-// One session = one property. Rooms, tagged objects, photos, and validation issues
-// are all children of this single shared context.
+// NEW CANONICAL CAPTURE STATE — replaces ScanJob as the in-app top-level entity.
 //
-// This model is the canonical container for the single-pass capture flow.
-// ScanJob (legacy room-level container) remains in use for export mapping;
-// PropertyScanSession wraps the same underlying rooms and extends them with
-// session-level state and offline/sync metadata.
+// One PropertyScanSession = one property = one whole-house survey pass.
+// Rooms, tagged objects, photos, and validation issues are all children of
+// this single shared context and coordinate system.
+//
+// Room / session relationship:
+//   • Rooms are subordinate capture units inside one property session.
+//   • Objects and photos can exist at room level OR at session level (floating).
+//   • allTaggedObjects and allPhotos aggregate across both levels.
+//   • All rooms in a session share one spatial context (adjacencies + placements).
+//
+// COMPATIBILITY GLUE — what keeps the existing export pipeline intact:
+//   • toScanJob() converts this session to a ScanJob for the export contract.
+//   • The ScanJob export pipeline (ExportPackageBuilder etc.) is UNCHANGED.
+//   • Backward-compatible init(from:) decoder handles session files written
+//     before optional fields (syncState, roomPlacements, etc.) were introduced.
 
 struct PropertyScanSession: Identifiable, Codable {
 
@@ -278,9 +287,14 @@ struct PropertyScanSession: Identifiable, Codable {
         touch()
     }
 
-    // MARK: Conversion
+    // MARK: Conversion — compatibility glue
 
     /// Converts this session to a legacy `ScanJob` for export and contract mapping.
+    ///
+    /// This is the compatibility bridge that keeps the existing export pipeline
+    /// (ExportPackageBuilder → ScanBundleV1) unchanged. The export contract
+    /// consumes `ScanJob`; callers do not need to know about `PropertyScanSession`.
+    ///
     /// Session-level objects and photos are promoted to job-level equivalents.
     func toScanJob() -> ScanJob {
         var job = ScanJob(

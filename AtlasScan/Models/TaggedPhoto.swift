@@ -120,6 +120,16 @@ struct TaggedPhoto: Identifiable, Codable {
     }
 
     // MARK: Decodable — backward-compatible with pre-sync photo records
+    //
+    // COMPATIBILITY GLUE: decodeIfPresent with explicit defaults ensures that
+    // TaggedPhoto records saved before the following fields were introduced still
+    // decode cleanly:
+    //   roomID        (was non-optional in the original model)
+    //   kind          (added with EvidenceKind; defaults to .other)
+    //   syncState     (added with offline-first sync; defaults to .localOnly)
+    //   remoteAssetID (added with offline-first sync; defaults to nil)
+    //   cameraPose    (added for spatial photo attachment; defaults to nil)
+    //   issueTag      (added for issue-linked photos; defaults to nil)
 
     private enum CodingKeys: String, CodingKey {
         case id, roomID, taggedObjectID
