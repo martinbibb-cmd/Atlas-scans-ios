@@ -25,10 +25,14 @@ final class MockScannerAdapter: ScannerAdapterProtocol {
     // MARK: State
 
     private var simulationTask: Task<Void, Never>?
+    private var currentJobID: UUID = UUID()
+    private var currentRoomName: String = ""
 
     // MARK: ScannerAdapterProtocol
 
     func startCapture(jobID: UUID, roomName: String) {
+        currentJobID = jobID
+        currentRoomName = roomName
         stateSubject.send(.initialising)
 
         simulationTask = Task { [weak self] in
@@ -56,8 +60,19 @@ final class MockScannerAdapter: ScannerAdapterProtocol {
     func stopCapture() {
         simulationTask?.cancel()
         simulationTask = nil
-        if case .scanning = stateSubject.value {
-            stateSubject.send(.processing)
+        guard case .scanning = stateSubject.value else { return }
+        stateSubject.send(.processing)
+
+        // Simulate brief processing then deliver the mock room.
+        let jobID = currentJobID
+        let name = currentRoomName
+        simulationTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled else { return }
+            let room = MockScannerAdapter.makeMockRoom(jobID: jobID, name: name)
+            stateSubject.send(.completed(room))
+            capturedRoomSubject.send(room)
         }
     }
 

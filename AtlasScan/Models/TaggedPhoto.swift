@@ -30,7 +30,7 @@ enum EvidenceKind: String, Codable, CaseIterable {
         switch self {
         case .overview:  return "photo"
         case .plant:     return "flame"
-        case .emitter:   return "radiator"
+        case .emitter:   return "thermometer.medium"
         case .flue:      return "arrow.up.to.line"
         case .cupboard:  return "cabinet"
         case .control:   return "dial.medium"
