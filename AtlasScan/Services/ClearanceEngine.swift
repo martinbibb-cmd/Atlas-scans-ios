@@ -750,13 +750,19 @@ enum ClearanceEngine {
             fw = r.footprintWidthMetres
             fd = r.footprintDepthMetres
         } else {
-            fw = 0.5
-            fd = 0.5
+            fw = Self.defaultFallbackFootprintWidthMetres
+            fd = Self.defaultFallbackFootprintDepthMetres
         }
         let hw = (fw / 2.0) / roomWidth
         let hd = (fd / 2.0) / roomHeight
         return CGRect(x: pos.x - hw, y: pos.y - hd, width: hw * 2, height: hd * 2)
     }
+
+    /// Fallback footprint width (metres) for objects with no rule or profile.
+    private static let defaultFallbackFootprintWidthMetres: Double = 0.5
+
+    /// Fallback footprint depth (metres) for objects with no rule or profile.
+    private static let defaultFallbackFootprintDepthMetres: Double = 0.5
 
     /// Returns a directional label ("left", "right", "top", "bottom") describing
     /// where `otherPos` sits relative to `selectedPos` in normalised room coordinates.

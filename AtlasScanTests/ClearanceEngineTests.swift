@@ -617,15 +617,24 @@ final class ClearanceEngineTests: XCTestCase {
     }
 
     func test_evaluate_objectIntrudingServiceAccessOnly_producesWarning() {
-        // 6 m × 6 m room. Boiler at (0.1, 0.5) — faces right (nearest wall is left).
-        // installMinimumRect.maxX ≈ 0.200; serviceAccessRect.maxX ≈ 0.250 (in normalised coords).
-        // Cylinder at x = 0.25 — footprint.minX ≈ 0.204, which is outside the install-minimum
-        // zone (0.204 > 0.200) but inside the service-access zone (0.204 < 0.250).
+        // 6 m × 6 m room. Boiler at (0.1, 0.5) — faces right (left wall is nearest).
+        // The boiler's install-minimum zone ends before its service-access zone.
+        // Cylinder placed just beyond the install-minimum boundary but still inside
+        // the service-access zone: its footprint clears the install minimum (no conflict)
+        // yet still overlaps the working space (warning).
         let roomID = UUID()
         let room = roomWithDimensions(width: 6, height: 6)
         var boiler = TaggedObject(roomID: roomID, category: .boiler)
         boiler.normalizedPosition = NormalizedPoint2D(x: 0.1, y: 0.5)
 
+        // Verify that a cylinder at x=0.25 sits outside install minimum but inside
+        // service access (both expressed in normalised coords for a 6m-wide room).
+        // installMinimumRect.maxX = boilerX + fpHalfW + installMinFront/roomW
+        //   = 0.1 + 0.05 + 0.30/6 = 0.200
+        // serviceAccessRect.maxX  = boilerX + fpHalfW + frontClearance/roomW
+        //   = 0.1 + 0.05 + 0.60/6 = 0.250
+        // cylinderFootprint.minX  = 0.25 - cylinderHalfW = 0.25 - 0.0458 ≈ 0.204
+        // 0.204 > 0.200 → outside install min; 0.204 < 0.250 → inside service zone.
         var cylinder = TaggedObject(roomID: roomID, category: .cylinder)
         cylinder.normalizedPosition = NormalizedPoint2D(x: 0.25, y: 0.5)
 

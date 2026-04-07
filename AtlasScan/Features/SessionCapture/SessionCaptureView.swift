@@ -213,9 +213,11 @@ struct SessionCaptureView: View {
     private func clearanceSummaryRow(for obj: TaggedObject) -> some View {
         let room = viewModel.selectedRoom
             ?? viewModel.session.rooms.first(where: { $0.id == obj.roomID })
-        let otherObjects = room.map { $0.taggedObjects.filter { $0.id != obj.id } } ?? []
-        let clearanceResult = room.flatMap { ClearanceEngine.evaluate(object: obj, in: $0, otherObjects: otherObjects) }
-        if let result = clearanceResult {
+        if let room,
+           let result = ClearanceEngine.evaluate(
+               object: obj, in: room,
+               otherObjects: room.taggedObjects.filter { $0.id != obj.id }
+           ) {
             HStack(spacing: 8) {
                 Image(systemName: result.status.symbolName)
                     .foregroundStyle(clearanceStatusColor(result.status))
