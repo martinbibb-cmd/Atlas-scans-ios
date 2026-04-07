@@ -31,6 +31,7 @@ struct RoomCaptureContainerView: View {
 
     @StateObject private var viewModel: RoomCaptureViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showingAddObject = false
 
     init(
         jobID: UUID,
@@ -67,6 +68,24 @@ struct RoomCaptureContainerView: View {
             guard let room else { return }
             onRoomCaptured(room)
         }
+        .sheet(isPresented: $showingAddObject) {
+            AddObjectSheet(room: placeholderRoom) { newObject in
+                viewModel.addPendingObject(newObject)
+            }
+        }
+    }
+
+    /// A geometry-free placeholder room used by AddObjectSheet during scanning.
+    /// The placement step will fall back to a unit-square canvas, which the engineer
+    /// can use for a rough position or skip entirely. Exact placement can be refined
+    /// in RoomReviewView once the scan is complete.
+    private var placeholderRoom: ScannedRoom {
+        ScannedRoom(
+            id: viewModel.placeholderRoomID,
+            jobID: jobID,
+            name: roomName,
+            floor: floor
+        )
     }
 
     // MARK: - Adapter factory
@@ -138,18 +157,41 @@ struct RoomCaptureContainerView: View {
                 statusCard
 
                 if viewModel.state == .scanning {
-                    Button {
-                        viewModel.stopCapture()
-                    } label: {
-                        Label("Finish Scanning", systemImage: "stop.circle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.white)
-                            .foregroundStyle(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    // Allow the engineer to tag objects while the scan is still in progress.
+                    // Tagged objects are stored as pending and merged into the room on completion.
+                    HStack(spacing: 10) {
+                        Button {
+                            showingAddObject = true
+                        } label: {
+                            Label("Tag Object", systemImage: "tag.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(.white.opacity(0.18))
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        Button {
+                            viewModel.stopCapture()
+                        } label: {
+                            Label("Finish Scanning", systemImage: "stop.circle.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(.white)
+                                .foregroundStyle(.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
                     }
                     .padding(.horizontal)
+
+                    if !viewModel.pendingTaggedObjects.isEmpty {
+                        let count = viewModel.pendingTaggedObjects.count
+                        Text("\(count) object\(count == 1 ? "" : "s") tagged")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
                 }
 
                 if case .permissionDenied = viewModel.state {
@@ -214,11 +256,18 @@ final class RoomCaptureViewModel: ObservableObject {
 
     @Published private(set) var state: ScannerState = .idle
     @Published private(set) var capturedRoom: ScannedRoom?
+    /// Objects tagged by the engineer while the scan is still in progress.
+    @Published private(set) var pendingTaggedObjects: [TaggedObject] = []
 
     let adapter: any ScannerAdapterProtocol
     let jobID: UUID
     let roomName: String
     let floor: Int
+
+    /// A stable room ID used as a placeholder for the AddObjectSheet during scanning.
+    /// All `pendingTaggedObjects` carry this roomID; it is replaced by the real room's
+    /// ID when the scanner completes.
+    let placeholderRoomID: UUID = UUID()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -233,14 +282,23 @@ final class RoomCaptureViewModel: ObservableObject {
             .sink { [weak self] newState in
                 self?.state = newState
                 if case .completed(let room) = newState {
+                    guard let self else { return }
                     var r = room
                     r.name = roomName
                     r.floor = floor
-                    self?.capturedRoom = r
+                    // Merge objects tagged during the scan, re-binding them to the real room ID.
+                    self.pendingTaggedObjects.forEach { obj in
+                        var updated = obj
+                        updated.roomID = r.id
+                        r.addTaggedObject(updated)
+                    }
+                    self.capturedRoom = r
                 }
             }
             .store(in: &cancellables)
     }
+
+    // MARK: - Scan controls
 
     func startCapture() {
         adapter.startCapture(jobID: jobID, roomName: roomName)
@@ -252,6 +310,17 @@ final class RoomCaptureViewModel: ObservableObject {
 
     func cancelCapture() {
         adapter.cancelCapture()
+    }
+
+    // MARK: - In-scan object tagging
+
+    /// Registers a service object tagged by the engineer while the scan is in progress.
+    /// The object is merged into the completed room when the scanner finishes.
+    /// `@MainActor` is explicit here for clarity; the class-level annotation already
+    /// guarantees main-thread mutation of `pendingTaggedObjects`.
+    @MainActor
+    func addPendingObject(_ obj: TaggedObject) {
+        pendingTaggedObjects.append(obj)
     }
 
     /// The live-camera UIView from the adapter, or nil when using a placeholder.

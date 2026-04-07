@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import AtlasScan
 
 // MARK: - ScanJobTests
@@ -152,5 +153,110 @@ final class ServiceObjectCategoryTests: XCTestCase {
 
     func test_other_quickFields_empty() {
         XCTAssertTrue(ServiceObjectCategory.other.quickFields.isEmpty)
+    }
+}
+
+// MARK: - RoomCaptureViewModelTests
+
+/// A synchronous test adapter that immediately delivers a scan result when `complete()` is called.
+/// Avoids the artificial delays in MockScannerAdapter so tests stay fast.
+private final class ImmediateScanAdapter: ScannerAdapterProtocol {
+
+    private let stateSubject   = PassthroughSubject<ScannerState, Never>()
+    private let capturedSubject = PassthroughSubject<ScannedRoom, Never>()
+
+    var statePublisher: AnyPublisher<ScannerState, Never> { stateSubject.eraseToAnyPublisher() }
+    var capturedRoomPublisher: AnyPublisher<ScannedRoom, Never> { capturedSubject.eraseToAnyPublisher() }
+
+    func startCapture(jobID: UUID, roomName: String) {}
+    func stopCapture() {}
+    func cancelCapture() {}
+
+    /// Fires the `.completed` state with a bare room carrying the given jobID + name.
+    func complete(jobID: UUID, name: String) {
+        let room = ScannedRoom(jobID: jobID, name: name)
+        stateSubject.send(.completed(room))
+        capturedSubject.send(room)
+    }
+}
+
+@MainActor
+final class RoomCaptureViewModelTests: XCTestCase {
+
+    // MARK: - In-scan object tagging
+
+    func test_pendingObjects_mergedIntoCompletedRoom() async throws {
+        let adapter = ImmediateScanAdapter()
+        let jobID = UUID()
+        let vm = RoomCaptureViewModel(adapter: adapter, jobID: jobID, roomName: "Test Room", floor: 1)
+
+        let boiler = TaggedObject(roomID: vm.placeholderRoomID, category: .boiler)
+        vm.addPendingObject(boiler)
+
+        adapter.complete(jobID: jobID, name: "Test Room")
+
+        // Allow Combine receive(on: DispatchQueue.main) to deliver.
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let room = try XCTUnwrap(vm.capturedRoom, "capturedRoom should be set after completion")
+        XCTAssertEqual(room.taggedObjects.count, 1)
+        XCTAssertEqual(room.taggedObjects.first?.category, .boiler)
+        // roomID on the object must be re-bound to the real (captured) room's ID.
+        XCTAssertEqual(room.taggedObjects.first?.roomID, room.id)
+    }
+
+    func test_noPendingObjects_completedRoomIsEmpty() async throws {
+        let adapter = ImmediateScanAdapter()
+        let jobID = UUID()
+        let vm = RoomCaptureViewModel(adapter: adapter, jobID: jobID, roomName: "Hallway", floor: 0)
+
+        adapter.complete(jobID: jobID, name: "Hallway")
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let room = try XCTUnwrap(vm.capturedRoom)
+        XCTAssertTrue(room.taggedObjects.isEmpty)
+    }
+
+    func test_roomName_and_floor_applied_to_completedRoom() async throws {
+        let adapter = ImmediateScanAdapter()
+        let jobID = UUID()
+        let vm = RoomCaptureViewModel(adapter: adapter, jobID: jobID, roomName: "Kitchen", floor: 2)
+
+        // Adapter sends a raw room with a different name / zero floor – ViewModel should override.
+        adapter.complete(jobID: jobID, name: "raw_internal_name")
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let room = try XCTUnwrap(vm.capturedRoom)
+        XCTAssertEqual(room.name, "Kitchen")
+        XCTAssertEqual(room.floor, 2)
+    }
+
+    func test_multiplePendingObjects_allMerged() async throws {
+        let adapter = ImmediateScanAdapter()
+        let jobID = UUID()
+        let vm = RoomCaptureViewModel(adapter: adapter, jobID: jobID, roomName: "Utility", floor: 0)
+
+        vm.addPendingObject(TaggedObject(roomID: vm.placeholderRoomID, category: .boiler))
+        vm.addPendingObject(TaggedObject(roomID: vm.placeholderRoomID, category: .thermostat))
+
+        adapter.complete(jobID: jobID, name: "Utility")
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let room = try XCTUnwrap(vm.capturedRoom)
+        XCTAssertEqual(room.taggedObjects.count, 2)
+        let categories = Set(room.taggedObjects.map(\.category))
+        XCTAssertTrue(categories.contains(.boiler))
+        XCTAssertTrue(categories.contains(.thermostat))
+    }
+
+    func test_addPendingObject_incrementsPendingCount() {
+        let adapter = ImmediateScanAdapter()
+        let vm = RoomCaptureViewModel(adapter: adapter, jobID: UUID(), roomName: "Room", floor: 0)
+
+        XCTAssertEqual(vm.pendingTaggedObjects.count, 0)
+        vm.addPendingObject(TaggedObject(roomID: vm.placeholderRoomID, category: .radiator))
+        XCTAssertEqual(vm.pendingTaggedObjects.count, 1)
+        vm.addPendingObject(TaggedObject(roomID: vm.placeholderRoomID, category: .cylinder))
+        XCTAssertEqual(vm.pendingTaggedObjects.count, 2)
     }
 }
