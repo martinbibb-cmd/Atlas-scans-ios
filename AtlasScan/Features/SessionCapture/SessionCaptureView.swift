@@ -44,12 +44,19 @@ struct SessionCaptureView: View {
                 selectedObjectSection
             }
             roomsSection
-            if let focusedRoom = viewModel.selectedRoom,
-               !focusedRoom.taggedObjects.isEmpty {
-                focusedRoomObjectsSection(focusedRoom)
+            if let focusedRoom = viewModel.selectedRoom {
+                if !focusedRoom.taggedObjects.isEmpty {
+                    focusedRoomObjectsSection(focusedRoom)
+                }
+                if !focusedRoom.voiceNotes.isEmpty {
+                    focusedRoomVoiceNotesSection(focusedRoom)
+                }
             }
             if !viewModel.sessionLevelObjects.isEmpty {
                 sessionObjectsSection
+            }
+            if !viewModel.sessionLevelVoiceNotes.isEmpty {
+                sessionVoiceNotesSection
             }
             quickActionsSection
             atlasSyncSection
@@ -227,6 +234,12 @@ struct SessionCaptureView: View {
                     )
                     .font(.subheadline)
                 }
+
+                // Linked voice notes list
+                let linkedNotes = viewModel.voiceNotes(forObject: obj.id)
+                if !linkedNotes.isEmpty {
+                    objectVoiceNotesList(linkedNotes)
+                }
             } header: {
                 Text("Selected Object")
             } footer: {
@@ -373,6 +386,53 @@ struct SessionCaptureView: View {
         }
     }
 
+    // MARK: - Focused room voice notes section
+
+    /// Shows voice notes belonging to the currently focused room.
+    private func focusedRoomVoiceNotesSection(_ room: ScannedRoom) -> some View {
+        Section {
+            ForEach(room.voiceNotes) { note in
+                VoiceNoteRowView(
+                    note: note,
+                    onDelete: {
+                        VoiceNotePlaybackManager.shared.stop()
+                        viewModel.removeVoiceNote(id: note.id)
+                        VoiceNoteStore.shared.deleteFile(for: note)
+                    },
+                    onUpdateCaption: { newCaption in
+                        var updated = note
+                        updated.caption = newCaption
+                        viewModel.updateVoiceNote(updated)
+                    }
+                )
+            }
+        } header: {
+            Text("Voice Notes — \(room.name)")
+        }
+    }
+
+    // MARK: - Object linked voice notes list
+
+    /// Inline list of voice notes linked to the selected object.
+    @ViewBuilder
+    private func objectVoiceNotesList(_ notes: [VoiceNote]) -> some View {
+        ForEach(notes) { note in
+            VoiceNoteRowView(
+                note: note,
+                onDelete: {
+                    VoiceNotePlaybackManager.shared.stop()
+                    viewModel.removeVoiceNote(id: note.id)
+                    VoiceNoteStore.shared.deleteFile(for: note)
+                },
+                onUpdateCaption: { newCaption in
+                    var updated = note
+                    updated.caption = newCaption
+                    viewModel.updateVoiceNote(updated)
+                }
+            )
+        }
+    }
+
     // MARK: - Session-level objects section
 
     private var sessionObjectsSection: some View {
@@ -393,6 +453,33 @@ struct SessionCaptureView: View {
             Text("Session Objects")
         } footer: {
             Text("Objects not yet assigned to a specific room.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Session-level voice notes section
+
+    private var sessionVoiceNotesSection: some View {
+        Section {
+            ForEach(viewModel.sessionLevelVoiceNotes) { note in
+                VoiceNoteRowView(
+                    note: note,
+                    onDelete: {
+                        VoiceNotePlaybackManager.shared.stop()
+                        viewModel.removeVoiceNote(id: note.id)
+                        VoiceNoteStore.shared.deleteFile(for: note)
+                    },
+                    onUpdateCaption: { newCaption in
+                        var updated = note
+                        updated.caption = newCaption
+                        viewModel.updateVoiceNote(updated)
+                    }
+                )
+            }
+        } header: {
+            Text("Session Voice Notes")
+        } footer: {
+            Text("Notes not linked to a specific room or object.")
                 .font(.caption2)
         }
     }

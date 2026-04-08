@@ -387,4 +387,113 @@ final class SessionCaptureViewModelTests: XCTestCase {
         let placeholder = viewModel.makePlaceholderRoom()
         XCTAssertEqual(placeholder.name, "Utility Room")
     }
+
+    // MARK: - Voice note management
+
+    func test_addVoiceNote_sessionLevel_addsToSessionVoiceNotes() {
+        let note = VoiceNote(localFilename: "n1.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertEqual(viewModel.session.voiceNotes.count, 1)
+    }
+
+    func test_addVoiceNote_withRoomFocused_addsToRoom() {
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let note = VoiceNote(localFilename: "kitchen.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertEqual(viewModel.session.rooms[0].voiceNotes.count, 1)
+        XCTAssertTrue(viewModel.session.voiceNotes.isEmpty)
+    }
+
+    func test_addVoiceNote_withObjectSelected_crossLinksObject() {
+        let room = ScannedRoom(jobID: session.id, name: "Utility")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let obj = TaggedObject(roomID: room.id, category: .boiler)
+        viewModel.addObject(obj)
+        let note = VoiceNote(localFilename: "boiler.m4a")
+        viewModel.addVoiceNote(note)
+        let savedObj = viewModel.session.rooms[0].taggedObjects.first
+        XCTAssertEqual(savedObj?.linkedVoiceNoteIDs.count, 1)
+    }
+
+    func test_removeVoiceNote_removesFromSessionLevel() {
+        let note = VoiceNote(localFilename: "n1.m4a")
+        viewModel.addVoiceNote(note)
+        viewModel.removeVoiceNote(id: note.id)
+        XCTAssertTrue(viewModel.session.voiceNotes.isEmpty)
+    }
+
+    func test_removeVoiceNote_removesFromRoom() {
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let note = VoiceNote(localFilename: "n2.m4a")
+        viewModel.addVoiceNote(note)
+        viewModel.removeVoiceNote(id: note.id)
+        XCTAssertTrue(viewModel.session.rooms[0].voiceNotes.isEmpty)
+    }
+
+    func test_updateVoiceNote_updatesSessionLevelNote() {
+        let note = VoiceNote(localFilename: "n1.m4a", caption: "Original")
+        viewModel.addVoiceNote(note)
+        var updated = viewModel.session.voiceNotes[0]
+        updated.caption = "Updated caption"
+        viewModel.updateVoiceNote(updated)
+        XCTAssertEqual(viewModel.session.voiceNotes[0].caption, "Updated caption")
+    }
+
+    func test_updateVoiceNote_updatesRoomLevelNote() {
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let note = VoiceNote(localFilename: "n2.m4a", caption: "Original")
+        viewModel.addVoiceNote(note)
+        var updated = viewModel.session.rooms[0].voiceNotes[0]
+        updated.caption = "Updated room caption"
+        viewModel.updateVoiceNote(updated)
+        XCTAssertEqual(viewModel.session.rooms[0].voiceNotes[0].caption, "Updated room caption")
+    }
+
+    func test_sessionLevelVoiceNotes_returnsSessionNotes() {
+        let note = VoiceNote(localFilename: "n1.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertEqual(viewModel.sessionLevelVoiceNotes.count, 1)
+    }
+
+    func test_sessionLevelVoiceNotes_excludesRoomNotes() {
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let note = VoiceNote(localFilename: "room.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertTrue(viewModel.sessionLevelVoiceNotes.isEmpty)
+    }
+
+    func test_voiceNotesForRoom_returnsRoomNotes() {
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        viewModel.addRoom(room)
+        let roomID = viewModel.session.rooms[0].id
+        viewModel.selectRoom(roomID)
+        let note = VoiceNote(localFilename: "n.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertEqual(viewModel.voiceNotes(for: roomID).count, 1)
+    }
+
+    func test_voiceNotesForObject_returnsLinkedNotes() {
+        let room = ScannedRoom(jobID: session.id, name: "Utility")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let obj = TaggedObject(roomID: room.id, category: .boiler)
+        viewModel.addObject(obj)
+        let objID = viewModel.selectedObjectID!
+        let note = VoiceNote(localFilename: "boiler.m4a")
+        viewModel.addVoiceNote(note)
+        XCTAssertEqual(viewModel.voiceNotes(forObject: objID).count, 1)
+    }
+
+    func test_voiceNotesForObject_returnsEmptyForUnknownObject() {
+        XCTAssertTrue(viewModel.voiceNotes(forObject: UUID()).isEmpty)
+    }
 }
