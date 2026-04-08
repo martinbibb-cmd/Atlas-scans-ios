@@ -293,3 +293,100 @@ final class TaggedObjectVoiceNoteIDTests: XCTestCase {
                       "Objects without 'linkedVoiceNoteIDs' should default to empty array")
     }
 }
+
+// MARK: - AtlasSync Voice Note Queue Tests
+
+@MainActor
+final class AtlasSyncVoiceNoteTests: XCTestCase {
+
+    private var atlasSync: AtlasSync!
+    private let enabledConfig = AtlasSyncConfiguration(apiBaseURL: URL(string: "https://api.example.com")!)
+
+    override func setUp() async throws {
+        try await super.setUp()
+        atlasSync = AtlasSync(configuration: enabledConfig)
+    }
+
+    override func tearDown() async throws {
+        atlasSync.cancelAll()
+        atlasSync = nil
+        try await super.tearDown()
+    }
+
+    // MARK: - enqueueVoiceNote
+
+    func test_enqueueVoiceNote_localOnly_addsToQueue() {
+        let note = VoiceNote(localFilename: "n1.m4a", syncState: .localOnly)
+        atlasSync.enqueueVoiceNote(note)
+        XCTAssertEqual(atlasSync.uploadQueue.count, 1)
+        XCTAssertEqual(atlasSync.uploadQueue.first?.voiceNoteID, note.id)
+    }
+
+    func test_enqueueVoiceNote_failed_addsToQueue() {
+        let note = VoiceNote(localFilename: "n2.m4a", syncState: .failed)
+        atlasSync.enqueueVoiceNote(note)
+        XCTAssertEqual(atlasSync.uploadQueue.count, 1)
+    }
+
+    func test_enqueueVoiceNote_uploaded_isNoOp() {
+        let note = VoiceNote(localFilename: "n3.m4a", syncState: .uploaded)
+        atlasSync.enqueueVoiceNote(note)
+        XCTAssertTrue(atlasSync.uploadQueue.isEmpty,
+                      "Already-uploaded notes must not be re-queued")
+    }
+
+    func test_enqueueVoiceNote_queued_isNoOp() {
+        let note = VoiceNote(localFilename: "n4.m4a", syncState: .queued)
+        atlasSync.enqueueVoiceNote(note)
+        XCTAssertTrue(atlasSync.uploadQueue.isEmpty)
+    }
+
+    func test_enqueueVoiceNotes_onlyQueuesEligibleNotes() {
+        let eligible = VoiceNote(localFilename: "a.m4a", syncState: .localOnly)
+        let ineligible = VoiceNote(localFilename: "b.m4a", syncState: .uploaded)
+        atlasSync.enqueueVoiceNotes([eligible, ineligible])
+        XCTAssertEqual(atlasSync.uploadQueue.count, 1)
+        XCTAssertEqual(atlasSync.uploadQueue.first?.voiceNoteID, eligible.id)
+    }
+
+    func test_enqueueVoiceNote_syncDisabled_isNoOp() {
+        let disabledSync = AtlasSync()  // no apiBaseURL → disabled
+        let note = VoiceNote(localFilename: "n5.m4a", syncState: .localOnly)
+        disabledSync.enqueueVoiceNote(note)
+        XCTAssertTrue(disabledSync.uploadQueue.isEmpty,
+                      "Voice notes must not be queued when Atlas sync is not configured")
+    }
+
+    // MARK: - ItemKind.voiceNoteID
+
+    func test_uploadItem_voiceNoteID_returnsNoteID() {
+        let note = VoiceNote(localFilename: "n6.m4a")
+        let item = AtlasSyncUploadItem(kind: .voiceNote(note))
+        XCTAssertEqual(item.voiceNoteID, note.id)
+    }
+
+    func test_uploadItem_photoItem_voiceNoteID_isNil() {
+        let photo = TaggedPhoto(filename: "p.jpg")
+        let item = AtlasSyncUploadItem(kind: .photo(photo))
+        XCTAssertNil(item.voiceNoteID)
+    }
+
+    // MARK: - ItemKind description
+
+    func test_voiceNoteItemKind_description_containsNoteID() {
+        let note = VoiceNote(localFilename: "n7.m4a")
+        let kind = AtlasSyncUploadItem.ItemKind.voiceNote(note)
+        XCTAssertTrue(kind.description.contains(note.id.uuidString))
+        XCTAssertTrue(kind.description.hasPrefix("voiceNote("))
+    }
+
+    // MARK: - cancelAll clears voice notes
+
+    func test_cancelAll_removesVoiceNoteItems() {
+        atlasSync.enqueueVoiceNote(VoiceNote(localFilename: "a.m4a"))
+        atlasSync.enqueueVoiceNote(VoiceNote(localFilename: "b.m4a"))
+        atlasSync.cancelAll()
+        XCTAssertTrue(atlasSync.uploadQueue.isEmpty)
+        XCTAssertFalse(atlasSync.isUploading)
+    }
+}

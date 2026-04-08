@@ -496,4 +496,45 @@ final class SessionCaptureViewModelTests: XCTestCase {
     func test_voiceNotesForObject_returnsEmptyForUnknownObject() {
         XCTAssertTrue(viewModel.voiceNotes(forObject: UUID()).isEmpty)
     }
+
+    // MARK: - queueForAtlasSync includes voice notes
+
+    func test_queueForAtlasSync_includesVoiceNotes_whenSyncEnabled() {
+        let enabledSync = AtlasSync(
+            configuration: AtlasSyncConfiguration(apiBaseURL: URL(string: "https://api.example.com")!)
+        )
+        let vm = SessionCaptureViewModel(session: session, store: store, atlasSync: enabledSync)
+
+        // Add a local-only voice note at session level
+        vm.addVoiceNote(VoiceNote(localFilename: "note.m4a", syncState: .localOnly))
+
+        vm.queueForAtlasSync()
+
+        // Queue should contain the session metadata item + the voice note item
+        let voiceNoteItems = enabledSync.uploadQueue.filter { $0.voiceNoteID != nil }
+        XCTAssertEqual(voiceNoteItems.count, 1,
+                       "queueForAtlasSync should enqueue unsynced voice notes")
+
+        enabledSync.cancelAll()
+        store.delete(vm.session)
+    }
+
+    func test_queueForAtlasSync_skipsAlreadyUploadedVoiceNotes() {
+        let enabledSync = AtlasSync(
+            configuration: AtlasSyncConfiguration(apiBaseURL: URL(string: "https://api.example.com")!)
+        )
+        let vm = SessionCaptureViewModel(session: session, store: store, atlasSync: enabledSync)
+
+        // Add an already-uploaded voice note — should not be re-queued
+        vm.addVoiceNote(VoiceNote(localFilename: "done.m4a", syncState: .uploaded))
+
+        vm.queueForAtlasSync()
+
+        let voiceNoteItems = enabledSync.uploadQueue.filter { $0.voiceNoteID != nil }
+        XCTAssertTrue(voiceNoteItems.isEmpty,
+                      "Already-uploaded voice notes must not be re-queued")
+
+        enabledSync.cancelAll()
+        store.delete(vm.session)
+    }
 }
