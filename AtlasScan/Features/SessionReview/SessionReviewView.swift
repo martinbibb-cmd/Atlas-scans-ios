@@ -8,16 +8,18 @@ import SwiftUI
 //   • room layout with tagged objects at saved positions
 //   • correctly-sized object footprints and clearance zones
 //   • linked photos and issue badges
+//   • voice notes grouped by room / object
 //   • session metadata (captured by, date, address, job reference)
 //
 // No live AR capture or room scanning is possible from this view.
 // This is the "shared session replay" — the session is treated as a portable
 // review artifact that any device/user can open from local storage or Atlas sync.
 //
-// Three review tabs:
+// Four review tabs:
 //   Layout  — per-room 2D plan with object placements and clearance overlays
-//   Objects — grouped object list with size, clearance status, photo count
+//   Objects — grouped object list with size, clearance status, photo/note counts
 //   Photos  — evidence photos grouped by room / object
+//   Notes   — voice notes grouped by room / object
 
 struct SessionReviewView: View {
 
@@ -30,12 +32,14 @@ struct SessionReviewView: View {
         case layout  = "Layout"
         case objects = "Objects"
         case photos  = "Photos"
+        case notes   = "Notes"
 
         var symbolName: String {
             switch self {
             case .layout:  return "map"
             case .objects: return "tag.fill"
             case .photos:  return "photo.stack"
+            case .notes:   return "mic.fill"
             }
         }
     }
@@ -43,6 +47,7 @@ struct SessionReviewView: View {
     @State private var selectedTab: ReviewTab = .layout
     @State private var selectedRoomID: UUID? = nil
     @State private var selectedObjectID: UUID? = nil
+    @State private var showingArtifactInspector = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,6 +81,9 @@ struct SessionReviewView: View {
 
                 photosTab
                     .tag(ReviewTab.photos)
+
+                notesTab
+                    .tag(ReviewTab.notes)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
@@ -85,10 +93,19 @@ struct SessionReviewView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     reviewStateBadgeItem
+                    Divider()
+                    Button {
+                        showingArtifactInspector = true
+                    } label: {
+                        Label("Inspect Artifact", systemImage: "doc.text.magnifyingglass")
+                    }
                 } label: {
                     Image(systemName: session.reviewState.symbolName)
                 }
             }
+        }
+        .sheet(isPresented: $showingArtifactInspector) {
+            SessionArtifactInspectorView(session: session)
         }
     }
 
@@ -147,6 +164,8 @@ struct SessionReviewView: View {
             Label("\(session.totalTaggedObjects)", systemImage: "tag.fill")
                 .font(.caption2).foregroundStyle(.secondary)
             Label("\(session.totalPhotos)", systemImage: "photo.fill")
+                .font(.caption2).foregroundStyle(.secondary)
+            Label("\(session.totalVoiceNotes)", systemImage: "mic.fill")
                 .font(.caption2).foregroundStyle(.secondary)
         }
     }
@@ -309,6 +328,50 @@ struct SessionReviewView: View {
                             .font(.title)
                             .foregroundStyle(.secondary)
                         Text("No photos captured")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    // MARK: - Notes tab
+
+    private var notesTab: some View {
+        List {
+            ForEach(session.rooms) { room in
+                let roomNotes = room.voiceNotes
+                if !roomNotes.isEmpty {
+                    Section {
+                        ForEach(roomNotes) { note in
+                            ReviewVoiceNoteRow(note: note, objects: room.taggedObjects)
+                        }
+                    } header: {
+                        Text(room.name)
+                    }
+                }
+            }
+
+            let sessionNotes = session.voiceNotes
+            if !sessionNotes.isEmpty {
+                Section("Session-Level Notes") {
+                    ForEach(sessionNotes) { note in
+                        ReviewVoiceNoteRow(note: note, objects: session.allTaggedObjects)
+                    }
+                }
+            }
+
+            if session.allVoiceNotes.isEmpty {
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "mic.slash")
+                            .font(.title)
+                            .foregroundStyle(.secondary)
+                        Text("No voice notes recorded")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -556,6 +619,14 @@ struct ReviewObjectRow: View {
                             .foregroundStyle(.indigo)
                     }
 
+                    // Voice note count
+                    let noteCount = object.linkedVoiceNoteIDs.count
+                    if noteCount > 0 {
+                        Label("\(noteCount)", systemImage: "mic.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.teal)
+                    }
+
                     // Notes indicator
                     if !object.notes.isEmpty {
                         Image(systemName: "note.text")
@@ -689,6 +760,70 @@ struct ReviewPhotoRow: View {
                 .foregroundStyle(photo.syncState == .uploaded ? Color.green : Color.secondary)
         }
         .padding(.vertical, 2)
+    }
+}
+
+// MARK: - ReviewVoiceNoteRow
+
+struct ReviewVoiceNoteRow: View {
+    let note: VoiceNote
+    let objects: [TaggedObject]
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Kind icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(width: 44, height: 44)
+                Image(systemName: note.kind.symbolName)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(note.kind.displayName)
+                    .font(.subheadline)
+
+                if !note.caption.isEmpty {
+                    Text(note.caption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 8) {
+                    Text(formatDuration(note.duration))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+
+                    if let objID = note.linkedObjectID,
+                       let obj = objects.first(where: { $0.id == objID }) {
+                        Text("→ \(obj.displayLabel)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text(note.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            // Sync state indicator
+            Image(systemName: note.syncState.symbolName)
+                .font(.caption)
+                .foregroundStyle(note.syncState == .uploaded ? Color.green : Color.secondary)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func formatDuration(_ seconds: TimeInterval) -> String {
+        let m = Int(seconds) / 60
+        let s = Int(seconds) % 60
+        return String(format: "%d:%02d", m, s)
     }
 }
 
