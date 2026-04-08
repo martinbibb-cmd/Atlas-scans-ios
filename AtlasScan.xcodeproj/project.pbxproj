@@ -73,6 +73,7 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA01005C /* LiveViewTaggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005C /* LiveViewTaggingView.swift */; };
 		AA01005D /* CameraFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005D /* CameraFeedView.swift */; };
 		AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005E /* LiveViewTaggingViewModelTests.swift */; };
+		AA01005F /* ARPlacementSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005F /* ARPlacementSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -153,6 +154,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA02005C /* LiveViewTaggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingView.swift; sourceTree = "<group>"; };
 		AA02005D /* CameraFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFeedView.swift; sourceTree = "<group>"; };
 		AA02005E /* LiveViewTaggingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingViewModelTests.swift; sourceTree = "<group>"; };
+		AA02005F /* ARPlacementSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPlacementSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -412,6 +414,7 @@ sourceTree = "<group>";
 				AA02005B /* LiveViewTaggingViewModel.swift */,
 				AA02005C /* LiveViewTaggingView.swift */,
 				AA02005D /* CameraFeedView.swift */,
+				AA02005F /* ARPlacementSession.swift */,
 			);
 			path = LiveTagging;
 			sourceTree = "<group>";
@@ -566,6 +569,7 @@ sourceTree = "<group>";
 				AA01005B /* LiveViewTaggingViewModel.swift in Sources */,
 				AA01005C /* LiveViewTaggingView.swift in Sources */,
 				AA01005D /* CameraFeedView.swift in Sources */,
+				AA01005F /* ARPlacementSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

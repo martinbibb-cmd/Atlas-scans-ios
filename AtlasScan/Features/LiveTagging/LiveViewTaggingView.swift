@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import ARKit
+import simd
 
 // MARK: - LiveViewTaggingView
 //
@@ -24,17 +26,27 @@ import UIKit
 // State is managed by LiveViewTaggingViewModel.  All object mutations pass through
 // the wrapped SessionCaptureViewModel so autosave and Atlas sync remain intact.
 //
-// WorldAnchor3D note:
-//   The current anchor stores screenX/screenY (normalised 0…1 at tap time) as the
-//   primary render coordinates.  x/y/z are placeholder approximate values derived
-//   from the screen position (x = screenX, y = 0, z = screenY) and are not yet
-//   true ARKit world coordinates.  A future ARKit raycast / LiDAR path will replace
-//   these with real world-locked positions.
+// AR placement and reprojection:
+//   On supported devices (A9+ chip) ARPlacementSession runs alongside the camera feed.
+//   Taps forward both a NormalizedPoint2D and the raw CGPoint to the view model so
+//   an ARKit estimatedPlane raycast can populate WorldAnchor3D with real world coords.
+//   Each AR frame (~15 fps) publishes a timestamp update; the pin layer uses this to
+//   reproject world-anchored pins back into the current camera view via
+//   ARPlacementSession.projectToScreen().  Screen-only anchors continue to use the
+//   stored screenX/screenY as before.
 
 struct LiveViewTaggingView: View {
 
     @ObservedObject var viewModel: LiveViewTaggingViewModel
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: AR session
+
+    /// Manages the ARKit session for world-space tap raycasting and live-view
+    /// pin reprojection.  Created here and injected into the view model on appear.
+    /// On unsupported devices (Simulator, pre-A9) this still exists but does nothing —
+    /// ARPlacementSession.isSupported guards all ARKit calls internally.
+    @StateObject private var arPlacement = ARPlacementSession()
 
     // MARK: Local sheet / overlay state
 
@@ -54,9 +66,17 @@ struct LiveViewTaggingView: View {
 
     var body: some View {
         ZStack {
-            // 1. Live camera background
-            CameraFeedView()
-                .ignoresSafeArea()
+            // 1. Live camera background.
+            // Use ARSCNView from ARPlacementSession when AR tracking is available
+            // so the same session provides both the camera feed and raycasting.
+            // Fall back to the AVFoundation preview on unsupported devices.
+            if ARPlacementSession.isSupported {
+                ARCameraFeedView(session: arPlacement)
+                    .ignoresSafeArea()
+            } else {
+                CameraFeedView()
+                    .ignoresSafeArea()
+            }
 
             // 2. Tap surface + pin overlay — shares the full-screen geometry
             GeometryReader { geo in
@@ -120,9 +140,18 @@ struct LiveViewTaggingView: View {
                 isPresentingCategoryPicker = true
             }
         }
-        // Prepare haptic engine on appear so the first placement fires without delay
+        // Prepare haptic engine on appear so the first placement fires without delay.
+        // Also start the AR session and inject it into the view model.
         .onAppear {
             feedbackGenerator.prepare()
+            if ARPlacementSession.isSupported {
+                viewModel.arPlacementSession = arPlacement
+                arPlacement.start()
+            }
+        }
+        // Pause AR when the view disappears to release the camera and save battery.
+        .onDisappear {
+            arPlacement.pause()
         }
         // Haptic feedback when a new object is placed; prepare() pre-warms for the next one
         .onChange(of: viewModel.lastPlacedID) { _, newID in
@@ -175,20 +204,29 @@ struct LiveViewTaggingView: View {
                     x: location.x / geo.size.width,
                     y: location.y / geo.size.height
                 )
-                viewModel.handleTap(at: norm)
+                // Pass the raw screen point so the view model can perform an AR raycast.
+                viewModel.handleTap(at: norm, screenPoint: location)
             }
     }
 
     // MARK: - Pin overlay
 
     private func pinLayer(geo: GeometryProxy) -> some View {
-        ZStack {
+        // currentFrameTimestamp subscribes this view to AR frame updates so that
+        // resolvedPinPosition is called with fresh camera data on each ~15 fps tick.
+        // The value is forwarded to resolvedPinPosition as a readiness flag.
+        let currentFrameTimestamp = arPlacement.frameTimestamp
+
+        return ZStack {
             ForEach(viewModel.placedObjects) { obj in
                 if let anchor = obj.worldAnchor {
                     let selected: Bool = {
                         if case .objectSelected(let id) = viewModel.phase { return id == obj.id }
                         return false
                     }()
+                    let pinPos = resolvedPinPosition(for: anchor,
+                                                     arFrameTimestamp: currentFrameTimestamp,
+                                                     geo: geo)
                     LiveTagPin(
                         object: obj,
                         isSelected: selected,
@@ -196,10 +234,7 @@ struct LiveViewTaggingView: View {
                     ) {
                         viewModel.selectObject(obj.id)
                     }
-                    .position(
-                        x: CGFloat(anchor.screenX) * geo.size.width,
-                        y: CGFloat(anchor.screenY) * geo.size.height
-                    )
+                    .position(pinPos)
                 }
             }
         }
@@ -208,6 +243,48 @@ struct LiveViewTaggingView: View {
         // Note: the container spring (0.35/0.65) is intentionally slightly more damped
         // than the pin entrance spring (0.4/0.55) in LiveTagPin, which has a bouncier
         // feel to emphasise the placement moment.
+    }
+
+    // MARK: - Pin position resolution
+
+    /// Returns the screen-space CGPoint at which to draw a pin.
+    ///
+    /// For AR-grounded anchors (`.raycastEstimated` or `.worldLocked`) this
+    /// reprojects the stored world position into the current camera view so the
+    /// pin stays visually locked to the physical scene as the camera moves.
+    ///
+    /// `arFrameTimestamp` is passed in (rather than read directly) so that
+    /// callers can forward the SwiftUI-observed timestamp value and guarantee
+    /// this function is invoked on the same render pass that detected a frame change.
+    ///
+    /// When reprojection is unavailable (AR not running, no current frame, or the
+    /// point is off-screen) it falls back to the stored `screenX`/`screenY`
+    /// position that was captured at placement time.
+    private func resolvedPinPosition(
+        for anchor: WorldAnchor3D,
+        arFrameTimestamp: Double,
+        geo: GeometryProxy
+    ) -> CGPoint {
+        if anchor.anchorConfidence != .screenOnly, arFrameTimestamp > 0 {
+            let worldPos = simd_float3(Float(anchor.x), Float(anchor.y), Float(anchor.z))
+            if let projected = arPlacement.projectToScreen(
+                worldPosition: worldPos,
+                viewportSize: geo.size
+            ) {
+                // Clamp to within the visible area so the pin never renders entirely
+                // off-screen — it slides to the nearest edge instead.
+                let margin: CGFloat = 24
+                return CGPoint(
+                    x: min(max(projected.x, margin), geo.size.width  - margin),
+                    y: min(max(projected.y, margin), geo.size.height - margin)
+                )
+            }
+        }
+        // Fallback: use stored screen-space coordinates from placement time.
+        return CGPoint(
+            x: CGFloat(anchor.screenX) * geo.size.width,
+            y: CGFloat(anchor.screenY) * geo.size.height
+        )
     }
 
     // MARK: - Placement toast

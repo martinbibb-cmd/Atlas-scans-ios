@@ -340,3 +340,78 @@ final class LiveViewTaggingViewModelTests: XCTestCase {
         XCTAssertNil(decoded.worldAnchor, "Missing worldAnchor should decode as nil (backward compat)")
     }
 }
+
+// MARK: - AnchorConfidence
+
+extension LiveViewTaggingViewModelTests {
+
+    func test_placeObject_noArSession_anchorConfidenceIsScreenOnly() {
+        // No arPlacementSession injected — must fall back to screenOnly.
+        viewModel.arPlacementSession = nil
+        viewModel.placeObject(category: .radiator, at: NormalizedPoint2D(x: 0.3, y: 0.4))
+        XCTAssertEqual(
+            viewModel.selectedObject?.worldAnchor?.anchorConfidence,
+            .screenOnly,
+            "Without an AR session the anchor confidence must be .screenOnly"
+        )
+    }
+
+    func test_placeObject_noArSession_worldCoordsAreScreenDerived() {
+        viewModel.arPlacementSession = nil
+        let pos = NormalizedPoint2D(x: 0.3, y: 0.7)
+        viewModel.placeObject(category: .boiler, at: pos)
+        let anchor = viewModel.selectedObject?.worldAnchor
+        XCTAssertEqual(anchor?.x, 0.3, accuracy: 0.001,
+            "Screen-only x should equal screenX")
+        XCTAssertEqual(anchor?.y, 0.0, accuracy: 0.001,
+            "Screen-only y should be 0 (floor plane)")
+        XCTAssertEqual(anchor?.z, 0.7, accuracy: 0.001,
+            "Screen-only z should equal screenY")
+    }
+
+    func test_anchorConfidence_screenOnlyIsDefaultForLegacyDecoding() throws {
+        // Simulate a legacy anchor saved without the anchorConfidence field.
+        let json = """
+        {"x":0.5,"y":0.0,"z":0.5,"screenX":0.5,"screenY":0.5}
+        """
+        let decoded = try JSONDecoder().decode(WorldAnchor3D.self,
+                                               from: Data(json.utf8))
+        XCTAssertEqual(decoded.anchorConfidence, .screenOnly,
+            "Legacy anchors without anchorConfidence must decode as .screenOnly")
+    }
+
+    func test_anchorConfidence_roundtripPreservesRaycastEstimated() throws {
+        let anchor = WorldAnchor3D(x: 1.0, y: 0.5, z: 2.0,
+                                   screenX: 0.4, screenY: 0.6,
+                                   anchorConfidence: .raycastEstimated)
+        let data    = try JSONEncoder().encode(anchor)
+        let decoded = try JSONDecoder().decode(WorldAnchor3D.self, from: data)
+        XCTAssertEqual(decoded.anchorConfidence, .raycastEstimated)
+        XCTAssertEqual(decoded.x, 1.0, accuracy: 0.001)
+        XCTAssertEqual(decoded.y, 0.5, accuracy: 0.001)
+        XCTAssertEqual(decoded.z, 2.0, accuracy: 0.001)
+    }
+
+    func test_anchorConfidence_cancelCategoryPickClearsPendingScreenPoint() {
+        // handleTap stores a pendingScreenPoint; cancel should clear it so a
+        // subsequent placeObject without a new tap doesn't reuse stale data.
+        viewModel.handleTap(at: NormalizedPoint2D(x: 0.5, y: 0.5),
+                            screenPoint: CGPoint(x: 100, y: 200))
+        viewModel.cancelCategoryPick()
+        // Place an object (simulating category selected after a re-tap without AR).
+        viewModel.handleTap(at: NormalizedPoint2D(x: 0.5, y: 0.5))
+        viewModel.placeObject(category: .thermostat, at: NormalizedPoint2D(x: 0.5, y: 0.5))
+        XCTAssertEqual(viewModel.selectedObject?.worldAnchor?.anchorConfidence, .screenOnly)
+    }
+
+    func test_anchorConfidence_worldLockedDisplayName() {
+        XCTAssertEqual(AnchorConfidence.worldLocked.displayName, "World locked")
+    }
+
+    func test_anchorConfidence_allCasesHaveDisplayNames() {
+        for confidence in AnchorConfidence.allCases {
+            XCTAssertFalse(confidence.displayName.isEmpty,
+                "AnchorConfidence.\(confidence.rawValue) must have a non-empty displayName")
+        }
+    }
+}
