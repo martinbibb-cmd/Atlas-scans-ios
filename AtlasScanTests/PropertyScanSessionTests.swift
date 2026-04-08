@@ -474,11 +474,9 @@ final class PropertyScanSessionTests: XCTestCase {
     // MARK: - PropertyScanSession Hashable
 
     func test_propertyScanSession_hashable_sameIDIsEqual() {
-        let id = UUID()
         let s1 = PropertyScanSession(propertyAddress: "1 Test St")
         var s2 = s1                         // same id
         s2.engineerName = "Different Name"  // different content
-        XCTAssertEqual(s1.id, id == UUID() ? s1.id : s1.id) // sanity
         // Two sessions with the same id must be equal regardless of other fields
         XCTAssertEqual(s1, s2)
     }
