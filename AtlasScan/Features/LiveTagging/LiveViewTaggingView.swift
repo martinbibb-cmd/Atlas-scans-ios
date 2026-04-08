@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - LiveViewTaggingView
 //
@@ -11,8 +12,9 @@ import SwiftUI
 //      → LiveCategoryPickerSheet appears (mid-height).
 //   3. Select the object type (radiator, boiler, cylinder, flue, other…).
 //      → A pin appears at the tap position.  Phase advances to .objectSelected.
+//      → A light haptic confirms placement; a brief "Radiator tagged" toast appears.
 //   4. The bottom panel shows the selected object's name + action buttons:
-//        • Camera — attach a photo directly to this object.
+//        • Camera — opens camera directly and attaches the captured photo to the object.
 //        • Edit    — relabel / recategorise / change confidence.
 //        • Trash   — remove the tag.
 //   5. Tap × in the panel or tap empty space to deselect.
@@ -21,6 +23,13 @@ import SwiftUI
 //
 // State is managed by LiveViewTaggingViewModel.  All object mutations pass through
 // the wrapped SessionCaptureViewModel so autosave and Atlas sync remain intact.
+//
+// WorldAnchor3D note:
+//   The current anchor stores screenX/screenY (normalised 0…1 at tap time) as the
+//   primary render coordinates.  x/y/z are placeholder approximate values derived
+//   from the screen position (x = screenX, y = 0, z = screenY) and are not yet
+//   true ARKit world coordinates.  A future ARKit raycast / LiDAR path will replace
+//   these with real world-locked positions.
 
 struct LiveViewTaggingView: View {
 
@@ -49,12 +58,14 @@ struct LiveViewTaggingView: View {
             }
             .ignoresSafeArea()
 
-            // 3. HUD (top bar + bottom panel)
+            // 3. HUD (top bar + bottom panel) + placement toast
             VStack(spacing: 0) {
                 topBar
                 Spacer()
+                placementToastLayer
                 bottomPanel
             }
+            .animation(.easeInOut(duration: 0.25), value: viewModel.placementConfirmationText)
         }
         // Category picker sheet
         .sheet(isPresented: $isPresentingCategoryPicker, onDismiss: {
@@ -69,7 +80,7 @@ struct LiveViewTaggingView: View {
             }
             .presentationDetents([.medium, .large])
         }
-        // Photo attachment sheet
+        // Photo attachment sheet (full form with caption / key-evidence)
         .sheet(isPresented: $viewModel.showingPhotoSheet) {
             AddPhotoSheet(
                 roomID: viewModel.selectedObject?.roomID,
@@ -77,6 +88,13 @@ struct LiveViewTaggingView: View {
             ) { photo in
                 viewModel.sessionViewModel.addPhoto(photo)
                 viewModel.refreshPlacedObjects()
+            }
+        }
+        // Direct inline camera capture: opens camera immediately and attaches
+        // the photo to the selected object without any form steps.
+        .sheet(isPresented: $viewModel.showingDirectCapture) {
+            ImagePickerView(source: .camera) { image in
+                attachInlinePhoto(image)
             }
         }
         // Object edit sheet
@@ -95,6 +113,30 @@ struct LiveViewTaggingView: View {
                 isPresentingCategoryPicker = true
             }
         }
+        // Haptic feedback when a new object is placed
+        .onChange(of: viewModel.lastPlacedID) { _, _ in
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+    }
+
+    // MARK: - Inline photo capture
+
+    /// Saves the captured image and attaches it to the currently selected object,
+    /// filing it under the most appropriate evidence kind for the category.
+    private func attachInlinePhoto(_ image: UIImage) {
+        guard let obj = viewModel.selectedObject else { return }
+        let photoID = UUID()
+        guard let saved = try? PhotoStore.shared.save(image, id: photoID) else { return }
+        let photo = TaggedPhoto(
+            id: photoID,
+            roomID: obj.roomID,
+            taggedObjectID: obj.id,
+            filename: saved.filename,
+            thumbnailPath: saved.thumbnailPath,
+            kind: obj.category.defaultEvidenceKind
+        )
+        viewModel.sessionViewModel.addPhoto(photo)
+        viewModel.refreshPlacedObjects()
     }
 
     // MARK: - Tap layer
@@ -121,15 +163,39 @@ struct LiveViewTaggingView: View {
                         if case .objectSelected(let id) = viewModel.phase { return id == obj.id }
                         return false
                     }()
-                    LiveTagPin(object: obj, isSelected: selected) {
+                    LiveTagPin(
+                        object: obj,
+                        isSelected: selected,
+                        isNew: obj.id == viewModel.lastPlacedID
+                    ) {
                         viewModel.selectObject(obj.id)
                     }
                     .position(
                         x: CGFloat(anchor.screenX) * geo.size.width,
                         y: CGFloat(anchor.screenY) * geo.size.height
                     )
+                    .transition(.scale(scale: 0.3, anchor: .center).combined(with: .opacity))
                 }
             }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.65),
+                   value: viewModel.placedObjects.map(\.id))
+    }
+
+    // MARK: - Placement toast
+
+    @ViewBuilder
+    private var placementToastLayer: some View {
+        if let text = viewModel.placementConfirmationText {
+            Text(text)
+                .font(.subheadline.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(Color.black.opacity(0.65))
+                .clipShape(Capsule())
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
@@ -155,6 +221,14 @@ struct LiveViewTaggingView: View {
                 Text(room.name)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+            } else {
+                Text("Not assigned to a room yet")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.7))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(.ultraThinMaterial)
@@ -244,8 +318,9 @@ struct LiveViewTaggingView: View {
 
             // Action buttons row
             HStack(spacing: 10) {
+                // Photo button: opens camera directly and attaches the shot to this object.
                 panelActionButton(symbol: "camera.fill", label: "Photo") {
-                    viewModel.showingPhotoSheet = true
+                    viewModel.showingDirectCapture = true
                 }
                 panelActionButton(symbol: "pencil", label: "Edit") {
                     viewModel.showingEditSheet = true
@@ -307,11 +382,15 @@ struct LiveViewTaggingView: View {
 ///
 /// The pin is centred on the object's world anchor screen position.
 /// Selected objects use a blue accent; unselected objects use orange.
+/// Newly placed pins (isNew = true) scale in with a spring entrance animation.
 struct LiveTagPin: View {
 
     let object: TaggedObject
     let isSelected: Bool
+    let isNew: Bool
     let onTap: () -> Void
+
+    @State private var appeared = false
 
     var body: some View {
         Button(action: onTap) {
@@ -347,6 +426,18 @@ struct LiveTagPin: View {
         .buttonStyle(.plain)
         .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
+        // Entrance animation for newly placed pins
+        .scaleEffect(appeared ? 1.0 : (isNew ? 0.1 : 1.0))
+        .opacity(appeared ? 1.0 : (isNew ? 0.0 : 1.0))
+        .onAppear {
+            if isNew {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+                    appeared = true
+                }
+            } else {
+                appeared = true
+            }
+        }
     }
 }
 

@@ -49,6 +49,19 @@ final class LiveViewTaggingViewModel: ObservableObject {
     @Published var showingPhotoSheet: Bool = false
     @Published var showingEditSheet: Bool = false
 
+    /// Set to true to present the direct-capture camera sheet from LiveViewTaggingView.
+    /// Taking a photo attaches it immediately to the selected object and returns to live view.
+    @Published var showingDirectCapture: Bool = false
+
+    // MARK: - Placement feedback
+
+    /// Short confirmation message shown after a successful tag placement (e.g. "Radiator tagged").
+    /// Automatically cleared after 2 seconds.
+    @Published private(set) var placementConfirmationText: String? = nil
+
+    /// ID of the most recently placed object, used to trigger entrance animation on the new pin.
+    @Published private(set) var lastPlacedID: UUID? = nil
+
     // MARK: - Dependencies
 
     /// The owning session-capture coordinator.  Mutations pass through this so
@@ -95,6 +108,18 @@ final class LiveViewTaggingViewModel: ObservableObject {
         sessionViewModel.addObject(obj)
         refreshPlacedObjects()
         selectObject(obj.id)
+
+        // Placement feedback: show confirmation toast and mark the new pin for entrance animation.
+        let displayName = category.displayName
+        let placedID = obj.id
+        placementConfirmationText = "\(displayName) tagged"
+        lastPlacedID = placedID
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if self?.placementConfirmationText == "\(displayName) tagged" {
+                self?.placementConfirmationText = nil
+            }
+        }
     }
 
     func cancelCategoryPick() {
