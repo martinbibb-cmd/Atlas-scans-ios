@@ -21,7 +21,10 @@ struct ScanSessionListView: View {
                     jobList
                 }
             }
-            .navigationTitle("Atlas Scan")
+            .navigationTitle("Jobs (Legacy)")
+            .safeAreaInset(edge: .top) {
+                legacyBanner
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -53,6 +56,31 @@ struct ScanSessionListView: View {
                     Text("'\(job.propertyAddress)' will be permanently deleted.")
                 }
             }
+        }
+    }
+
+    // MARK: - Legacy banner
+
+    private var legacyBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.subheadline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Legacy Workflow")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.orange)
+                Text("This Jobs tab uses the old scan path. Switch to the Sessions tab for live tagging, clearance overlays, and the latest features.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.orange.opacity(0.08))
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 

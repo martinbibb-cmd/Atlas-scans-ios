@@ -10,17 +10,17 @@ struct AtlasScanApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                ScanSessionListView()
-                    .environmentObject(jobStore)
-                    .tabItem {
-                        Label("Jobs", systemImage: "folder")
-                    }
-
                 PropertySessionListView()
                     .environmentObject(sessionStore)
                     .environmentObject(atlasSync)
                     .tabItem {
                         Label("Sessions", systemImage: "camera.viewfinder")
+                    }
+
+                ScanSessionListView()
+                    .environmentObject(jobStore)
+                    .tabItem {
+                        Label("Jobs (Legacy)", systemImage: "folder")
                     }
             }
         }
