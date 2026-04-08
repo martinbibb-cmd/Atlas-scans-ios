@@ -107,7 +107,7 @@ struct VoiceNoteRowView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Rename this voice note.")
+            Text("Update the caption for this voice note.")
         }
     }
 

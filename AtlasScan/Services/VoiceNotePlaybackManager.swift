@@ -85,12 +85,13 @@ final class VoiceNotePlaybackManager: NSObject, ObservableObject {
     }
 
     private func startTimer() {
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        progressTimer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
                 self.playbackProgress = self.audioPlayer?.currentTime ?? 0
             }
         }
+        RunLoop.main.add(progressTimer!, forMode: .common)
     }
 
     private func stopTimer() {
