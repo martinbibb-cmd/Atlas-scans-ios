@@ -20,7 +20,18 @@ import Foundation
 //   • Backward-compatible init(from:) decoder handles session files written
 //     before optional fields (syncState, roomPlacements, etc.) were introduced.
 
-struct PropertyScanSession: Identifiable, Codable {
+struct PropertyScanSession: Identifiable, Codable, Hashable {
+
+    // MARK: - Hashable
+    // Implemented explicitly to avoid requiring all child types to be Hashable.
+    // Identity-based: two sessions with the same id are considered equal.
+    static func == (lhs: PropertyScanSession, rhs: PropertyScanSession) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 
     var id: UUID = UUID()
 

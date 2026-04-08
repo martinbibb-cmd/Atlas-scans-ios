@@ -11,8 +11,17 @@ struct EditObjectSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // MARK: Local dimension state — kept as Strings for keyboard editing
+    @State private var widthText: String = ""
+    @State private var depthText: String = ""
+
     init(object: TaggedObject, onSave: @escaping (TaggedObject) -> Void) {
         _object = State(initialValue: object)
+        // Pre-populate dimension strings from existing boundingSize.
+        let w = object.boundingSize.map { String(format: "%.2f", $0.widthMetres) } ?? ""
+        let d = object.boundingSize.map { String(format: "%.2f", $0.depthMetres) } ?? ""
+        _widthText = State(initialValue: w)
+        _depthText = State(initialValue: d)
         self.onSave = onSave
     }
 
@@ -31,6 +40,35 @@ struct EditObjectSheet: View {
                             QuickFieldRow(field: field, values: $object.quickFieldValues)
                         }
                     }
+                }
+
+                // MARK: Manual dimensions
+                Section {
+                    HStack {
+                        Text("Width")
+                        Spacer()
+                        TextField("e.g. 0.60", text: $widthText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 100)
+                        Text("m")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Depth")
+                        Spacer()
+                        TextField("e.g. 0.50", text: $depthText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 100)
+                        Text("m")
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Dimensions")
+                } footer: {
+                    Text("Physical footprint in metres. Used to draw a correctly-sized object on the layout and refine clearance checks.")
+                        .font(.caption2)
                 }
 
                 let profiles = ApplianceProfileLibrary.profiles(for: object.category)
@@ -103,12 +141,24 @@ struct EditObjectSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         var updated = object
+                        // Parse and persist manual dimensions.
+                        updated.boundingSize = parsedBoundingSize()
                         updated.touch()
                         onSave(updated)
                     }
                 }
             }
         }
+    }
+
+    // MARK: - Dimension parsing
+
+    private func parsedBoundingSize() -> PlacementSize? {
+        let w = Double(widthText.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
+        let d = Double(depthText.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
+        guard let wv = w, wv > 0 else { return nil }
+        let dv = d ?? 0
+        return PlacementSize(widthMetres: wv, depthMetres: max(0, dv))
     }
 }
 

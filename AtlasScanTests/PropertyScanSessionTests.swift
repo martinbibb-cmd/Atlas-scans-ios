@@ -471,6 +471,62 @@ final class PropertyScanSessionTests: XCTestCase {
         }
     }
 
+    // MARK: - PropertyScanSession Hashable
+
+    func test_propertyScanSession_hashable_sameIDIsEqual() {
+        let s1 = PropertyScanSession(propertyAddress: "1 Test St")
+        var s2 = s1                         // same id
+        s2.engineerName = "Different Name"  // different content
+        // Two sessions with the same id must be equal regardless of other fields
+        XCTAssertEqual(s1, s2)
+    }
+
+    func test_propertyScanSession_hashable_differentIDNotEqual() {
+        let s1 = PropertyScanSession(propertyAddress: "1 Test St")
+        let s2 = PropertyScanSession(propertyAddress: "1 Test St")
+        XCTAssertNotEqual(s1, s2, "Sessions with different UUIDs must not be equal")
+    }
+
+    func test_propertyScanSession_canBeUsedInSet() {
+        let s1 = PropertyScanSession(propertyAddress: "1 Test St")
+        let s2 = PropertyScanSession(propertyAddress: "2 Test St")
+        var s3 = s1
+        s3.engineerName = "Updated"
+        let set: Set<PropertyScanSession> = [s1, s2, s3]
+        // s1 and s3 have the same id → set should contain only 2 elements
+        XCTAssertEqual(set.count, 2)
+    }
+
+    // MARK: - PlacementSize / boundingSize
+
+    func test_taggedObject_boundingSizeDefaultsToNil() {
+        let obj = TaggedObject(roomID: UUID(), category: .boiler)
+        XCTAssertNil(obj.boundingSize)
+    }
+
+    func test_taggedObject_boundingSize_codableRoundTrip() throws {
+        var obj = TaggedObject(roomID: UUID(), category: .boiler)
+        obj.boundingSize = PlacementSize(widthMetres: 0.6, depthMetres: 0.5)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(obj)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(TaggedObject.self, from: data)
+
+        XCTAssertNotNil(decoded.boundingSize)
+        XCTAssertEqual(decoded.boundingSize?.widthMetres ?? 0, 0.6, accuracy: 0.001)
+        XCTAssertEqual(decoded.boundingSize?.depthMetres ?? 0, 0.5, accuracy: 0.001)
+    }
+
+    func test_placementSize_init_clampsNegativeValues() {
+        let size = PlacementSize(widthMetres: -1.0, depthMetres: -0.5)
+        XCTAssertEqual(size.widthMetres, 0.0, "Negative width should be clamped to 0")
+        XCTAssertEqual(size.depthMetres, 0.0, "Negative depth should be clamped to 0")
+    }
+
     // MARK: - Helpers
 
     private func roomWithDimensions(width: Double, height: Double) -> ScannedRoom {

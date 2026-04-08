@@ -24,6 +24,7 @@ struct SessionCaptureView: View {
     @State private var showingAddRoom = false
     @State private var showingSyncConfirm = false
     @State private var showingLiveView = false
+    @State private var showingReview = false
     @State private var newRoomName = ""
     @State private var newRoomFloor = 0
 
@@ -74,6 +75,12 @@ struct SessionCaptureView: View {
         }
         .fullScreenCover(isPresented: $showingLiveView) {
             liveViewTaggingCover
+        }
+        .navigationDestination(isPresented: $showingReview) {
+            SessionReviewView(
+                session: viewModel.session,
+                store: viewModel.store
+            )
         }
         .onDisappear {
             viewModel.saveNow()
@@ -453,6 +460,12 @@ struct SessionCaptureView: View {
                     Label("Add / Scan Room", systemImage: "plus.square")
                 }
                 Divider()
+                Button {
+                    viewModel.saveNow()
+                    showingReview = true
+                } label: {
+                    Label("Review Session", systemImage: "doc.text.magnifyingglass")
+                }
                 Button {
                     viewModel.saveNow()
                 } label: {
