@@ -63,6 +63,18 @@ final class LiveViewTaggingViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.showingEditSheet)
     }
 
+    func test_init_noDirectCapture() {
+        XCTAssertFalse(viewModel.showingDirectCapture)
+    }
+
+    func test_init_noPlacementConfirmation() {
+        XCTAssertNil(viewModel.placementConfirmationText)
+    }
+
+    func test_init_noLastPlacedID() {
+        XCTAssertNil(viewModel.lastPlacedID)
+    }
+
     // MARK: - Tap on empty area
 
     func test_handleTap_emptyArea_advancesToPickingCategory() {
@@ -118,6 +130,39 @@ final class LiveViewTaggingViewModelTests: XCTestCase {
     func test_placeObject_setsCorrectCategory() {
         viewModel.placeObject(category: .flue, at: NormalizedPoint2D(x: 0.5, y: 0.5))
         XCTAssertEqual(viewModel.selectedObject?.category, .flue)
+    }
+
+    // MARK: - Placement feedback
+
+    func test_placeObject_setsPlacementConfirmationText() {
+        viewModel.placeObject(category: .radiator, at: NormalizedPoint2D(x: 0.3, y: 0.4))
+        XCTAssertEqual(viewModel.placementConfirmationText, "Radiator tagged",
+            "placeObject should set confirmation toast text to '<Category> tagged'")
+    }
+
+    func test_placeObject_setsLastPlacedID() {
+        viewModel.placeObject(category: .boiler, at: NormalizedPoint2D(x: 0.5, y: 0.5))
+        XCTAssertNotNil(viewModel.lastPlacedID,
+            "placeObject should set lastPlacedID to the new object's id")
+        XCTAssertEqual(viewModel.lastPlacedID, viewModel.selectedObject?.id,
+            "lastPlacedID should equal the newly selected object's id")
+    }
+
+    func test_placeObject_confirmationTextMatchesCategory() {
+        viewModel.placeObject(category: .cylinder, at: NormalizedPoint2D(x: 0.4, y: 0.4))
+        XCTAssertEqual(viewModel.placementConfirmationText, "Cylinder tagged")
+    }
+
+    func test_placeObject_multiplePlacements_lastPlacedIDUpdates() {
+        viewModel.placeObject(category: .radiator, at: NormalizedPoint2D(x: 0.2, y: 0.2))
+        let firstID = viewModel.lastPlacedID
+
+        viewModel.placeObject(category: .boiler, at: NormalizedPoint2D(x: 0.8, y: 0.8))
+        let secondID = viewModel.lastPlacedID
+
+        XCTAssertNotEqual(firstID, secondID,
+            "lastPlacedID should update to the most recently placed object")
+        XCTAssertEqual(secondID, viewModel.selectedObject?.id)
     }
 
     // MARK: - Tap near existing pin

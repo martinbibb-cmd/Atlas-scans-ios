@@ -49,6 +49,31 @@ final class LiveViewTaggingViewModel: ObservableObject {
     @Published var showingPhotoSheet: Bool = false
     @Published var showingEditSheet: Bool = false
 
+    /// Set to true to present the direct-capture camera sheet from LiveViewTaggingView.
+    /// Taking a photo attaches it immediately to the selected object and returns to live view.
+    @Published var showingDirectCapture: Bool = false
+
+    // MARK: - Constants
+
+    /// Duration for which the placement confirmation toast remains visible.
+    private static let confirmationDisplayDuration: UInt64 = 2_000_000_000  // 2 seconds
+
+    // MARK: - Placement feedback
+
+    /// Short confirmation message shown after a successful tag placement (e.g. "Radiator tagged").
+    /// Automatically cleared after 2 seconds.
+    @Published private(set) var placementConfirmationText: String? = nil
+
+    /// ID of the most recently placed object, used to trigger entrance animation on the new pin.
+    @Published private(set) var lastPlacedID: UUID? = nil
+
+    /// Retained so it can be cancelled when a new placement fires before the timer expires.
+    /// Explicit `deinit` cleanup is intentionally omitted — matching the `autosaveTask`
+    /// pattern in SessionCaptureViewModel — because the closure captures `[weak self]`,
+    /// so if the ViewModel is deallocated the body becomes a no-op, and the max
+    /// outstanding duration is only 2 seconds.
+    private var confirmationClearTask: Task<Void, Never>?
+
     // MARK: - Dependencies
 
     /// The owning session-capture coordinator.  Mutations pass through this so
@@ -95,6 +120,21 @@ final class LiveViewTaggingViewModel: ObservableObject {
         sessionViewModel.addObject(obj)
         refreshPlacedObjects()
         selectObject(obj.id)
+
+        // Placement feedback: show confirmation toast and mark the new pin for entrance animation.
+        let displayName = category.displayName
+        placementConfirmationText = "\(displayName) tagged"
+        lastPlacedID = obj.id
+        confirmationClearTask?.cancel()
+        confirmationClearTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: Self.confirmationDisplayDuration)
+            } catch {
+                // Task was cancelled (a new placement fired before timeout) — nothing to clean up.
+                return
+            }
+            self?.placementConfirmationText = nil
+        }
     }
 
     func cancelCategoryPick() {

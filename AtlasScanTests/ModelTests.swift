@@ -154,6 +154,39 @@ final class ServiceObjectCategoryTests: XCTestCase {
     func test_other_quickFields_empty() {
         XCTAssertTrue(ServiceObjectCategory.other.quickFields.isEmpty)
     }
+
+    func test_defaultEvidenceKind_boiler_isPlant() {
+        XCTAssertEqual(ServiceObjectCategory.boiler.defaultEvidenceKind, .plant)
+    }
+
+    func test_defaultEvidenceKind_radiator_isEmitter() {
+        XCTAssertEqual(ServiceObjectCategory.radiator.defaultEvidenceKind, .emitter)
+    }
+
+    func test_defaultEvidenceKind_flue_isFlue() {
+        XCTAssertEqual(ServiceObjectCategory.flue.defaultEvidenceKind, .flue)
+    }
+
+    func test_defaultEvidenceKind_thermostat_isControl() {
+        XCTAssertEqual(ServiceObjectCategory.thermostat.defaultEvidenceKind, .control)
+    }
+
+    func test_defaultEvidenceKind_airingCupboard_isCupboard() {
+        XCTAssertEqual(ServiceObjectCategory.airingCupboard.defaultEvidenceKind, .cupboard)
+    }
+
+    func test_defaultEvidenceKind_other_isOther() {
+        XCTAssertEqual(ServiceObjectCategory.other.defaultEvidenceKind, .other)
+    }
+
+    func test_allCategories_haveDefaultEvidenceKind() {
+        // Verify every category returns a valid (non-crashing) evidence kind.
+        for cat in ServiceObjectCategory.allCases {
+            let kind = cat.defaultEvidenceKind
+            XCTAssertFalse(kind.displayName.isEmpty,
+                "\(cat.rawValue) defaultEvidenceKind has empty displayName")
+        }
+    }
 }
 
 // MARK: - RoomCaptureViewModelTests
