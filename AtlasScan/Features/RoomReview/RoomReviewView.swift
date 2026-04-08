@@ -109,7 +109,11 @@ struct RoomReviewView: View {
             .frame(minHeight: 220)
 
             if let selectedID = selectedObjectIDOnLayout,
+               let obj = room.taggedObjects.first(where: { $0.id == selectedID }),
                let result = results[selectedID] {
+                let otherObjects = room.taggedObjects.filter { $0.id != selectedID }
+                ClearanceOverlayView(result: result, object: obj, otherObjects: otherObjects)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                 ClearanceSummaryView(result: result)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -263,7 +267,8 @@ struct RoomReviewView: View {
 
     private var clearanceResults: [UUID: ClearanceResult] {
         room.taggedObjects.reduce(into: [:]) { dict, obj in
-            if let result = ClearanceEngine.evaluate(object: obj, in: room) {
+            let others = room.taggedObjects.filter { $0.id != obj.id }
+            if let result = ClearanceEngine.evaluate(object: obj, in: room, otherObjects: others) {
                 dict[obj.id] = result
             }
         }
