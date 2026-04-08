@@ -209,6 +209,61 @@ final class SessionCaptureViewModel: ObservableObject {
         scheduleAutosave()
     }
 
+    // MARK: - Voice note management
+
+    /// Saves a voice note and attaches it to the current target context.
+    /// If a room is focused, attaches to that room; if an object is selected, also cross-links the object.
+    /// Otherwise attaches at session level.
+    func addVoiceNote(_ note: VoiceNote) {
+        var n = note
+        if let objectID = selectedObjectID {
+            n.linkedObjectID = objectID
+            n.linkedRoomID = selectedRoomID
+            // Cross-link from the object side
+            if let idx = session.taggedObjects.firstIndex(where: { $0.id == objectID }) {
+                session.taggedObjects[idx].linkedVoiceNoteIDs.append(n.id)
+            } else {
+                for ri in session.rooms.indices {
+                    if let oi = session.rooms[ri].taggedObjects.firstIndex(where: { $0.id == objectID }) {
+                        session.rooms[ri].taggedObjects[oi].linkedVoiceNoteIDs.append(n.id)
+                        break
+                    }
+                }
+            }
+            // Place note in room if one is selected, otherwise session level
+            if let roomID = selectedRoomID,
+               let ri = session.rooms.firstIndex(where: { $0.id == roomID }) {
+                session.rooms[ri].addVoiceNote(n)
+            } else {
+                session.addVoiceNote(n)
+            }
+        } else if let roomID = selectedRoomID,
+                  let ri = session.rooms.firstIndex(where: { $0.id == roomID }) {
+            n.linkedRoomID = roomID
+            session.rooms[ri].addVoiceNote(n)
+        } else {
+            session.addVoiceNote(n)
+        }
+        scheduleAutosave()
+    }
+
+    func removeVoiceNote(id: UUID) {
+        session.removeVoiceNote(id: id)
+        for i in session.rooms.indices {
+            session.rooms[i].removeVoiceNote(id: id)
+        }
+        // Remove cross-links from objects
+        for i in session.taggedObjects.indices {
+            session.taggedObjects[i].linkedVoiceNoteIDs.removeAll { $0 == id }
+        }
+        for ri in session.rooms.indices {
+            for oi in session.rooms[ri].taggedObjects.indices {
+                session.rooms[ri].taggedObjects[oi].linkedVoiceNoteIDs.removeAll { $0 == id }
+            }
+        }
+        scheduleAutosave()
+    }
+
     // MARK: - Autosave
 
     /// Schedules a debounced save (800 ms). Cancels any pending save task first.

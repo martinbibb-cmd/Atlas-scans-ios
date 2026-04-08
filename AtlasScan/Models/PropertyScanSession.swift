@@ -78,6 +78,10 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Each photo carries its own syncState for fine-grained upload control.
     var photos: [TaggedPhoto]
 
+    /// Voice notes recorded during the session.
+    /// Notes at session level are not assigned to a specific room.
+    var voiceNotes: [VoiceNote]
+
     /// Validation issues collected during review or export validation.
     var issues: [ValidationIssue]
 
@@ -102,6 +106,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         roomPlacements: [RoomPlacementOverride] = [],
         taggedObjects: [TaggedObject] = [],
         photos: [TaggedPhoto] = [],
+        voiceNotes: [VoiceNote] = [],
         issues: [ValidationIssue] = []
     ) {
         self.id = id
@@ -122,6 +127,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.roomPlacements = roomPlacements
         self.taggedObjects = taggedObjects
         self.photos = photos
+        self.voiceNotes = voiceNotes
         self.issues = issues
         self.createdAt = Date()
         self.updatedAt = Date()
@@ -133,7 +139,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case id, jobReference, propertyAddress, engineerName, atlasJobID
         case scanState, reviewState, syncState
         case rooms, roomAdjacencies, roomPlacements
-        case taggedObjects, photos, issues
+        case taggedObjects, photos, voiceNotes, issues
         case createdAt, updatedAt
     }
 
@@ -152,6 +158,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         roomPlacements   = try c.decodeIfPresent([RoomPlacementOverride].self, forKey: .roomPlacements)  ?? []
         taggedObjects    = try c.decodeIfPresent([TaggedObject].self,          forKey: .taggedObjects)    ?? []
         photos           = try c.decodeIfPresent([TaggedPhoto].self,           forKey: .photos)           ?? []
+        voiceNotes       = try c.decodeIfPresent([VoiceNote].self,             forKey: .voiceNotes)       ?? []
         issues           = try c.decodeIfPresent([ValidationIssue].self,       forKey: .issues)           ?? []
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
@@ -173,9 +180,16 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         photos + rooms.flatMap(\.photos)
     }
 
+    /// All voice notes across session-level list and all rooms.
+    var allVoiceNotes: [VoiceNote] {
+        voiceNotes + rooms.flatMap(\.voiceNotes)
+    }
+
     var totalTaggedObjects: Int { allTaggedObjects.count }
 
     var totalPhotos: Int { allPhotos.count }
+
+    var totalVoiceNotes: Int { allVoiceNotes.count }
 
     var totalReviewedRooms: Int { rooms.filter(\.isReviewed).count }
 
@@ -246,6 +260,24 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
 
     mutating func removePhoto(id: UUID) {
         photos.removeAll { $0.id == id }
+        touch()
+    }
+
+    // MARK: Session-level voice note helpers
+
+    mutating func addVoiceNote(_ note: VoiceNote) {
+        voiceNotes.append(note)
+        touch()
+    }
+
+    mutating func removeVoiceNote(id: UUID) {
+        voiceNotes.removeAll { $0.id == id }
+        touch()
+    }
+
+    mutating func updateVoiceNote(_ updated: VoiceNote) {
+        guard let index = voiceNotes.firstIndex(where: { $0.id == updated.id }) else { return }
+        voiceNotes[index] = updated
         touch()
     }
 

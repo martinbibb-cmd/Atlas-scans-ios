@@ -21,6 +21,7 @@ struct SessionCaptureView: View {
     // Sheet presentation state
     @State private var showingAddObject = false
     @State private var showingAddPhoto = false
+    @State private var showingAddVoiceNote = false
     @State private var showingAddRoom = false
     @State private var showingSyncConfirm = false
     @State private var showingLiveView = false
@@ -70,6 +71,11 @@ struct SessionCaptureView: View {
                 viewModel.addPhoto(photo)
             }
         }
+        .sheet(isPresented: $showingAddVoiceNote) {
+            VoiceNoteRecorderSheet(attachContext: voiceNoteAttachContext) { note in
+                viewModel.addVoiceNote(note)
+            }
+        }
         .sheet(isPresented: $showingAddRoom) {
             addRoomSheet
         }
@@ -106,6 +112,17 @@ struct SessionCaptureView: View {
         }
     }
 
+    /// Human-readable label describing where a voice note will attach.
+    private var voiceNoteAttachContext: String {
+        if let obj = viewModel.selectedObject {
+            return obj.displayLabel
+        } else if let room = viewModel.selectedRoom {
+            return room.name
+        } else {
+            return "Session"
+        }
+    }
+
     // MARK: - Session header section
 
     private var sessionHeaderSection: some View {
@@ -130,6 +147,10 @@ struct SessionCaptureView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Label("\(viewModel.session.totalPhotos) photo(s)", systemImage: "photo.fill")
                     .font(.caption).foregroundStyle(.secondary)
+                if viewModel.session.totalVoiceNotes > 0 {
+                    Label("\(viewModel.session.totalVoiceNotes) note(s)", systemImage: "mic.fill")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
         } header: {
             Text("Session")
@@ -191,6 +212,20 @@ struct SessionCaptureView: View {
                 } label: {
                     Label("Attach Photo to Object", systemImage: "camera.badge.plus")
                         .font(.subheadline)
+                }
+
+                // Voice note attach
+                Button {
+                    showingAddVoiceNote = true
+                } label: {
+                    let count = obj.linkedVoiceNoteIDs.count
+                    Label(
+                        count > 0
+                            ? "Add Voice Note (\(count) linked)"
+                            : "Add Voice Note",
+                        systemImage: "mic.badge.plus"
+                    )
+                    .font(.subheadline)
                 }
             } header: {
                 Text("Selected Object")
@@ -381,6 +416,11 @@ struct SessionCaptureView: View {
             } label: {
                 Label(photoButtonLabel, systemImage: "camera.fill")
             }
+            Button {
+                showingAddVoiceNote = true
+            } label: {
+                Label(voiceNoteButtonLabel, systemImage: "mic.fill")
+            }
         } header: {
             Text("Capture")
         } footer: {
@@ -394,6 +434,16 @@ struct SessionCaptureView: View {
         case .session: return "Take Photo (Session)"
         case .room:    return "Take Photo (Room)"
         case .object:  return "Take Photo (Object)"
+        }
+    }
+
+    private var voiceNoteButtonLabel: String {
+        if viewModel.selectedObject != nil {
+            return "Record Voice Note (Object)"
+        } else if viewModel.selectedRoom != nil {
+            return "Record Voice Note (Room)"
+        } else {
+            return "Record Voice Note (Session)"
         }
     }
 
@@ -453,6 +503,11 @@ struct SessionCaptureView: View {
                     showingAddPhoto = true
                 } label: {
                     Label("Take Photo", systemImage: "camera.fill")
+                }
+                Button {
+                    showingAddVoiceNote = true
+                } label: {
+                    Label("Record Voice Note", systemImage: "mic.fill")
                 }
                 Button {
                     showingAddRoom = true
@@ -570,6 +625,10 @@ struct SessionRoomRow: View {
                             Label("\(room.photos.count)", systemImage: "photo.fill")
                                 .font(.caption).foregroundStyle(.indigo)
                         }
+                        if !room.voiceNotes.isEmpty {
+                            Label("\(room.voiceNotes.count)", systemImage: "mic.fill")
+                                .font(.caption).foregroundStyle(.purple)
+                        }
                     }
                 }
                 Spacer()
@@ -615,6 +674,10 @@ struct SessionObjectRow: View {
                 if !object.linkedPhotoIDs.isEmpty {
                     Label("\(object.linkedPhotoIDs.count)", systemImage: "photo.fill")
                         .font(.caption2).foregroundStyle(.indigo)
+                }
+                if !object.linkedVoiceNoteIDs.isEmpty {
+                    Label("\(object.linkedVoiceNoteIDs.count)", systemImage: "mic.fill")
+                        .font(.caption2).foregroundStyle(.purple)
                 }
             }
         }

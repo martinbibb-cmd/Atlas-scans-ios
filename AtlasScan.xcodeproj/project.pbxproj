@@ -74,6 +74,11 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA01005D /* CameraFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005D /* CameraFeedView.swift */; };
 		AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005E /* LiveViewTaggingViewModelTests.swift */; };
 		AA01005F /* ARPlacementSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005F /* ARPlacementSession.swift */; };
+		AA010060 /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020060 /* VoiceNote.swift */; };
+		AA010061 /* VoiceNoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020061 /* VoiceNoteStore.swift */; };
+		AA010062 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020062 /* VoiceNoteRecorder.swift */; };
+		AA010063 /* VoiceNoteRecorderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020063 /* VoiceNoteRecorderSheet.swift */; };
+		AA010064 /* VoiceNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020064 /* VoiceNoteTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -155,6 +160,11 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA02005D /* CameraFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFeedView.swift; sourceTree = "<group>"; };
 		AA02005E /* LiveViewTaggingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingViewModelTests.swift; sourceTree = "<group>"; };
 		AA02005F /* ARPlacementSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPlacementSession.swift; sourceTree = "<group>"; };
+		AA020060 /* VoiceNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
+		AA020061 /* VoiceNoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteStore.swift; sourceTree = "<group>"; };
+		AA020062 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
+		AA020063 /* VoiceNoteRecorderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderSheet.swift; sourceTree = "<group>"; };
+		AA020064 /* VoiceNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -232,6 +242,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020015 /* ScannedOpening.swift */,
 				AA020016 /* TaggedObject.swift */,
 				AA020017 /* TaggedPhoto.swift */,
+				AA020060 /* VoiceNote.swift */,
 				AA020018 /* ServiceObjectCategory.swift */,
 				AA020019 /* ExportDraftState.swift */,
 				AA020028 /* ObjectPlacement.swift */,
@@ -250,6 +261,8 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020032 /* ClearanceEngine.swift */,
 				AA020033 /* ApplianceProfiles.swift */,
 				AA020040 /* PhotoStore.swift */,
+				AA020061 /* VoiceNoteStore.swift */,
+				AA020062 /* VoiceNoteRecorder.swift */,
 				AA020045 /* ExportPackageBuilder.swift */,
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
@@ -343,6 +356,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020041 /* ImagePickerView.swift */,
 				AA020042 /* AddPhotoSheet.swift */,
 				AA020043 /* PhotoGalleryView.swift */,
+				AA020063 /* VoiceNoteRecorderSheet.swift */,
 			);
 			path = Evidence;
 			sourceTree = "<group>";
@@ -383,6 +397,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020054 /* PropertyScanSessionTests.swift */,
 				AA020059 /* SessionCaptureViewModelTests.swift */,
 				AA02005E /* LiveViewTaggingViewModelTests.swift */,
+				AA020064 /* VoiceNoteTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -570,6 +585,10 @@ sourceTree = "<group>";
 				AA01005C /* LiveViewTaggingView.swift in Sources */,
 				AA01005D /* CameraFeedView.swift in Sources */,
 				AA01005F /* ARPlacementSession.swift in Sources */,
+				AA010060 /* VoiceNote.swift in Sources */,
+				AA010061 /* VoiceNoteStore.swift in Sources */,
+				AA010062 /* VoiceNoteRecorder.swift in Sources */,
+				AA010063 /* VoiceNoteRecorderSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -590,6 +609,7 @@ sourceTree = "<group>";
 				AA010054 /* PropertyScanSessionTests.swift in Sources */,
 				AA010059 /* SessionCaptureViewModelTests.swift in Sources */,
 				AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */,
+				AA010064 /* VoiceNoteTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
