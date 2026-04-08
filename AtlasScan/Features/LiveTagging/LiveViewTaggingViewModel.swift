@@ -53,6 +53,11 @@ final class LiveViewTaggingViewModel: ObservableObject {
     /// Taking a photo attaches it immediately to the selected object and returns to live view.
     @Published var showingDirectCapture: Bool = false
 
+    // MARK: - Constants
+
+    /// Duration for which the placement confirmation toast remains visible.
+    private static let confirmationDisplayDuration: UInt64 = 2_000_000_000  // 2 seconds
+
     // MARK: - Placement feedback
 
     /// Short confirmation message shown after a successful tag placement (e.g. "Radiator tagged").
@@ -61,6 +66,11 @@ final class LiveViewTaggingViewModel: ObservableObject {
 
     /// ID of the most recently placed object, used to trigger entrance animation on the new pin.
     @Published private(set) var lastPlacedID: UUID? = nil
+
+    /// Retained so it can be cancelled when a new placement fires before the timer expires.
+    /// Safe without explicit cleanup: the closure captures [weak self], so if the
+    /// ViewModel is deallocated the body sets nil state harmlessly.
+    private var confirmationClearTask: Task<Void, Never>?
 
     // MARK: - Dependencies
 
@@ -111,14 +121,13 @@ final class LiveViewTaggingViewModel: ObservableObject {
 
         // Placement feedback: show confirmation toast and mark the new pin for entrance animation.
         let displayName = category.displayName
-        let placedID = obj.id
         placementConfirmationText = "\(displayName) tagged"
-        lastPlacedID = placedID
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            if self?.placementConfirmationText == "\(displayName) tagged" {
-                self?.placementConfirmationText = nil
-            }
+        lastPlacedID = obj.id
+        confirmationClearTask?.cancel()
+        confirmationClearTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.confirmationDisplayDuration)
+            guard !Task.isCancelled else { return }
+            self?.placementConfirmationText = nil
         }
     }
 

@@ -43,6 +43,13 @@ struct LiveViewTaggingView: View {
     @State private var isPresentingCategoryPicker = false
     @State private var categoryPickerPosition = NormalizedPoint2D(x: 0.5, y: 0.5)
 
+    /// Set when inline photo save fails so the user sees an error alert.
+    @State private var showingPhotoSaveError = false
+
+    /// Reused across placements to avoid repeated allocation. Prepared in onAppear
+    /// and after each use so the Taptic Engine is ready for the next placement.
+    @State private var feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+
     // MARK: - Body
 
     var body: some View {
@@ -113,9 +120,20 @@ struct LiveViewTaggingView: View {
                 isPresentingCategoryPicker = true
             }
         }
-        // Haptic feedback when a new object is placed
+        // Prepare haptic engine on appear so the first placement fires without delay
+        .onAppear {
+            feedbackGenerator.prepare()
+        }
+        // Haptic feedback when a new object is placed; prepare() pre-warms for the next one
         .onChange(of: viewModel.lastPlacedID) { _, _ in
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            feedbackGenerator.impactOccurred()
+            feedbackGenerator.prepare()
+        }
+        // Alert when an inline photo save fails
+        .alert("Could Not Save Photo", isPresented: $showingPhotoSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The photo could not be attached to the object. Please check available storage and try again.")
         }
     }
 
@@ -123,10 +141,17 @@ struct LiveViewTaggingView: View {
 
     /// Saves the captured image and attaches it to the currently selected object,
     /// filing it under the most appropriate evidence kind for the category.
+    /// Shows an error alert if the photo cannot be saved to disk.
     private func attachInlinePhoto(_ image: UIImage) {
         guard let obj = viewModel.selectedObject else { return }
         let photoID = UUID()
-        guard let saved = try? PhotoStore.shared.save(image, id: photoID) else { return }
+        let saved: (filename: String, thumbnailPath: String?)
+        do {
+            saved = try PhotoStore.shared.save(image, id: photoID)
+        } catch {
+            showingPhotoSaveError = true
+            return
+        }
         let photo = TaggedPhoto(
             id: photoID,
             roomID: obj.roomID,
@@ -174,12 +199,11 @@ struct LiveViewTaggingView: View {
                         x: CGFloat(anchor.screenX) * geo.size.width,
                         y: CGFloat(anchor.screenY) * geo.size.height
                     )
-                    .transition(.scale(scale: 0.3, anchor: .center).combined(with: .opacity))
                 }
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.65),
-                   value: viewModel.placedObjects.map(\.id))
+                   value: viewModel.placedObjects.count)
     }
 
     // MARK: - Placement toast
