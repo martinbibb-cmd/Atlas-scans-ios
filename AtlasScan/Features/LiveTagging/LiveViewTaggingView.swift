@@ -125,7 +125,8 @@ struct LiveViewTaggingView: View {
             feedbackGenerator.prepare()
         }
         // Haptic feedback when a new object is placed; prepare() pre-warms for the next one
-        .onChange(of: viewModel.lastPlacedID) { _, _ in
+        .onChange(of: viewModel.lastPlacedID) { _, newID in
+            guard newID != nil else { return }
             feedbackGenerator.impactOccurred()
             feedbackGenerator.prepare()
         }
@@ -203,7 +204,10 @@ struct LiveViewTaggingView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.65),
-                   value: viewModel.placedObjects.count)
+                   value: viewModel.lastPlacedID)
+        // Note: the container spring (0.35/0.65) is intentionally slightly more damped
+        // than the pin entrance spring (0.4/0.55) in LiveTagPin, which has a bouncier
+        // feel to emphasise the placement moment.
     }
 
     // MARK: - Placement toast
@@ -416,6 +420,20 @@ struct LiveTagPin: View {
 
     @State private var appeared = false
 
+    // MARK: - Entrance animation helpers
+
+    /// Scale for the pin. Newly placed pins start at 0.1 and spring to full size.
+    private var entranceScale: CGFloat {
+        if appeared { return 1.0 }
+        return isNew ? 0.1 : 1.0
+    }
+
+    /// Opacity for the pin. Newly placed pins fade in alongside the scale.
+    private var entranceOpacity: Double {
+        if appeared { return 1.0 }
+        return isNew ? 0.0 : 1.0
+    }
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 2) {
@@ -451,8 +469,8 @@ struct LiveTagPin: View {
         .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
         // Entrance animation for newly placed pins
-        .scaleEffect(appeared ? 1.0 : (isNew ? 0.1 : 1.0))
-        .opacity(appeared ? 1.0 : (isNew ? 0.0 : 1.0))
+        .scaleEffect(entranceScale)
+        .opacity(entranceOpacity)
         .onAppear {
             if isNew {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {

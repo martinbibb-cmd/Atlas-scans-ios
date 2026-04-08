@@ -68,8 +68,10 @@ final class LiveViewTaggingViewModel: ObservableObject {
     @Published private(set) var lastPlacedID: UUID? = nil
 
     /// Retained so it can be cancelled when a new placement fires before the timer expires.
-    /// Safe without explicit cleanup: the closure captures [weak self], so if the
-    /// ViewModel is deallocated the body sets nil state harmlessly.
+    /// Explicit `deinit` cleanup is intentionally omitted — matching the `autosaveTask`
+    /// pattern in SessionCaptureViewModel — because the closure captures `[weak self]`,
+    /// so if the ViewModel is deallocated the body becomes a no-op, and the max
+    /// outstanding duration is only 2 seconds.
     private var confirmationClearTask: Task<Void, Never>?
 
     // MARK: - Dependencies
@@ -125,8 +127,12 @@ final class LiveViewTaggingViewModel: ObservableObject {
         lastPlacedID = obj.id
         confirmationClearTask?.cancel()
         confirmationClearTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: Self.confirmationDisplayDuration)
-            guard !Task.isCancelled else { return }
+            do {
+                try await Task.sleep(nanoseconds: Self.confirmationDisplayDuration)
+            } catch {
+                // Task was cancelled (a new placement fired before timeout) — nothing to clean up.
+                return
+            }
             self?.placementConfirmationText = nil
         }
     }
