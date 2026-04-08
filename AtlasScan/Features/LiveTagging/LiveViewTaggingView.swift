@@ -212,9 +212,10 @@ struct LiveViewTaggingView: View {
     // MARK: - Pin overlay
 
     private func pinLayer(geo: GeometryProxy) -> some View {
-        // Reading frameTimestamp here subscribes this view to AR frame updates,
-        // which causes the pins to reproject at ~15 fps when AR is running.
-        let _ = arPlacement.frameTimestamp
+        // currentFrameTimestamp subscribes this view to AR frame updates so that
+        // resolvedPinPosition is called with fresh camera data on each ~15 fps tick.
+        // The value is forwarded to resolvedPinPosition as a readiness flag.
+        let currentFrameTimestamp = arPlacement.frameTimestamp
 
         return ZStack {
             ForEach(viewModel.placedObjects) { obj in
@@ -223,7 +224,9 @@ struct LiveViewTaggingView: View {
                         if case .objectSelected(let id) = viewModel.phase { return id == obj.id }
                         return false
                     }()
-                    let pinPos = resolvedPinPosition(for: anchor, geo: geo)
+                    let pinPos = resolvedPinPosition(for: anchor,
+                                                     arFrameTimestamp: currentFrameTimestamp,
+                                                     geo: geo)
                     LiveTagPin(
                         object: obj,
                         isSelected: selected,
@@ -250,11 +253,19 @@ struct LiveViewTaggingView: View {
     /// reprojects the stored world position into the current camera view so the
     /// pin stays visually locked to the physical scene as the camera moves.
     ///
+    /// `arFrameTimestamp` is passed in (rather than read directly) so that
+    /// callers can forward the SwiftUI-observed timestamp value and guarantee
+    /// this function is invoked on the same render pass that detected a frame change.
+    ///
     /// When reprojection is unavailable (AR not running, no current frame, or the
     /// point is off-screen) it falls back to the stored `screenX`/`screenY`
     /// position that was captured at placement time.
-    private func resolvedPinPosition(for anchor: WorldAnchor3D, geo: GeometryProxy) -> CGPoint {
-        if anchor.anchorConfidence != .screenOnly {
+    private func resolvedPinPosition(
+        for anchor: WorldAnchor3D,
+        arFrameTimestamp: Double,
+        geo: GeometryProxy
+    ) -> CGPoint {
+        if anchor.anchorConfidence != .screenOnly, arFrameTimestamp > 0 {
             let worldPos = simd_float3(Float(anchor.x), Float(anchor.y), Float(anchor.z))
             if let projected = arPlacement.projectToScreen(
                 worldPosition: worldPos,
