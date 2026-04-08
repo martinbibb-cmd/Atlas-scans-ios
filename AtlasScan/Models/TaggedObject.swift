@@ -52,6 +52,10 @@ struct TaggedObject: Identifiable, Codable {
     /// Maintained as a convenience index; the authoritative link is TaggedPhoto.taggedObjectID.
     var linkedPhotoIDs: [UUID]
 
+    /// IDs of VoiceNote records linked to this object.
+    /// Maintained as a convenience index; the authoritative link is VoiceNote.linkedObjectID.
+    var linkedVoiceNoteIDs: [UUID]
+
     /// IDs of ValidationIssue records associated with this object.
     var linkedIssueIDs: [UUID]
 
@@ -87,6 +91,7 @@ struct TaggedObject: Identifiable, Codable {
         clearanceProfileID: String? = nil,
         worldAnchor: WorldAnchor3D? = nil,
         linkedPhotoIDs: [UUID] = [],
+        linkedVoiceNoteIDs: [UUID] = [],
         linkedIssueIDs: [UUID] = [],
         quickFieldValues: [String: String] = [:],
         notes: String = "",
@@ -107,6 +112,7 @@ struct TaggedObject: Identifiable, Codable {
         self.clearanceProfileID = clearanceProfileID
         self.worldAnchor = worldAnchor
         self.linkedPhotoIDs = linkedPhotoIDs
+        self.linkedVoiceNoteIDs = linkedVoiceNoteIDs
         self.linkedIssueIDs = linkedIssueIDs
         self.quickFieldValues = quickFieldValues
         self.notes = notes
@@ -140,36 +146,37 @@ struct TaggedObject: Identifiable, Codable {
         case normalizedPosition, wallIndex, attachedWallID
         case placementMode, rotation, boundingSize
         case applianceProfileID, clearanceProfileID, worldAnchor
-        case linkedPhotoIDs, linkedIssueIDs
+        case linkedPhotoIDs, linkedVoiceNoteIDs, linkedIssueIDs
         case quickFieldValues, notes, isConfirmed, confidence
         case createdAt, updatedAt
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id                 = try c.decode(UUID.self,                    forKey: .id)
-        roomID             = try c.decode(UUID.self,                    forKey: .roomID)
-        category           = try c.decode(ServiceObjectCategory.self,   forKey: .category)
-        let rawLabel       = try c.decode(String.self,                  forKey: .label)
-        label              = rawLabel
-        normalizedPosition = try c.decodeIfPresent(NormalizedPoint2D.self, forKey: .normalizedPosition)
-        wallIndex          = try c.decodeIfPresent(Int.self,            forKey: .wallIndex)
-        attachedWallID     = try c.decodeIfPresent(UUID.self,           forKey: .attachedWallID)
-        placementMode      = try c.decode(PlacementMode.self,           forKey: .placementMode)
-        rotation           = try c.decode(Double.self,                  forKey: .rotation)
-        boundingSize       = try c.decodeIfPresent(PlacementSize.self,  forKey: .boundingSize)
-        applianceProfileID = try c.decodeIfPresent(String.self,         forKey: .applianceProfileID)
+        id                  = try c.decode(UUID.self,                    forKey: .id)
+        roomID              = try c.decode(UUID.self,                    forKey: .roomID)
+        category            = try c.decode(ServiceObjectCategory.self,   forKey: .category)
+        let rawLabel        = try c.decode(String.self,                  forKey: .label)
+        label               = rawLabel
+        normalizedPosition  = try c.decodeIfPresent(NormalizedPoint2D.self, forKey: .normalizedPosition)
+        wallIndex           = try c.decodeIfPresent(Int.self,            forKey: .wallIndex)
+        attachedWallID      = try c.decodeIfPresent(UUID.self,           forKey: .attachedWallID)
+        placementMode       = try c.decode(PlacementMode.self,           forKey: .placementMode)
+        rotation            = try c.decode(Double.self,                  forKey: .rotation)
+        boundingSize        = try c.decodeIfPresent(PlacementSize.self,  forKey: .boundingSize)
+        applianceProfileID  = try c.decodeIfPresent(String.self,         forKey: .applianceProfileID)
         // New fields — default to nil/empty for objects saved before these were introduced.
-        clearanceProfileID = try c.decodeIfPresent(String.self,         forKey: .clearanceProfileID)
-        worldAnchor        = try c.decodeIfPresent(WorldAnchor3D.self,  forKey: .worldAnchor)
-        linkedPhotoIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedPhotoIDs)  ?? []
-        linkedIssueIDs     = try c.decodeIfPresent([UUID].self,         forKey: .linkedIssueIDs)  ?? []
-        quickFieldValues   = try c.decode([String: String].self,        forKey: .quickFieldValues)
-        notes              = try c.decode(String.self,                  forKey: .notes)
-        isConfirmed        = try c.decode(Bool.self,                    forKey: .isConfirmed)
-        confidence         = try c.decode(ConfidenceLevel.self,         forKey: .confidence)
-        createdAt          = try c.decode(Date.self,                    forKey: .createdAt)
-        updatedAt          = try c.decode(Date.self,                    forKey: .updatedAt)
+        clearanceProfileID  = try c.decodeIfPresent(String.self,         forKey: .clearanceProfileID)
+        worldAnchor         = try c.decodeIfPresent(WorldAnchor3D.self,  forKey: .worldAnchor)
+        linkedPhotoIDs      = try c.decodeIfPresent([UUID].self,         forKey: .linkedPhotoIDs)      ?? []
+        linkedVoiceNoteIDs  = try c.decodeIfPresent([UUID].self,         forKey: .linkedVoiceNoteIDs) ?? []
+        linkedIssueIDs      = try c.decodeIfPresent([UUID].self,         forKey: .linkedIssueIDs)      ?? []
+        quickFieldValues    = try c.decode([String: String].self,        forKey: .quickFieldValues)
+        notes               = try c.decode(String.self,                  forKey: .notes)
+        isConfirmed         = try c.decode(Bool.self,                    forKey: .isConfirmed)
+        confidence          = try c.decode(ConfidenceLevel.self,         forKey: .confidence)
+        createdAt           = try c.decode(Date.self,                    forKey: .createdAt)
+        updatedAt           = try c.decode(Date.self,                    forKey: .updatedAt)
     }
 }
 
