@@ -264,6 +264,21 @@ final class SessionCaptureViewModel: ObservableObject {
         scheduleAutosave()
     }
 
+    /// Updates an existing voice note in-place, searching both session-level and room-level lists.
+    func updateVoiceNote(_ updated: VoiceNote) {
+        if session.voiceNotes.contains(where: { $0.id == updated.id }) {
+            session.updateVoiceNote(updated)
+        } else {
+            for i in session.rooms.indices {
+                if session.rooms[i].voiceNotes.contains(where: { $0.id == updated.id }) {
+                    session.rooms[i].updateVoiceNote(updated)
+                    break
+                }
+            }
+        }
+        scheduleAutosave()
+    }
+
     // MARK: - Autosave
 
     /// Schedules a debounced save (800 ms). Cancels any pending save task first.
@@ -308,6 +323,27 @@ final class SessionCaptureViewModel: ObservableObject {
     /// Objects not assigned to any specific room (floating / session-level).
     var sessionLevelObjects: [TaggedObject] {
         session.taggedObjects
+    }
+
+    /// Session-level voice notes (not assigned to any room).
+    var sessionLevelVoiceNotes: [VoiceNote] {
+        session.voiceNotes
+    }
+
+    /// Voice notes for a specific room.
+    func voiceNotes(for roomID: UUID) -> [VoiceNote] {
+        session.rooms.first { $0.id == roomID }?.voiceNotes ?? []
+    }
+
+    /// All voice notes linked to a specific object, gathered across session and room lists.
+    func voiceNotes(forObject objectID: UUID) -> [VoiceNote] {
+        let ids: Set<UUID>
+        if let obj = session.allTaggedObjects.first(where: { $0.id == objectID }) {
+            ids = Set(obj.linkedVoiceNoteIDs)
+        } else {
+            return []
+        }
+        return session.allVoiceNotes.filter { ids.contains($0.id) }
     }
 
     var syncQueueCount: Int {

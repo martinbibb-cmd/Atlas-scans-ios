@@ -79,6 +79,8 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA010062 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020062 /* VoiceNoteRecorder.swift */; };
 		AA010063 /* VoiceNoteRecorderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020063 /* VoiceNoteRecorderSheet.swift */; };
 		AA010064 /* VoiceNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020064 /* VoiceNoteTests.swift */; };
+		AA010065 /* VoiceNotePlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020065 /* VoiceNotePlaybackManager.swift */; };
+		AA010066 /* VoiceNoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020066 /* VoiceNoteRowView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -165,6 +167,8 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA020062 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
 		AA020063 /* VoiceNoteRecorderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderSheet.swift; sourceTree = "<group>"; };
 		AA020064 /* VoiceNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTests.swift; sourceTree = "<group>"; };
+		AA020065 /* VoiceNotePlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotePlaybackManager.swift; sourceTree = "<group>"; };
+		AA020066 /* VoiceNoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRowView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -263,6 +267,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020040 /* PhotoStore.swift */,
 				AA020061 /* VoiceNoteStore.swift */,
 				AA020062 /* VoiceNoteRecorder.swift */,
+				AA020065 /* VoiceNotePlaybackManager.swift */,
 				AA020045 /* ExportPackageBuilder.swift */,
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
@@ -357,6 +362,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA020042 /* AddPhotoSheet.swift */,
 				AA020043 /* PhotoGalleryView.swift */,
 				AA020063 /* VoiceNoteRecorderSheet.swift */,
+				AA020066 /* VoiceNoteRowView.swift */,
 			);
 			path = Evidence;
 			sourceTree = "<group>";
@@ -589,6 +595,8 @@ sourceTree = "<group>";
 				AA010061 /* VoiceNoteStore.swift in Sources */,
 				AA010062 /* VoiceNoteRecorder.swift in Sources */,
 				AA010063 /* VoiceNoteRecorderSheet.swift in Sources */,
+				AA010065 /* VoiceNotePlaybackManager.swift in Sources */,
+				AA010066 /* VoiceNoteRowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
