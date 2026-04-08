@@ -1,27 +1,40 @@
 import Foundation
+import simd
 
 // MARK: - LiveViewTaggingViewModel
 //
 // Coordinator ViewModel for the live-view spatial object tagging surface.
 //
 // Wraps SessionCaptureViewModel to add the live-view interaction layer:
-//   • screen tap → category picker → object placement
-//   • pin overlay position tracking via WorldAnchor3D.screenX/Y
+//   • screen tap → category picker → AR-backed or screen-only object placement
+//   • pin overlay position tracking via WorldAnchor3D reprojection (AR) or screenX/Y (fallback)
 //   • selected-object edit / photo-attach / delete actions
 //
 // All mutations are routed through SessionCaptureViewModel so autosave,
 // Atlas sync state, and PropertyScanSession integrity are always maintained.
 //
+// AR placement path (supported devices):
+//   handleTap(at:screenPoint:) records the raw screen CGPoint alongside the
+//   normalised NormalizedPoint2D.  placeObject(category:at:) uses the stored
+//   screen point to raycast into the AR scene and stores the resulting world
+//   position (x, y, z) in WorldAnchor3D with anchorConfidence = .raycastEstimated.
+//
+// Screen-only fallback path:
+//   When arPlacementSession is nil, the device is unsupported, or the raycast
+//   finds no plane, the existing screen-derived placeholders are used and
+//   anchorConfidence = .screenOnly.
+//
 // Lifecycle:
 //   1. Engineer opens LiveViewTaggingView — phase starts at .idle.
-//   2. Tap on empty screen area → phase becomes .pickingCategory(at:).
-//   3. LiveCategoryPickerSheet appears; engineer picks a type.
-//   4. placeObject(category:at:) creates the TaggedObject with worldAnchor set.
+//   2. LiveViewTaggingView injects arPlacementSession (if AR is available).
+//   3. Tap on empty screen area → phase becomes .pickingCategory(at:).
+//   4. LiveCategoryPickerSheet appears; engineer picks a type.
+//   5. placeObject(category:at:) creates the TaggedObject with worldAnchor set.
 //      Phase advances to .objectSelected(id).
-//   5. Tap on an existing pin → phase becomes .objectSelected(id).
-//   6. From the selected-object panel: attach photo, edit label/category,
+//   6. Tap on an existing pin → phase becomes .objectSelected(id).
+//   7. From the selected-object panel: attach photo, edit label/category,
 //      or delete the tag.
-//   7. deselectObject() returns phase to .idle.
+//   8. deselectObject() returns phase to .idle.
 
 @MainActor
 final class LiveViewTaggingViewModel: ObservableObject {
@@ -80,6 +93,18 @@ final class LiveViewTaggingViewModel: ObservableObject {
     /// autosave and sync state are handled in one place.
     let sessionViewModel: SessionCaptureViewModel
 
+    /// Injected by LiveViewTaggingView on appear when ARWorldTracking is supported.
+    /// Used to perform raycasts during object placement and to provide the current
+    /// AR frame for pin reprojection.
+    weak var arPlacementSession: ARPlacementSession?
+
+    // MARK: - Private placement state
+
+    /// Raw screen-space tap location captured by handleTap(at:screenPoint:).
+    /// Consumed by the next placeObject(category:at:) call for AR raycasting,
+    /// then cleared.
+    private var pendingScreenPoint: CGPoint?
+
     // MARK: - Init
 
     init(sessionViewModel: SessionCaptureViewModel) {
@@ -90,11 +115,16 @@ final class LiveViewTaggingViewModel: ObservableObject {
     // MARK: - Tap handling
 
     /// Called when the engineer taps the camera view.
-    /// `normalizedPoint` is in 0…1 space (x = left→right, y = top→bottom).
-    func handleTap(at normalizedPoint: NormalizedPoint2D) {
+    ///
+    /// - Parameters:
+    ///   - normalizedPoint: Tap position in 0...1 space (x = left→right, y = top→bottom).
+    ///   - screenPoint: Raw pixel position within the view, used for AR raycasting.
+    ///                  Omit (or pass nil) when calling from tests or non-AR contexts.
+    func handleTap(at normalizedPoint: NormalizedPoint2D, screenPoint: CGPoint? = nil) {
         if let existing = objectNear(normalizedPoint) {
             selectObject(existing.id)
         } else {
+            pendingScreenPoint = screenPoint
             phase = .pickingCategory(at: normalizedPoint)
         }
     }
@@ -102,21 +132,23 @@ final class LiveViewTaggingViewModel: ObservableObject {
     // MARK: - Placement
 
     /// Creates and registers a new TaggedObject at the tapped screen position.
+    ///
+    /// When `arPlacementSession` is available and the stored `pendingScreenPoint`
+    /// yields a successful plane raycast, the world-space hit coordinates are stored
+    /// in `WorldAnchor3D` with `anchorConfidence = .raycastEstimated`.  On failure,
+    /// or when AR is unavailable, the existing screen-derived placeholders are used
+    /// and `anchorConfidence = .screenOnly`.
+    ///
     /// The object is added to the currently focused room (if any) or session-level.
     func placeObject(category: ServiceObjectCategory, at position: NormalizedPoint2D) {
         let roomID = sessionViewModel.selectedRoomID ?? sessionViewModel.session.id
         var obj = TaggedObject(roomID: roomID, category: category)
-        // World-space coordinates are approximate placeholders for the camera-only path.
-        // x and z are derived from the screen position (treating the view as a top-down
-        // unit floor plan); y is 0 (floor plane).  A future ARKit integration would
-        // replace these with raycasted world coordinates from the LiDAR mesh.
-        obj.worldAnchor = WorldAnchor3D(
-            x: Double(position.x),
-            y: 0.0,
-            z: Double(position.y),
-            screenX: Double(position.x),
-            screenY: Double(position.y)
-        )
+
+        // Attempt AR-backed world placement.
+        let anchor = resolvedWorldAnchor(for: position)
+        obj.worldAnchor = anchor
+        pendingScreenPoint = nil
+
         sessionViewModel.addObject(obj)
         refreshPlacedObjects()
         selectObject(obj.id)
@@ -139,6 +171,41 @@ final class LiveViewTaggingViewModel: ObservableObject {
 
     func cancelCategoryPick() {
         phase = .idle
+        pendingScreenPoint = nil
+    }
+
+    // MARK: - Private: AR-backed anchor resolution
+
+    /// Builds a WorldAnchor3D for the given normalised position.
+    ///
+    /// If `arPlacementSession` is present and `pendingScreenPoint` is set,
+    /// attempts an ARKit `estimatedPlane` raycast.  On success returns an anchor
+    /// with the real world coordinates and `.raycastEstimated` confidence.
+    /// Falls back to screen-derived placeholder coordinates with `.screenOnly`
+    /// confidence when AR is unavailable or the raycast finds no plane.
+    private func resolvedWorldAnchor(for position: NormalizedPoint2D) -> WorldAnchor3D {
+        if let session = arPlacementSession,
+           let screenPt = pendingScreenPoint,
+           let hitTransform = session.raycast(from: screenPt) {
+            let col = hitTransform.columns.3
+            return WorldAnchor3D(
+                x: Double(col.x),
+                y: Double(col.y),
+                z: Double(col.z),
+                screenX: Double(position.x),
+                screenY: Double(position.y),
+                anchorConfidence: .raycastEstimated
+            )
+        }
+        // Screen-only fallback — approximate floor-plane projection.
+        return WorldAnchor3D(
+            x: Double(position.x),
+            y: 0.0,
+            z: Double(position.y),
+            screenX: Double(position.x),
+            screenY: Double(position.y),
+            anchorConfidence: .screenOnly
+        )
     }
 
     // MARK: - Object selection

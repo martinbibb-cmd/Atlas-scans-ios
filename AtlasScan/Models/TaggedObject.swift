@@ -173,6 +173,35 @@ struct TaggedObject: Identifiable, Codable {
     }
 }
 
+// MARK: - AnchorConfidence
+
+/// Describes the quality and source of a WorldAnchor3D's spatial placement.
+///
+/// This drives both rendering decisions (e.g. pin opacity / styling) and
+/// honest UX communication about how precisely a tag is locked to the real scene.
+enum AnchorConfidence: String, Codable, CaseIterable {
+    /// Position derived from screen-tap only; x/y/z are approximate placeholders
+    /// (x = screenX, y = 0, z = screenY projected onto a unit floor plane).
+    case screenOnly       = "screenOnly"
+
+    /// Position obtained from an ARKit `estimatedPlane` raycast; spatially grounded
+    /// and will stay approximately attached to the real scene as the camera moves.
+    /// May shift slightly as the AR session refines its world model.
+    case raycastEstimated = "raycastEstimated"
+
+    /// Reserved for future: position locked to a persistent AR anchor or
+    /// resolved plane geometry with high confidence.
+    case worldLocked      = "worldLocked"
+
+    var displayName: String {
+        switch self {
+        case .screenOnly:        return "Screen only"
+        case .raycastEstimated:  return "AR estimated"
+        case .worldLocked:       return "World locked"
+        }
+    }
+}
+
 // MARK: - ConfidenceLevel
 
 enum ConfidenceLevel: String, Codable, CaseIterable {
@@ -208,40 +237,71 @@ struct NormalizedPoint2D: Codable, Equatable {
 
 /// A spatial anchor recording where a tagged object was placed in the live camera view.
 ///
-/// `screenX` and `screenY` store the normalised view position (0…1) at the moment
-/// the engineer tapped, so the pin can be re-rendered at the correct screen location.
-/// `x`, `y`, `z` store an approximate session-space position in metres; for the
-/// camera-only (non-ARKit) path these default to the screen position projected onto
-/// a unit floor plane (y = 0).  A future ARKit path may populate these with true
-/// world coordinates from a raycast against the LiDAR mesh.
+/// `screenX` and `screenY` store the normalised view position (0...1) at the moment
+/// the engineer tapped, preserved as a render fallback when ARKit reprojection is
+/// unavailable (e.g. older devices, simulator, or screen-only placement mode).
+///
+/// `x`, `y`, `z` store the world-space position in metres relative to the ARKit
+/// session origin.  For the screen-only path these are approximate placeholders
+/// (x = screenX, y = 0, z = screenY).  When `anchorConfidence` is
+/// `.raycastEstimated` or higher, these contain the real world coordinates from an
+/// ARKit `estimatedPlane` raycast and can be reprojected each frame to keep the
+/// pin visually locked to the physical scene.
 struct WorldAnchor3D: Codable, Equatable {
 
-    /// Approximate world-space x position in metres (session origin).
+    /// World-space x position in metres (ARKit session origin).
     var x: Double
 
-    /// Approximate world-space y position in metres (0 = floor plane).
+    /// World-space y position in metres (0 = ARKit session floor plane).
     var y: Double
 
-    /// Approximate world-space z position in metres (session origin).
+    /// World-space z position in metres (ARKit session origin).
     var z: Double
 
     /// Normalised horizontal screen position at placement time (0 = left, 1 = right).
+    /// Preserved as a fallback render position independent of AR tracking quality.
     var screenX: Double
 
     /// Normalised vertical screen position at placement time (0 = top, 1 = bottom).
+    /// Preserved as a fallback render position independent of AR tracking quality.
     var screenY: Double
+
+    /// How the world-space coordinates were obtained.
+    /// Used by the live-view rendering layer to decide whether to reproject
+    /// the pin from world-space each frame or to use the stored screen position.
+    var anchorConfidence: AnchorConfidence
 
     init(
         x: Double = 0,
         y: Double = 0,
         z: Double = 0,
         screenX: Double,
-        screenY: Double
+        screenY: Double,
+        anchorConfidence: AnchorConfidence = .screenOnly
     ) {
         self.x = x
         self.y = y
         self.z = z
         self.screenX = max(0, min(1, screenX))
         self.screenY = max(0, min(1, screenY))
+        self.anchorConfidence = anchorConfidence
+    }
+
+    // MARK: Codable — backward-compatible with pre-anchorConfidence records
+
+    private enum CodingKeys: String, CodingKey {
+        case x, y, z, screenX, screenY, anchorConfidence
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        x                = try c.decode(Double.self, forKey: .x)
+        y                = try c.decode(Double.self, forKey: .y)
+        z                = try c.decode(Double.self, forKey: .z)
+        screenX          = try c.decode(Double.self, forKey: .screenX)
+        screenY          = try c.decode(Double.self, forKey: .screenY)
+        // New field — older records default to .screenOnly.
+        anchorConfidence = try c.decodeIfPresent(AnchorConfidence.self,
+                                                  forKey: .anchorConfidence) ?? .screenOnly
     }
 }

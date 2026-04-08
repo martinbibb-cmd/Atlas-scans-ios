@@ -1,5 +1,23 @@
 import SwiftUI
 import AVFoundation
+import ARKit
+
+// MARK: - ARCameraFeedView
+//
+// UIViewRepresentable that exposes the ARSCNView from an ARPlacementSession as a
+// full-screen camera preview.  Used when ARWorldTracking is available so that the
+// same ARSession that handles raycasting also drives the camera feed — preventing
+// two sessions from competing for the camera hardware.
+//
+// The view itself adds no SceneKit content; it is purely a pass-through preview.
+
+struct ARCameraFeedView: UIViewRepresentable {
+
+    let session: ARPlacementSession
+
+    func makeUIView(context: Context) -> UIView { session.arView }
+    func updateUIView(_ uiView: UIView, context: Context) {}
+}
 
 // MARK: - CameraFeedView
 //
@@ -9,6 +27,9 @@ import AVFoundation
 // On the simulator (no camera hardware) a dark grey placeholder is displayed instead.
 // The view does not capture photos itself — it is purely a preview surface.
 // Photo capture is handled via the existing AddPhotoSheet / ImagePickerView flow.
+//
+// Note: Used as the fallback camera background when ARPlacementSession.isSupported
+// returns false (e.g. Simulator, devices without A9 chip).
 
 struct CameraFeedView: UIViewRepresentable {
 
