@@ -245,6 +245,36 @@ final class SessionCaptureViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedObjectID)
     }
 
+    // MARK: - Object update
+
+    func test_updateObject_updatesSessionLevelObject() {
+        let obj = TaggedObject(roomID: session.id, category: .boiler)
+        viewModel.addObject(obj)
+        guard var toUpdate = viewModel.session.taggedObjects.first else {
+            XCTFail("Expected a session-level object")
+            return
+        }
+        toUpdate.label = "Updated Boiler"
+        viewModel.updateObject(toUpdate)
+        XCTAssertEqual(viewModel.session.taggedObjects.first?.label, "Updated Boiler")
+    }
+
+    func test_updateObject_updatesRoomLevelObject() {
+        let room = ScannedRoom(jobID: session.id, name: "Utility")
+        viewModel.addRoom(room)
+        viewModel.selectRoom(viewModel.session.rooms[0].id)
+        let obj = TaggedObject(roomID: room.id, category: .cylinder)
+        viewModel.addObject(obj)
+        guard var toUpdate = viewModel.session.rooms[0].taggedObjects.first else {
+            XCTFail("Expected a room-level object")
+            return
+        }
+        toUpdate.label = "Updated Cylinder"
+        viewModel.updateObject(toUpdate)
+        XCTAssertEqual(viewModel.session.rooms[0].taggedObjects.first?.label, "Updated Cylinder",
+            "updateObject should update room-level objects")
+    }
+
     // MARK: - Photo management
 
     func test_addPhoto_sessionTarget_addsToSessionPhotos() {

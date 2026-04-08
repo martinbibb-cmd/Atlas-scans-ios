@@ -23,6 +23,7 @@ struct SessionCaptureView: View {
     @State private var showingAddPhoto = false
     @State private var showingAddRoom = false
     @State private var showingSyncConfirm = false
+    @State private var showingLiveView = false
     @State private var newRoomName = ""
     @State private var newRoomFloor = 0
 
@@ -70,6 +71,9 @@ struct SessionCaptureView: View {
         }
         .sheet(isPresented: $showingAddRoom) {
             addRoomSheet
+        }
+        .fullScreenCover(isPresented: $showingLiveView) {
+            liveViewTaggingCover
         }
         .onDisappear {
             viewModel.saveNow()
@@ -356,6 +360,11 @@ struct SessionCaptureView: View {
     private var quickActionsSection: some View {
         Section {
             Button {
+                showingLiveView = true
+            } label: {
+                Label("Live View", systemImage: "camera.viewfinder")
+            }
+            Button {
                 showingAddObject = true
             } label: {
                 Label("Tag Object", systemImage: "tag.fill")
@@ -368,7 +377,7 @@ struct SessionCaptureView: View {
         } header: {
             Text("Capture")
         } footer: {
-            Text("Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
+            Text("Use Live View to place tags directly on the camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
                 .font(.caption2)
         }
     }
@@ -424,6 +433,11 @@ struct SessionCaptureView: View {
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button {
+                    showingLiveView = true
+                } label: {
+                    Label("Live View", systemImage: "camera.viewfinder")
+                }
+                Button {
                     showingAddObject = true
                 } label: {
                     Label("Tag Object", systemImage: "tag.fill")
@@ -448,6 +462,14 @@ struct SessionCaptureView: View {
                 Image(systemName: "plus")
             }
         }
+    }
+
+    // MARK: - Live view cover
+
+    private var liveViewTaggingCover: some View {
+        LiveViewTaggingView(
+            viewModel: LiveViewTaggingViewModel(sessionViewModel: viewModel)
+        )
     }
 
     // MARK: - Add room sheet
