@@ -308,7 +308,9 @@ final class AtlasSync: ObservableObject {
     /// Uploads a voice note audio file and its metadata to Atlas.
     /// Returns the remote asset identifier assigned by Atlas.
     ///
-    /// STUB — simulates a network delay and returns a synthetic remote ID.
+    /// STUB — actual multipart upload implementation is pending.
+    /// Simulates a network delay and returns a synthetic remote ID.
+    /// Replace with a real URLSession multipart upload when the API is available.
     private func performVoiceNoteUpload(_ note: VoiceNote, baseURL: URL) async throws -> String {
         // Transport stub — replace with real URLSession multipart upload when API is available.
         // For now: simulate a network delay and return a synthetic remote ID.
