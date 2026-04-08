@@ -31,6 +31,10 @@ struct AddObjectSheet: View {
     @State private var pendingPosition: NormalizedPoint2D? = nil
     @State private var pendingWallIndex: Int? = nil
 
+    // Manual dimension state
+    @State private var widthText: String = ""
+    @State private var depthText: String = ""
+
     var body: some View {
         NavigationStack {
             Group {
@@ -198,6 +202,35 @@ struct AddObjectSheet: View {
                 .pickerStyle(.segmented)
             }
 
+            // MARK: Manual dimensions
+            Section {
+                HStack {
+                    Text("Width")
+                    Spacer()
+                    TextField("e.g. 0.60", text: $widthText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 100)
+                    Text("m")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Depth")
+                    Spacer()
+                    TextField("e.g. 0.50", text: $depthText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 100)
+                    Text("m")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Dimensions")
+            } footer: {
+                Text("Physical footprint in metres. Draws a correctly-sized object on the layout and refines clearance checks.")
+                    .font(.caption2)
+            }
+
             Section("Notes") {
                 TextField("Optional notes", text: $notes, axis: .vertical)
                     .lineLimit(2...4)
@@ -214,6 +247,7 @@ struct AddObjectSheet: View {
             category: category,
             label: label.trimmingCharacters(in: .whitespaces),
             wallIndex: pendingWallIndex,
+            boundingSize: parsedBoundingSize(),
             quickFieldValues: quickValues,
             notes: notes,
             confidence: confidence
@@ -223,6 +257,16 @@ struct AddObjectSheet: View {
         }
         onAdd(object)
         dismiss()
+    }
+
+    // MARK: - Dimension parsing
+
+    private func parsedBoundingSize() -> PlacementSize? {
+        let w = Double(widthText.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
+        let d = Double(depthText.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
+        guard let wv = w, wv > 0 else { return nil }
+        let dv = d ?? 0
+        return PlacementSize(widthMetres: wv, depthMetres: max(0, dv))
     }
 }
 

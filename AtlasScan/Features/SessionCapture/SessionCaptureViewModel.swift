@@ -62,7 +62,7 @@ final class SessionCaptureViewModel: ObservableObject {
 
     // MARK: Dependencies
 
-    private let store: ScanSessionStore
+    private(set) var store: ScanSessionStore
     let atlasSync: AtlasSync
 
     // MARK: Private

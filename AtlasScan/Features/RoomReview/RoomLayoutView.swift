@@ -92,7 +92,26 @@ struct RoomLayoutView: View {
 
             // Clearance overlays — drawn after the room fill so they appear inside
             for obj in room.taggedObjects {
-                guard let result = clearanceResults[obj.id] else { continue }
+                guard let result = clearanceResults[obj.id] else {
+                    // No clearance result: draw a simple sized footprint if dimensions are set.
+                    if let objSize = obj.boundingSize, let pos = obj.normalizedPosition {
+                        let dims = ClearanceEngine.estimateRoomDimensions(room)
+                        let hw = (objSize.widthMetres / 2.0) / dims.widthMetres
+                        let hd = (objSize.depthMetres / 2.0) / dims.heightMetres
+                        let normRect = CGRect(
+                            x: pos.x - hw, y: pos.y - hd,
+                            width: hw * 2,  height: hd * 2
+                        )
+                        let screenR = toScreenRect(normRect, size: size)
+                        ctx.fill(Path(screenR), with: .color(Color.secondary.opacity(0.12)))
+                        ctx.stroke(
+                            Path(screenR),
+                            with: .color(Color.secondary.opacity(0.5)),
+                            lineWidth: 1.5
+                        )
+                    }
+                    continue
+                }
                 let isSelected = obj.id == selectedObjectID
                 let overlayColor = clearanceStatusColor(result.status)
                 let baseOpacity: Double = isSelected ? 1.0 : 0.55

@@ -2,7 +2,9 @@ import SwiftUI
 
 // MARK: - PropertySessionListView
 //
-// Lists all PropertyScanSession records and provides navigation to SessionCaptureView.
+// Lists all PropertyScanSession records and provides navigation to SessionCaptureView
+// (for active capture) and SessionReviewView (for read-only review / replay).
+//
 // This is the entry point for the session-based capture workflow.
 
 struct PropertySessionListView: View {
@@ -13,6 +15,7 @@ struct PropertySessionListView: View {
     @State private var showingNewSession = false
     @State private var sessionToDelete: PropertyScanSession?
     @State private var showDeleteConfirm = false
+    @State private var sessionToReview: PropertyScanSession?
 
     var body: some View {
         NavigationStack {
@@ -38,6 +41,9 @@ struct PropertySessionListView: View {
                     sessionStore.save(newSession)
                     showingNewSession = false
                 }
+            }
+            .navigationDestination(item: $sessionToReview) { session in
+                SessionReviewView(session: session, store: sessionStore)
             }
             .confirmationDialog(
                 "Delete Session?",
@@ -95,7 +101,28 @@ struct PropertySessionListView: View {
                 } label: {
                     PropertySessionRowView(session: session)
                 }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        sessionToReview = session
+                    } label: {
+                        Label("Review", systemImage: "doc.text.magnifyingglass")
+                    }
+                    .tint(.blue)
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        sessionToDelete = session
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button {
+                        sessionToReview = session
+                    } label: {
+                        Label("Review Session", systemImage: "doc.text.magnifyingglass")
+                    }
                     Button(role: .destructive) {
                         sessionToDelete = session
                         showDeleteConfirm = true
