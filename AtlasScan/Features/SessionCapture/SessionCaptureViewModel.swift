@@ -301,10 +301,11 @@ final class SessionCaptureViewModel: ObservableObject {
 
     // MARK: - Atlas sync
 
-    /// Enqueues the session and all unsynced photos for Atlas upload.
+    /// Enqueues the session, all unsynced photos, and all unsynced voice notes for Atlas upload.
     func queueForAtlasSync() {
         atlasSync.enqueueSession(session)
         atlasSync.enqueuePhotos(session.allPhotos.filter { $0.syncState.canQueue })
+        atlasSync.enqueueVoiceNotes(session.allVoiceNotes.filter { $0.syncState.canQueue })
         atlasSync.processQueue()
     }
 

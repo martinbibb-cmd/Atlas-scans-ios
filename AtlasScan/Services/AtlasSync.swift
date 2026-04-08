@@ -2,19 +2,19 @@ import Foundation
 
 // MARK: - AtlasSync
 //
-// Manages the upload of scan sessions and photos to the Atlas backend.
+// Manages the upload of scan sessions, photos, and voice notes to the Atlas backend.
 //
 // Design principles:
 //   - Offline-first: local saves are always completed before any upload attempt.
-//   - Per-item state: each photo and session carries its own sync state.
+//   - Per-item state: each photo, voice note, and session carries its own sync state.
 //   - Async upload: uploads happen in the background; the queue is retried on failure.
 //   - No dependency on AtlasContracts internals — the sync layer maps models to
 //     the shared export contract types for transmission.
 //
 // NOT YET WIRED — transport stubs only.
-// `performPhotoUpload` and `performSessionMetadataUpload` are stubs that simulate
-// a network delay and return synthetic values. Replace them with real URLSession
-// calls when the Atlas API endpoint is available. Queue management, retry logic,
+// `performPhotoUpload`, `performSessionMetadataUpload`, and `performVoiceNoteUpload` are
+// stubs that simulate a network delay and return synthetic values. Replace them with real
+// URLSession calls when the Atlas API endpoint is available. Queue management, retry logic,
 // delegate callbacks, and per-item state transitions are fully implemented.
 
 // MARK: - AtlasSyncDelegate
@@ -24,8 +24,12 @@ protocol AtlasSyncDelegate: AnyObject {
     func atlasSync(_ sync: AtlasSync, didUpdatePhoto photoID: UUID, syncState: PhotoSyncState)
     /// Called when a session's sync state changes.
     func atlasSync(_ sync: AtlasSync, didUpdateSession sessionID: UUID, syncState: SessionSyncState)
-    /// Called when an upload fails with a recoverable error.
+    /// Called when a photo upload fails with a recoverable error.
     func atlasSync(_ sync: AtlasSync, uploadFailedFor photoID: UUID, error: Error)
+    /// Called when a voice note's sync state changes.
+    func atlasSync(_ sync: AtlasSync, didUpdateVoiceNote noteID: UUID, syncState: VoiceNoteSyncState)
+    /// Called when a voice note upload fails with a recoverable error.
+    func atlasSync(_ sync: AtlasSync, voiceNoteUploadFailedFor noteID: UUID, error: Error)
 }
 
 // MARK: - AtlasSyncConfiguration
@@ -52,6 +56,7 @@ struct AtlasSyncUploadItem: Identifiable {
     enum ItemKind {
         case photo(TaggedPhoto)
         case sessionMetadata(PropertyScanSession)
+        case voiceNote(VoiceNote)
     }
 
     var id: UUID = UUID()
@@ -68,6 +73,11 @@ struct AtlasSyncUploadItem: Identifiable {
         if case .sessionMetadata(let s) = kind { return s.id }
         return nil
     }
+
+    var voiceNoteID: UUID? {
+        if case .voiceNote(let n) = kind { return n.id }
+        return nil
+    }
 }
 
 // MARK: - AtlasSync
@@ -76,9 +86,10 @@ struct AtlasSyncUploadItem: Identifiable {
 ///
 /// Usage:
 ///   1. Call `enqueuePhoto(_:)` to mark a photo as queued for upload.
-///   2. Call `enqueueSession(_:)` to mark a session for metadata upload.
-///   3. Call `processQueue()` to start processing pending uploads.
-///   4. Call `cancelAll()` to stop all in-flight uploads.
+///   2. Call `enqueueVoiceNote(_:)` to mark a voice note as queued for upload.
+///   3. Call `enqueueSession(_:)` to mark a session for metadata upload.
+///   4. Call `processQueue()` to start processing pending uploads.
+///   5. Call `cancelAll()` to stop all in-flight uploads.
 ///
 /// All state transitions are reported via `AtlasSyncDelegate`.
 @MainActor
@@ -129,6 +140,21 @@ final class AtlasSync: ObservableObject {
         uploadQueue.append(item)
     }
 
+    /// Enqueues a voice note audio file for upload to Atlas.
+    /// No-op when Atlas sync is not configured.
+    func enqueueVoiceNote(_ note: VoiceNote) {
+        guard configuration.isEnabled else { return }
+        guard note.syncState.canQueue else { return }
+        let item = AtlasSyncUploadItem(kind: .voiceNote(note))
+        uploadQueue.append(item)
+    }
+
+    /// Enqueues a batch of voice notes for upload to Atlas.
+    /// Only notes with `syncState.canQueue == true` are added.
+    func enqueueVoiceNotes(_ notes: [VoiceNote]) {
+        notes.forEach { enqueueVoiceNote($0) }
+    }
+
     /// Removes all items from the upload queue and cancels any in-flight tasks.
     func cancelAll() {
         activeTasks.values.forEach { $0.cancel() }
@@ -166,6 +192,8 @@ final class AtlasSync: ObservableObject {
             await uploadPhoto(photo, item: item)
         case .sessionMetadata(let session):
             await uploadSessionMetadata(session, item: item)
+        case .voiceNote(let note):
+            await uploadVoiceNote(note, item: item)
         }
     }
 
@@ -224,9 +252,36 @@ final class AtlasSync: ObservableObject {
         updateUploadingState()
     }
 
+    private func uploadVoiceNote(_ note: VoiceNote, item: AtlasSyncUploadItem) async {
+        guard let baseURL = configuration.apiBaseURL else { return }
+
+        updateVoiceNoteState(noteID: note.id, syncState: .uploading)
+
+        do {
+            let remoteID = try await performVoiceNoteUpload(note, baseURL: baseURL)
+            updateVoiceNoteState(noteID: note.id, syncState: .uploaded, remoteAssetID: remoteID)
+            removeFromQueue(itemID: item.id)
+        } catch {
+            let retries = item.retryCount
+            if retries < configuration.maxRetries {
+                let backoff = configuration.initialBackoffSeconds * pow(2.0, Double(retries))
+                updateQueueItem(itemID: item.id, incrementRetry: true)
+                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
+                await uploadVoiceNote(note, item: itemWithRetry(item))
+            } else {
+                updateVoiceNoteState(noteID: note.id, syncState: .failed)
+                removeFromQueue(itemID: item.id)
+                delegate?.atlasSync(self, voiceNoteUploadFailedFor: note.id, error: error)
+            }
+        }
+
+        activeTasks.removeValue(forKey: item.id)
+        updateUploadingState()
+    }
+
     // MARK: Private: transport stubs (NOT YET WIRED)
     //
-    // Replace these two methods with real URLSession calls when the Atlas API
+    // Replace these three methods with real URLSession calls when the Atlas API
     // endpoint is available. Everything above this point — queue management,
     // retry scheduling, delegate callbacks, and per-item state transitions —
     // is fully implemented and does not need to change.
@@ -250,10 +305,27 @@ final class AtlasSync: ObservableObject {
         try await Task.sleep(nanoseconds: 50_000_000)   // 0.05 s stub
     }
 
+    /// Uploads a voice note audio file and its metadata to Atlas.
+    /// Returns the remote asset identifier assigned by Atlas.
+    ///
+    /// STUB — actual multipart upload implementation is pending.
+    /// Simulates a network delay and returns a synthetic remote ID.
+    /// Replace with a real URLSession multipart upload when the API is available.
+    private func performVoiceNoteUpload(_ note: VoiceNote, baseURL: URL) async throws -> String {
+        // Transport stub — replace with real URLSession multipart upload when API is available.
+        // For now: simulate a network delay and return a synthetic remote ID.
+        try await Task.sleep(nanoseconds: 100_000_000)  // 0.1 s stub
+        return "remote_note_\(note.id.uuidString)"
+    }
+
     // MARK: Private: queue / state helpers
 
     private func updatePhotoState(photoID: UUID, syncState: PhotoSyncState, remoteAssetID: String? = nil) {
         delegate?.atlasSync(self, didUpdatePhoto: photoID, syncState: syncState)
+    }
+
+    private func updateVoiceNoteState(noteID: UUID, syncState: VoiceNoteSyncState, remoteAssetID: String? = nil) {
+        delegate?.atlasSync(self, didUpdateVoiceNote: noteID, syncState: syncState)
     }
 
     private func removeFromQueue(itemID: UUID) {
@@ -287,6 +359,7 @@ extension AtlasSyncUploadItem.ItemKind: CustomStringConvertible {
         switch self {
         case .photo(let p): return "photo(\(p.id.uuidString))"
         case .sessionMetadata(let s): return "session(\(s.id.uuidString))"
+        case .voiceNote(let n): return "voiceNote(\(n.id.uuidString))"
         }
     }
 }
