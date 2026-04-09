@@ -450,7 +450,7 @@ struct LiveViewTaggingView: View {
                 walkthroughBarButton(symbol: "mic.fill", label: "Note\nMarker") {
                     viewModel.showingNoteRecorder = true
                 }
-                walkthroughBarButton(symbol: "checkmark.circle.fill", label: "Finish", tint: .green) {
+                walkthroughBarButton(symbol: "checkmark.circle.fill", label: "Finish\nRoom", tint: .green) {
                     dismiss()
                 }
             }

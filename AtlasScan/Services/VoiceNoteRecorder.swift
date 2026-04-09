@@ -108,6 +108,11 @@ final class VoiceNoteRecorder: NSObject, ObservableObject {
     func startPlayback() {
         guard state == .recorded || state == .playing,
               let url = recordedFileURL else { return }
+        // Stop any existing playback before starting fresh.
+        audioPlayer?.stop()
+        audioPlayer = nil
+        playbackTimer?.invalidate()
+        playbackTimer = nil
         do {
             try configureAudioSession(forRecording: false)
             let player = try AVAudioPlayer(contentsOf: url)
