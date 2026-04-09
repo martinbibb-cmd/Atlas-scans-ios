@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7AADD3422F883D9000A17A52 /* SessionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AADD3412F883D9000A17A52 /* SessionReviewView.swift */; };
 		AA010001 /* AtlasScanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020001 /* AtlasScanApp.swift */; };
 		AA010002 /* ScanSessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020002 /* ScanSessionListView.swift */; };
 		AA010003 /* ScanJobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020003 /* ScanJobDetailView.swift */; };
@@ -61,14 +62,12 @@
 		AA010052 /* ScanSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020052 /* ScanSessionStore.swift */; };
 		AA010053 /* AtlasSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020053 /* AtlasSync.swift */; };
 		AA010054 /* PropertyScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020054 /* PropertyScanSessionTests.swift */; };
-AA010055 /* SessionCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020055 /* SessionCaptureViewModel.swift */; };
-AA010056 /* SessionCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020056 /* SessionCaptureView.swift */; };
-AA010057 /* PropertySessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020057 /* PropertySessionListView.swift */; };
-AA010058 /* NewPropertySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020058 /* NewPropertySessionView.swift */; };
+		AA010055 /* SessionCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020055 /* SessionCaptureViewModel.swift */; };
+		AA010056 /* SessionCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020056 /* SessionCaptureView.swift */; };
+		AA010057 /* PropertySessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020057 /* PropertySessionListView.swift */; };
+		AA010058 /* NewPropertySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020058 /* NewPropertySessionView.swift */; };
+		AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020059 /* SessionCaptureViewModelTests.swift */; };
 		AA01005A /* ClearanceOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005A /* ClearanceOverlayView.swift */; };
-AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020059 /* SessionCaptureViewModelTests.swift */; };
-		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
-		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 		AA01005B /* LiveViewTaggingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005B /* LiveViewTaggingViewModel.swift */; };
 		AA01005C /* LiveViewTaggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005C /* LiveViewTaggingView.swift */; };
 		AA01005D /* CameraFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02005D /* CameraFeedView.swift */; };
@@ -82,6 +81,8 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA010065 /* VoiceNotePlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020065 /* VoiceNotePlaybackManager.swift */; };
 		AA010066 /* VoiceNoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020066 /* VoiceNoteRowView.swift */; };
 		AA010067 /* WalkthroughRoomPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020067 /* WalkthroughRoomPickerSheet.swift */; };
+		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
+		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +96,7 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7AADD3412F883D9000A17A52 /* SessionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReviewView.swift; sourceTree = "<group>"; };
 		AA020001 /* AtlasScanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanApp.swift; sourceTree = "<group>"; };
 		AA020002 /* ScanSessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionListView.swift; sourceTree = "<group>"; };
 		AA020003 /* ScanJobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanJobDetailView.swift; sourceTree = "<group>"; };
@@ -149,15 +151,12 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA020052 /* ScanSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionStore.swift; sourceTree = "<group>"; };
 		AA020053 /* AtlasSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSync.swift; sourceTree = "<group>"; };
 		AA020054 /* PropertyScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyScanSessionTests.swift; sourceTree = "<group>"; };
-AA020055 /* SessionCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModel.swift; sourceTree = "<group>"; };
-AA020056 /* SessionCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureView.swift; sourceTree = "<group>"; };
-AA020057 /* PropertySessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertySessionListView.swift; sourceTree = "<group>"; };
-AA020058 /* NewPropertySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPropertySessionView.swift; sourceTree = "<group>"; };
+		AA020055 /* SessionCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModel.swift; sourceTree = "<group>"; };
+		AA020056 /* SessionCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureView.swift; sourceTree = "<group>"; };
+		AA020057 /* PropertySessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertySessionListView.swift; sourceTree = "<group>"; };
+		AA020058 /* NewPropertySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPropertySessionView.swift; sourceTree = "<group>"; };
+		AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModelTests.swift; sourceTree = "<group>"; };
 		AA02005A /* ClearanceOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceOverlayView.swift; sourceTree = "<group>"; };
-AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureViewModelTests.swift; sourceTree = "<group>"; };
-		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA02005B /* LiveViewTaggingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingViewModel.swift; sourceTree = "<group>"; };
 		AA02005C /* LiveViewTaggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewTaggingView.swift; sourceTree = "<group>"; };
 		AA02005D /* CameraFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFeedView.swift; sourceTree = "<group>"; };
@@ -171,6 +170,9 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA020065 /* VoiceNotePlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotePlaybackManager.swift; sourceTree = "<group>"; };
 		AA020066 /* VoiceNoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRowView.swift; sourceTree = "<group>"; };
 		AA020067 /* WalkthroughRoomPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughRoomPickerSheet.swift; sourceTree = "<group>"; };
+		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -379,6 +381,31 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 			path = LiDARClearance;
 			sourceTree = "<group>";
 		};
+		AA050018 /* SessionCapture */ = {
+			isa = PBXGroup;
+			children = (
+				AA020055 /* SessionCaptureViewModel.swift */,
+				AA020056 /* SessionCaptureView.swift */,
+				AA020057 /* PropertySessionListView.swift */,
+				AA020058 /* NewPropertySessionView.swift */,
+				AA02005A /* ClearanceOverlayView.swift */,
+				7AADD3412F883D9000A17A52 /* SessionReviewView.swift */,
+			);
+			path = SessionCapture;
+			sourceTree = "<group>";
+		};
+		AA050019 /* LiveTagging */ = {
+			isa = PBXGroup;
+			children = (
+				AA02005B /* LiveViewTaggingViewModel.swift */,
+				AA02005C /* LiveViewTaggingView.swift */,
+				AA02005D /* CameraFeedView.swift */,
+				AA02005F /* ARPlacementSession.swift */,
+				AA020067 /* WalkthroughRoomPickerSheet.swift */,
+			);
+			path = LiveTagging;
+			sourceTree = "<group>";
+		};
 		AA060000 = {
 			isa = PBXGroup;
 			children = (
@@ -417,30 +444,6 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 				AA030002 /* AtlasScanTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-AA050018 /* SessionCapture */ = {
-isa = PBXGroup;
-children = (
-AA020055 /* SessionCaptureViewModel.swift */,
-				AA020056 /* SessionCaptureView.swift */,
-				AA020057 /* PropertySessionListView.swift */,
-				AA020058 /* NewPropertySessionView.swift */,
-				AA02005A /* ClearanceOverlayView.swift */,
-);
-path = SessionCapture;
-sourceTree = "<group>";
-};
-		AA050019 /* LiveTagging */ = {
-			isa = PBXGroup;
-			children = (
-				AA02005B /* LiveViewTaggingViewModel.swift */,
-				AA02005C /* LiveViewTaggingView.swift */,
-				AA02005D /* CameraFeedView.swift */,
-				AA02005F /* ARPlacementSession.swift */,
-				AA020067 /* WalkthroughRoomPickerSheet.swift */,
-			);
-			path = LiveTagging;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -577,6 +580,7 @@ sourceTree = "<group>";
 				AA010040 /* PhotoStore.swift in Sources */,
 				AA010041 /* ImagePickerView.swift in Sources */,
 				AA010042 /* AddPhotoSheet.swift in Sources */,
+				7AADD3422F883D9000A17A52 /* SessionReviewView.swift in Sources */,
 				AA010043 /* PhotoGalleryView.swift in Sources */,
 				AA010045 /* ExportPackageBuilder.swift in Sources */,
 				AA010047 /* LiDARClearanceMeasurement.swift in Sources */,

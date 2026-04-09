@@ -90,7 +90,7 @@ struct VoiceNoteRowView: View {
                     Label("Delete", systemImage: "trash")
                 }
             }
-            if let onUpdateCaption {
+            if onUpdateCaption != nil {
                 Button {
                     editedCaption = note.caption
                     showingEditCaption = true

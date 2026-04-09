@@ -205,7 +205,7 @@ final class LiDARClearanceSession: NSObject, ObservableObject {
         }
         return ClearanceEngine.rule(for: selectedCategory) ?? ClearanceRule(
             footprintWidthMetres:   0.60,
-            footprintDepthMetres:   0.50,
+            footprintDepthMetres:   0.50, installMinFrontMetres: 0.6,
             frontClearanceMetres:   0.60,
             sideClearanceMetres:    0.15,
             rearClearanceMetres:    0.05,
