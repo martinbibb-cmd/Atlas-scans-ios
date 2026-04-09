@@ -81,6 +81,12 @@ final class SessionCaptureViewModel: ObservableObject {
         }
     }
 
+
+    /// Unified multi-stream snapshot used by the capture UI.
+    var unifiedSurveySnapshot: AtlasSurveySessionV2 {
+        session.surveySessionV2
+    }
+
     // MARK: - Selection
 
     func selectRoom(_ id: UUID?) {

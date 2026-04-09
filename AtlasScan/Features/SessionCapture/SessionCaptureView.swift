@@ -5,7 +5,7 @@ import SwiftUI
 // The session home surface for one PropertyScanSession.
 //
 // Exposes three top-level actions:
-//   • Resume Walkthrough — primary live capture mode (room scan, add objects, evidence photos)
+//   • Resume Unified Survey — primary live capture mode (room scan, add objects, evidence photos)
 //   • Review Session     — read-only review surface (rooms, objects, photos, transcript)
 //   • Sync to Atlas      — package and upload the session bundle
 //
@@ -44,6 +44,7 @@ struct SessionCaptureView: View {
     var body: some View {
         List {
             sessionHeaderSection
+            captureStreamsSection
             if viewModel.selectedObject != nil {
                 selectedObjectSection
             }
@@ -180,6 +181,52 @@ struct SessionCaptureView: View {
         case .unsaved:
             Label("Unsaved", systemImage: "circle.dashed")
                 .font(.caption2).foregroundStyle(.orange)
+        }
+    }
+
+
+    // MARK: - Capture streams section
+
+    private var captureStreamsSection: some View {
+        let snapshot = viewModel.unifiedSurveySnapshot
+
+        return Section {
+            streamRow(
+                title: "Spatial Stream",
+                detail: snapshot.spatial == nil
+                    ? "No rooms yet"
+                    : "\(snapshot.spatial?.roomCount ?? 0) room(s), \(snapshot.spatial?.manualRoomCount ?? 0) manual"
+            )
+
+            streamRow(
+                title: "Observational Stream",
+                detail: "\(snapshot.observations.count) event(s)"
+            )
+
+            streamRow(
+                title: "Asset Stream",
+                detail: "\(snapshot.assets.count) tagged asset(s)"
+            )
+
+            streamRow(
+                title: "Services Stream",
+                detail: snapshot.services.notes.isEmpty ? "No service inputs yet" : "\(snapshot.services.notes.count) note(s)"
+            )
+        } header: {
+            Text("Capture Streams")
+        } footer: {
+            Text("All capture inputs are collected in one survey session and remain separated by data layer.")
+                .font(.caption2)
+        }
+    }
+
+    private func streamRow(title: String, detail: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(detail)
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
     }
 
@@ -492,7 +539,7 @@ struct SessionCaptureView: View {
 
     private var quickActionsSection: some View {
         Section {
-            // Primary: Resume Walkthrough — the main capture mode
+            // Primary: Resume Unified Survey — the main capture mode
             Button {
                 showingLiveView = true
             } label: {
@@ -504,7 +551,7 @@ struct SessionCaptureView: View {
                         .background(Color.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Resume Walkthrough")
+                        Text("Resume Unified Survey")
                             .font(.headline)
                             .foregroundStyle(.primary)
                         Text("Scan rooms, add objects, capture evidence")
@@ -543,7 +590,7 @@ struct SessionCaptureView: View {
         } header: {
             Text("Capture")
         } footer: {
-            Text("Resume Walkthrough to place objects in the live camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
+            Text("Resume Unified Survey to place objects in the live camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
                 .font(.caption2)
         }
     }
@@ -611,7 +658,7 @@ struct SessionCaptureView: View {
                 Button {
                     showingLiveView = true
                 } label: {
-                    Label("Walkthrough", systemImage: "camera.viewfinder")
+                    Label("Unified Survey", systemImage: "camera.viewfinder")
                 }
                 Button {
                     showingAddObject = true
