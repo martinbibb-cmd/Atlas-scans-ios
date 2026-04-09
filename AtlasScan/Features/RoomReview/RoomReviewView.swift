@@ -445,6 +445,7 @@ struct ClearanceSummaryView: View {
         case .openingWithinAccessZone:   return "door.left.hand.open"
         case .ceilingHeightLimiting:     return "arrow.up.to.line"
         case .enclosedInstallation:      return "cabinet.fill"
+        case .objectIntrusion:           return "exclamationmark.triangle"
         }
     }
 }
