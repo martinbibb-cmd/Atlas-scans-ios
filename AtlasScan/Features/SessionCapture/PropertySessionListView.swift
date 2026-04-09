@@ -91,43 +91,45 @@ struct PropertySessionListView: View {
 
     private var sessionList: some View {
         List {
-            ForEach(sessionStore.sessions) { session in
-                NavigationLink {
-                    SessionCaptureView(
-                        session: session,
-                        store: sessionStore,
-                        atlasSync: atlasSync
-                    )
-                } label: {
-                    PropertySessionRowView(session: session)
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        sessionToReview = session
+            Section("Recent Sessions") {
+                ForEach(sessionStore.sessions) { session in
+                    NavigationLink {
+                        SessionCaptureView(
+                            session: session,
+                            store: sessionStore,
+                            atlasSync: atlasSync
+                        )
                     } label: {
-                        Label("Review", systemImage: "doc.text.magnifyingglass")
+                        PropertySessionRowView(session: session)
                     }
-                    .tint(.blue)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        sessionToDelete = session
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            sessionToReview = session
+                        } label: {
+                            Label("Review", systemImage: "doc.text.magnifyingglass")
+                        }
+                        .tint(.blue)
                     }
-                }
-                .contextMenu {
-                    Button {
-                        sessionToReview = session
-                    } label: {
-                        Label("Review Session", systemImage: "doc.text.magnifyingglass")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            sessionToDelete = session
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
-                    Button(role: .destructive) {
-                        sessionToDelete = session
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    .contextMenu {
+                        Button {
+                            sessionToReview = session
+                        } label: {
+                            Label("Review Session", systemImage: "doc.text.magnifyingglass")
+                        }
+                        Button(role: .destructive) {
+                            sessionToDelete = session
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -154,10 +156,24 @@ struct PropertySessionRowView: View {
             HStack(spacing: 12) {
                 Label(session.jobReference, systemImage: "number")
                     .font(.caption).foregroundStyle(.secondary)
+                    .monospacedDigit()
                 Label("\(session.rooms.count) room(s)", systemImage: "square.split.2x1")
                     .font(.caption).foregroundStyle(.secondary)
                 Label("\(session.totalTaggedObjects) object(s)", systemImage: "tag")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 8) {
+                metadataBadge(
+                    text: session.reviewState.displayName,
+                    symbol: session.reviewState.symbolName,
+                    tint: reviewStateColor
+                )
+                metadataBadge(
+                    text: session.syncState.displayName,
+                    symbol: session.syncState.symbolName,
+                    tint: syncStateColor
+                )
             }
 
             Text(session.updatedAt.formatted(date: .abbreviated, time: .shortened))
@@ -176,6 +192,19 @@ struct PropertySessionRowView: View {
             .clipShape(Capsule())
     }
 
+    private func metadataBadge(text: String, symbol: String, tint: Color) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.caption2)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .foregroundStyle(tint)
+            .overlay {
+                Capsule()
+                    .stroke(tint.opacity(0.35), lineWidth: 1)
+            }
+    }
+
     private var stateColor: Color {
         switch session.scanState {
         case .notStarted:  return .gray
@@ -183,6 +212,27 @@ struct PropertySessionRowView: View {
         case .paused:      return .yellow
         case .completed:   return .green
         case .incomplete:  return .red
+        }
+    }
+
+    private var reviewStateColor: Color {
+        switch session.reviewState {
+        case .pending: return .gray
+        case .inReview: return .blue
+        case .reviewed: return .green
+        case .needsAttention: return .orange
+        case .blocked: return .red
+        }
+    }
+
+    private var syncStateColor: Color {
+        switch session.syncState {
+        case .localOnly: return .gray
+        case .queued: return .blue
+        case .uploading: return .orange
+        case .uploaded: return .green
+        case .failed: return .red
+        case .archived: return .purple
         }
     }
 }
