@@ -173,11 +173,13 @@ struct VoiceNoteRecorderSheet: View {
     }
 
     private var canSave: Bool {
-        recorder.state == .recorded && recorder.recordedFileURL != nil
+        (recorder.state == .recorded || recorder.state == .playing) && recorder.recordedFileURL != nil
     }
 
     private func saveNote() {
         guard let url = recorder.recordedFileURL else { return }
+        // Stop playback if active before committing the note.
+        if recorder.state == .playing { recorder.stopPlayback() }
         let note = VoiceNote(
             localFilename: url.lastPathComponent,
             duration: recorder.recordingDuration,
