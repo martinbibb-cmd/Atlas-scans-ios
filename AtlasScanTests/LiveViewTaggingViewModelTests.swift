@@ -136,8 +136,8 @@ final class LiveViewTaggingViewModelTests: XCTestCase {
 
     func test_placeObject_setsPlacementConfirmationText() {
         viewModel.placeObject(category: .radiator, at: NormalizedPoint2D(x: 0.3, y: 0.4))
-        XCTAssertEqual(viewModel.placementConfirmationText, "Radiator tagged",
-            "placeObject should set confirmation toast text to '<Category> tagged'")
+        XCTAssertEqual(viewModel.placementConfirmationText, "Radiator added",
+            "placeObject should set confirmation toast text to '<Category> added'")
     }
 
     func test_placeObject_setsLastPlacedID() {
@@ -150,7 +150,7 @@ final class LiveViewTaggingViewModelTests: XCTestCase {
 
     func test_placeObject_confirmationTextMatchesCategory() {
         viewModel.placeObject(category: .cylinder, at: NormalizedPoint2D(x: 0.4, y: 0.4))
-        XCTAssertEqual(viewModel.placementConfirmationText, "Cylinder tagged")
+        XCTAssertEqual(viewModel.placementConfirmationText, "Cylinder added")
     }
 
     func test_placeObject_multiplePlacements_lastPlacedIDUpdates() {

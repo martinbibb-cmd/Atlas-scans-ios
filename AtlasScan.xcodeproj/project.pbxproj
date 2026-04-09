@@ -81,6 +81,7 @@ AA010059 /* SessionCaptureViewModelTests.swift in Sources */ = {isa = PBXBuildFi
 		AA010064 /* VoiceNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020064 /* VoiceNoteTests.swift */; };
 		AA010065 /* VoiceNotePlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020065 /* VoiceNotePlaybackManager.swift */; };
 		AA010066 /* VoiceNoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020066 /* VoiceNoteRowView.swift */; };
+		AA010067 /* WalkthroughRoomPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020067 /* WalkthroughRoomPickerSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -169,6 +170,7 @@ AA020059 /* SessionCaptureViewModelTests.swift */ = {isa = PBXFileReference; las
 		AA020064 /* VoiceNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTests.swift; sourceTree = "<group>"; };
 		AA020065 /* VoiceNotePlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotePlaybackManager.swift; sourceTree = "<group>"; };
 		AA020066 /* VoiceNoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRowView.swift; sourceTree = "<group>"; };
+		AA020067 /* WalkthroughRoomPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughRoomPickerSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -436,6 +438,7 @@ sourceTree = "<group>";
 				AA02005C /* LiveViewTaggingView.swift */,
 				AA02005D /* CameraFeedView.swift */,
 				AA02005F /* ARPlacementSession.swift */,
+				AA020067 /* WalkthroughRoomPickerSheet.swift */,
 			);
 			path = LiveTagging;
 			sourceTree = "<group>";
@@ -597,6 +600,7 @@ sourceTree = "<group>";
 				AA010063 /* VoiceNoteRecorderSheet.swift in Sources */,
 				AA010065 /* VoiceNotePlaybackManager.swift in Sources */,
 				AA010066 /* VoiceNoteRowView.swift in Sources */,
+				AA010067 /* WalkthroughRoomPickerSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

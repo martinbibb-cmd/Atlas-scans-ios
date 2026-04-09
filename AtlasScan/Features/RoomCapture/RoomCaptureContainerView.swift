@@ -164,7 +164,7 @@ struct RoomCaptureContainerView: View {
                         Button {
                             showingAddObject = true
                         } label: {
-                            Label("Tag Object", systemImage: "tag.fill")
+                            Label("Add Object", systemImage: "plus.circle.fill")
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -176,7 +176,7 @@ struct RoomCaptureContainerView: View {
                         Button {
                             viewModel.stopCapture()
                         } label: {
-                            Label("Finish Scanning", systemImage: "stop.circle.fill")
+                            Label("Finish Room", systemImage: "checkmark.circle.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -189,7 +189,7 @@ struct RoomCaptureContainerView: View {
 
                     if !viewModel.pendingTaggedObjects.isEmpty {
                         let count = viewModel.pendingTaggedObjects.count
-                        Text("\(count) object\(count == 1 ? "" : "s") tagged")
+                        Text("\(count) object\(count == 1 ? "" : "s") added")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.7))
                     }

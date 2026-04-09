@@ -66,6 +66,12 @@ final class LiveViewTaggingViewModel: ObservableObject {
     /// Taking a photo attaches it immediately to the selected object and returns to live view.
     @Published var showingDirectCapture: Bool = false
 
+    /// Set to true to present the room assignment picker from the walkthrough action bar.
+    @Published var showingRoomAssign: Bool = false
+
+    /// Set to true to present the add-object voice note recorder from the walkthrough action bar.
+    @Published var showingNoteRecorder: Bool = false
+
     // MARK: - Constants
 
     /// Duration for which the placement confirmation toast remains visible.
@@ -73,7 +79,7 @@ final class LiveViewTaggingViewModel: ObservableObject {
 
     // MARK: - Placement feedback
 
-    /// Short confirmation message shown after a successful tag placement (e.g. "Radiator tagged").
+    /// Short confirmation message shown after a successful object placement (e.g. "Radiator added").
     /// Automatically cleared after 2 seconds.
     @Published private(set) var placementConfirmationText: String? = nil
 
@@ -155,7 +161,7 @@ final class LiveViewTaggingViewModel: ObservableObject {
 
         // Placement feedback: show confirmation toast and mark the new pin for entrance animation.
         let displayName = category.displayName
-        placementConfirmationText = "\(displayName) tagged"
+        placementConfirmationText = "\(displayName) added"
         lastPlacedID = obj.id
         confirmationClearTask?.cancel()
         confirmationClearTask = Task { @MainActor [weak self] in
