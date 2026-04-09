@@ -14,7 +14,7 @@ import simd
 //      → LiveCategoryPickerSheet appears (mid-height).
 //   3. Select the object type (radiator, boiler, cylinder, flue, other…).
 //      → A pin appears at the tap position.  Phase advances to .objectSelected.
-//      → A light haptic confirms placement; a brief "Radiator tagged" toast appears.
+//      → A light haptic confirms placement; a brief "Radiator added" toast appears.
 //   4. The bottom panel shows the selected object's name + action buttons:
 //        • Camera — opens camera directly and attaches the captured photo to the object.
 //        • Edit    — relabel / recategorise / change confidence.
@@ -133,6 +133,34 @@ struct LiveViewTaggingView: View {
                 }
             }
         }
+        // Room assignment picker — lets engineer assign the current context room
+        // from the walkthrough action bar without leaving the live view.
+        .sheet(isPresented: $viewModel.showingRoomAssign) {
+            WalkthroughRoomPickerSheet(
+                rooms: viewModel.sessionViewModel.session.rooms,
+                selectedRoomID: viewModel.sessionViewModel.selectedRoomID
+            ) { room in
+                if let room {
+                    viewModel.sessionViewModel.selectRoom(room.id)
+                } else {
+                    viewModel.sessionViewModel.selectRoom(nil)
+                }
+                viewModel.showingRoomAssign = false
+            }
+        }
+        // Note marker recorder — records a quick voice note attached to the
+        // current room / object context without leaving the live view.
+        .sheet(isPresented: $viewModel.showingNoteRecorder) {
+            let context: String = {
+                if let obj = viewModel.selectedObject { return obj.displayLabel }
+                if let room = viewModel.sessionViewModel.selectedRoom { return room.name }
+                return "Session"
+            }()
+            VoiceNoteRecorderSheet(attachContext: context) { note in
+                viewModel.sessionViewModel.addVoiceNote(note)
+                viewModel.showingNoteRecorder = false
+            }
+        }
         // Drive sheet presentation from phase changes
         .onChange(of: viewModel.phase) { _, newPhase in
             if case .pickingCategory(let pos) = newPhase {
@@ -169,11 +197,10 @@ struct LiveViewTaggingView: View {
 
     // MARK: - Inline photo capture
 
-    /// Saves the captured image and attaches it to the currently selected object,
-    /// filing it under the most appropriate evidence kind for the category.
+    /// Saves the captured image and attaches it to the currently selected object when one is
+    /// focused, or to the current room / session when in idle walkthrough mode.
     /// Shows an error alert if the photo cannot be saved to disk.
     private func attachInlinePhoto(_ image: UIImage) {
-        guard let obj = viewModel.selectedObject else { return }
         let photoID = UUID()
         let saved: (filename: String, thumbnailPath: String?)
         do {
@@ -182,15 +209,31 @@ struct LiveViewTaggingView: View {
             showingPhotoSaveError = true
             return
         }
-        let photo = TaggedPhoto(
-            id: photoID,
-            roomID: obj.roomID,
-            taggedObjectID: obj.id,
-            filename: saved.filename,
-            thumbnailPath: saved.thumbnailPath,
-            kind: obj.category.defaultEvidenceKind
-        )
-        viewModel.sessionViewModel.addPhoto(photo)
+
+        if let obj = viewModel.selectedObject {
+            // Object context: attach directly to the selected object.
+            let photo = TaggedPhoto(
+                id: photoID,
+                roomID: obj.roomID,
+                taggedObjectID: obj.id,
+                filename: saved.filename,
+                thumbnailPath: saved.thumbnailPath,
+                kind: obj.category.defaultEvidenceKind
+            )
+            viewModel.sessionViewModel.addPhoto(photo)
+        } else {
+            // Walkthrough context: attach to the current room (or session if no room selected).
+            let roomID = viewModel.sessionViewModel.selectedRoomID
+            let photo = TaggedPhoto(
+                id: photoID,
+                roomID: roomID ?? viewModel.sessionViewModel.session.id,
+                taggedObjectID: nil,
+                filename: saved.filename,
+                thumbnailPath: saved.thumbnailPath,
+                kind: .overview
+            )
+            viewModel.sessionViewModel.addPhoto(photo)
+        }
         viewModel.refreshPlacedObjects()
     }
 
@@ -322,27 +365,31 @@ struct LiveViewTaggingView: View {
 
             Spacer()
 
-            if let room = viewModel.sessionViewModel.selectedRoom {
-                Text(room.name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-            } else {
-                Text("Not assigned to a room yet")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
+            // Current room chip — tappable to reassign
+            Button {
+                viewModel.showingRoomAssign = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.caption2)
+                    if let room = viewModel.sessionViewModel.selectedRoom {
+                        Text(room.name)
+                            .font(.caption.weight(.semibold))
+                    } else {
+                        Text("Assign Room")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
             }
 
             Spacer()
 
-            Text("\(viewModel.liveTagCount) tagged")
+            Text("\(viewModel.liveTagCount) object\(viewModel.liveTagCount == 1 ? "" : "s")")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
@@ -371,23 +418,67 @@ struct LiveViewTaggingView: View {
     }
 
     private var placementPrompt: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "hand.tap.fill")
-                .font(.system(size: 28))
-                .foregroundStyle(.white.opacity(0.9))
-            Text("Tap to place a tag")
-                .font(.subheadline.bold())
-                .foregroundStyle(.white)
-            Text("Point at a radiator, boiler, or other object and tap to tag it.")
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white.opacity(0.7))
+        VStack(spacing: 12) {
+            // Instruction
+            VStack(spacing: 6) {
+                Image(systemName: "hand.tap.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white.opacity(0.9))
+                Text("Tap to add an object")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
+                Text("Point at a radiator, boiler, or other component and tap to add it.")
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            Divider()
+                .background(.white.opacity(0.3))
+
+            // Action bar
+            HStack(spacing: 0) {
+                walkthroughBarButton(symbol: "location.fill", label: "Assign\nRoom") {
+                    viewModel.showingRoomAssign = true
+                }
+                walkthroughBarButton(symbol: "plus.circle.fill", label: "Add\nObject") {
+                    viewModel.handleTap(at: NormalizedPoint2D(x: 0.5, y: 0.5))
+                }
+                walkthroughBarButton(symbol: "camera.fill", label: "Evidence\nPhoto") {
+                    viewModel.showingDirectCapture = true
+                }
+                walkthroughBarButton(symbol: "mic.fill", label: "Note\nMarker") {
+                    viewModel.showingNoteRecorder = true
+                }
+                walkthroughBarButton(symbol: "checkmark.circle.fill", label: "Finish", tint: .green) {
+                    dismiss()
+                }
+            }
         }
         .padding(16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal, 16)
         .padding(.bottom, 32)
+    }
+
+    private func walkthroughBarButton(
+        symbol: String,
+        label: String,
+        tint: Color = .white,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(.subheadline)
+                Text(label)
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(tint)
+        }
     }
 
     private func selectedObjectPanel(for obj: TaggedObject) -> some View {

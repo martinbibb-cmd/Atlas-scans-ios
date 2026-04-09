@@ -2,14 +2,18 @@ import SwiftUI
 
 // MARK: - SessionCaptureView
 //
-// The canonical single-pass field workflow surface for one PropertyScanSession.
+// The session home surface for one PropertyScanSession.
 //
-// One screen hosts the entire capture loop:
+// Exposes three top-level actions:
+//   • Resume Walkthrough — primary live capture mode (room scan, add objects, evidence photos)
+//   • Review Session     — read-only review surface (rooms, objects, photos, transcript)
+//   • Sync to Atlas      — package and upload the session bundle
+//
+// Secondary surfaces available from the same screen:
 //   • Session HUD (status, autosave indicator, stats)
 //   • Selected-object panel with inline clearance summary
 //   • Room list with scan / manual add
 //   • Session-level floating objects
-//   • Quick-capture actions (Tag Object, Take Photo)
 //   • Atlas sync queue status
 //
 // Engineers never need to leave this screen during a survey pass.
@@ -488,49 +492,77 @@ struct SessionCaptureView: View {
 
     private var quickActionsSection: some View {
         Section {
+            // Primary: Resume Walkthrough — the main capture mode
             Button {
                 showingLiveView = true
             } label: {
-                Label("Live View", systemImage: "camera.viewfinder")
+                HStack {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Resume Walkthrough")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("Scan rooms, add objects, capture evidence")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .buttonStyle(.plain)
+            .padding(.vertical, 4)
+
+            // Secondary: Add Object (convenience shortcut outside walkthrough)
             Button {
                 showingAddObject = true
             } label: {
-                Label("Tag Object", systemImage: "tag.fill")
+                Label("Add Object", systemImage: "plus.circle.fill")
             }
+
+            // Evidence photo
             Button {
                 showingAddPhoto = true
             } label: {
-                Label(photoButtonLabel, systemImage: "camera.fill")
+                Label(evidencePhotoButtonLabel, systemImage: "camera.fill")
             }
+
+            // Note marker
             Button {
                 showingAddVoiceNote = true
             } label: {
-                Label(voiceNoteButtonLabel, systemImage: "mic.fill")
+                Label(noteMarkerButtonLabel, systemImage: "mic.badge.plus")
             }
         } header: {
             Text("Capture")
         } footer: {
-            Text("Use Live View to place tags directly on the camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
+            Text("Resume Walkthrough to place objects in the live camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
                 .font(.caption2)
         }
     }
 
-    private var photoButtonLabel: String {
+    private var evidencePhotoButtonLabel: String {
         switch viewModel.pendingPhotoTarget {
-        case .session: return "Take Photo (Session)"
-        case .room:    return "Take Photo (Room)"
-        case .object:  return "Take Photo (Object)"
+        case .session: return "Evidence Photo"
+        case .room:    return "Evidence Photo (Room)"
+        case .object:  return "Evidence Photo (Object)"
         }
     }
 
-    private var voiceNoteButtonLabel: String {
+    private var noteMarkerButtonLabel: String {
         if viewModel.selectedObject != nil {
-            return "Record Voice Note (Object)"
+            return "Note Marker (Object)"
         } else if viewModel.selectedRoom != nil {
-            return "Record Voice Note (Room)"
+            return "Note Marker (Room)"
         } else {
-            return "Record Voice Note (Session)"
+            return "Note Marker"
         }
     }
 
@@ -579,22 +611,22 @@ struct SessionCaptureView: View {
                 Button {
                     showingLiveView = true
                 } label: {
-                    Label("Live View", systemImage: "camera.viewfinder")
+                    Label("Walkthrough", systemImage: "camera.viewfinder")
                 }
                 Button {
                     showingAddObject = true
                 } label: {
-                    Label("Tag Object", systemImage: "tag.fill")
+                    Label("Add Object", systemImage: "plus.circle.fill")
                 }
                 Button {
                     showingAddPhoto = true
                 } label: {
-                    Label("Take Photo", systemImage: "camera.fill")
+                    Label("Evidence Photo", systemImage: "camera.fill")
                 }
                 Button {
                     showingAddVoiceNote = true
                 } label: {
-                    Label("Record Voice Note", systemImage: "mic.fill")
+                    Label("Note Marker", systemImage: "mic.badge.plus")
                 }
                 Button {
                     showingAddRoom = true
