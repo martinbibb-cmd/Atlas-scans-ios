@@ -280,6 +280,46 @@ final class PropertyScanSessionTests: XCTestCase {
         XCTAssertFalse(safe.contains(" "), "Safe file name should not contain spaces")
     }
 
+
+    // MARK: - Unified survey session projection
+
+    func test_surveySessionV2_includesSpatialObservationAndAssetStreams() {
+        var session = PropertyScanSession(propertyAddress: "1 Test Street")
+
+        var room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        room.geometryCaptured = true
+
+        let objectAnchor = WorldAnchor3D(
+            x: 1.2, y: 0.0, z: 2.4,
+            screenX: 0.3, screenY: 0.7,
+            anchorConfidence: .raycastEstimated
+        )
+        var taggedObject = TaggedObject(roomID: room.id, category: .radiator)
+        taggedObject.worldAnchor = objectAnchor
+        room.addTaggedObject(taggedObject)
+
+        let note = VoiceNote(linkedRoomID: room.id, linkedObjectID: taggedObject.id, localFilename: "note.m4a", caption: "Cold corner")
+        room.addVoiceNote(note)
+
+        session.addRoom(room)
+
+        let snapshot = session.surveySessionV2
+
+        XCTAssertEqual(snapshot.spatial?.roomCount, 1)
+        XCTAssertEqual(snapshot.observations.count, 1)
+        XCTAssertEqual(snapshot.assets.count, 1)
+        XCTAssertEqual(snapshot.assets.first?.position?.anchorConfidence, .raycastEstimated)
+    }
+
+    func test_surveySessionV2_isProgressiveWhenNoRoomsExist() {
+        let session = PropertyScanSession(propertyAddress: "1 Test Street")
+        let snapshot = session.surveySessionV2
+
+        XCTAssertNil(snapshot.spatial, "No spatial stream should be emitted before first room is captured")
+        XCTAssertTrue(snapshot.observations.isEmpty)
+        XCTAssertTrue(snapshot.assets.isEmpty)
+    }
+
     // MARK: - ScanSessionState display properties
 
     func test_scanSessionState_allCases_haveDisplayName() {

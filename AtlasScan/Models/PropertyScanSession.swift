@@ -452,3 +452,141 @@ enum SessionSyncState: String, Codable, CaseIterable {
         }
     }
 }
+
+
+// MARK: - AtlasSurveySessionV2
+
+/// Unified survey session composed from multiple concurrent capture streams.
+///
+/// Design goal:
+/// Keep observational, spatial, asset, and services data logically separate,
+/// but in one shared session envelope and timeline.
+struct AtlasSurveySessionV2: Codable, Identifiable, Equatable {
+    var id: UUID
+    var spatial: AtlasSpatialStreamV1?
+    var observations: [ObservationCaptureEvent]
+    var assets: [AssetCaptureEvent]
+    var services: ServiceInputsStreamV1
+    var startedAt: Date
+    var updatedAt: Date
+}
+
+// MARK: - Stream payloads
+
+struct AtlasSpatialStreamV1: Codable, Equatable {
+    /// Number of rooms currently in the progressively refined spatial model.
+    var roomCount: Int
+
+    /// Whether at least one room has captured scan geometry.
+    var hasCapturedGeometry: Bool
+
+    /// Number of rooms still operating in manual/no-scan mode.
+    var manualRoomCount: Int
+}
+
+struct ObservationCaptureEvent: Codable, Equatable, Identifiable {
+    enum Kind: String, Codable {
+        case voiceNote
+        case photo
+    }
+
+    var id: UUID
+    var kind: Kind
+    var roomID: UUID?
+    var taggedObjectID: UUID?
+    var position: WorldAnchor3D?
+    var timestamp: Date
+}
+
+struct AssetCaptureEvent: Codable, Equatable, Identifiable {
+    var id: UUID
+    var taggedObjectID: UUID
+    var category: ServiceObjectCategory
+    var roomID: UUID?
+    var position: WorldAnchor3D?
+    var timestamp: Date
+}
+
+struct ServiceInputsStreamV1: Codable, Equatable {
+    var pressureBar: Double?
+    var flowTemperatureC: Double?
+    var returnTemperatureC: Double?
+    var primaryPipeDescription: String?
+    var notes: [String]
+
+    static let empty = ServiceInputsStreamV1(
+        pressureBar: nil,
+        flowTemperatureC: nil,
+        returnTemperatureC: nil,
+        primaryPipeDescription: nil,
+        notes: []
+    )
+}
+
+// MARK: - PropertyScanSession projection
+
+extension PropertyScanSession {
+    /// Projects legacy `PropertyScanSession` data into a unified multi-stream model.
+    ///
+    /// This keeps data-layer separation while presenting capture as one composed session.
+    var surveySessionV2: AtlasSurveySessionV2 {
+        let roomObjects = rooms.flatMap(\.taggedObjects)
+        let allObjects = taggedObjects + roomObjects
+
+        let roomVoiceNotes = rooms.flatMap(\.voiceNotes)
+        let allVoiceNotes = voiceNotes + roomVoiceNotes
+
+        let roomPhotos = rooms.flatMap(\.photos)
+        let allPhotos = photos + roomPhotos
+
+        let observationEventsFromVoice: [ObservationCaptureEvent] = allVoiceNotes.map { note in
+            ObservationCaptureEvent(
+                id: note.id,
+                kind: .voiceNote,
+                roomID: note.linkedRoomID,
+                taggedObjectID: note.linkedObjectID,
+                position: allObjects.first(where: { $0.id == note.linkedObjectID })?.worldAnchor,
+                timestamp: note.createdAt
+            )
+        }
+
+        let observationEventsFromPhotos: [ObservationCaptureEvent] = allPhotos.map { photo in
+            ObservationCaptureEvent(
+                id: photo.id,
+                kind: .photo,
+                roomID: photo.roomID,
+                taggedObjectID: photo.taggedObjectID,
+                position: allObjects.first(where: { $0.id == photo.taggedObjectID })?.worldAnchor,
+                timestamp: photo.createdAt
+            )
+        }
+
+        let assetEvents: [AssetCaptureEvent] = allObjects.map { obj in
+            AssetCaptureEvent(
+                id: obj.id,
+                taggedObjectID: obj.id,
+                category: obj.category,
+                roomID: obj.roomID,
+                position: obj.worldAnchor,
+                timestamp: obj.createdAt
+            )
+        }
+
+        let spatialStream = AtlasSpatialStreamV1(
+            roomCount: rooms.count,
+            hasCapturedGeometry: rooms.contains(where: \.geometryCaptured),
+            manualRoomCount: rooms.filter { !$0.geometryCaptured }.count
+        )
+
+        return AtlasSurveySessionV2(
+            id: id,
+            spatial: rooms.isEmpty ? nil : spatialStream,
+            observations: (observationEventsFromVoice + observationEventsFromPhotos)
+                .sorted(by: { $0.timestamp < $1.timestamp }),
+            assets: assetEvents.sorted(by: { $0.timestamp < $1.timestamp }),
+            services: .empty,
+            startedAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+}
