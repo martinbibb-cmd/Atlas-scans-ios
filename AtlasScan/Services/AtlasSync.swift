@@ -178,7 +178,8 @@ final class AtlasSync: ObservableObject {
 
         for item in pending {
             let task = Task { [weak self] in
-                await self?.upload(item)
+                guard let self = self else { return }
+                await self.upload(item)
             }
             activeTasks[item.id] = task
         }
