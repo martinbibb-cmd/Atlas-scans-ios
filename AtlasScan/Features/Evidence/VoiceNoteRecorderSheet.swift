@@ -27,6 +27,7 @@ struct VoiceNoteRecorderSheet: View {
 
     @State private var caption: String = ""
     @State private var kind: VoiceNoteKind = .observation
+    @State private var extractionHint: SessionFactCategory? = nil
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,7 @@ struct VoiceNoteRecorderSheet: View {
                 if recorder.state == .recorded || recorder.state == .playing {
                     playbackSection
                     detailsSection
+                    categorySection
                 }
             }
             .navigationTitle("Voice Note")
@@ -157,6 +159,18 @@ struct VoiceNoteRecorderSheet: View {
         }
     }
 
+    private var categorySection: some View {
+        Section {
+            VoiceNoteCategoryPicker(selection: $extractionHint)
+                .listRowInsets(EdgeInsets())
+        } header: {
+            Text("Category")
+        } footer: {
+            Text("Tag this note so Atlas can extract structured knowledge. Choose the best fit — or leave as General.")
+                .font(.caption2)
+        }
+    }
+
     // MARK: - Actions
 
     private func handleRecordButton() {
@@ -184,7 +198,8 @@ struct VoiceNoteRecorderSheet: View {
             localFilename: url.lastPathComponent,
             duration: recorder.recordingDuration,
             caption: caption,
-            kind: kind
+            kind: kind,
+            extractionHint: extractionHint
         )
         onAdd(note)
         dismiss()

@@ -39,6 +39,7 @@ struct SessionCompletionView: View {
             List {
                 handoffStateBannerSection
                 readinessSummarySection
+                knowledgeReadinessSection
                 primaryCTASection
                 secondaryUtilitiesSection
             }
@@ -107,7 +108,7 @@ struct SessionCompletionView: View {
     }
 
     private var readinessSummarySection: some View {
-        Section("Readiness") {
+        Section("Spatial Readiness") {
             LabeledContent("Rooms", value: "\(session.rooms.count)")
             LabeledContent(
                 "Rooms reviewed",
@@ -125,6 +126,45 @@ struct SessionCompletionView: View {
                         .foregroundStyle(.orange)
                 }
             }
+        }
+    }
+
+    private var knowledgeReadinessSection: some View {
+        let summary = session.knowledgeSummary
+        return Section("Captured Knowledge") {
+            KnowledgeReadinessRow(
+                label: "Household",
+                symbol: "person.3.fill",
+                isKnown: summary.householdKnown,
+                hasFacts: session.extractedFacts.contains { $0.category.group == .household }
+            )
+            KnowledgeReadinessRow(
+                label: "Bathrooms / Usage",
+                symbol: "drop.fill",
+                isKnown: summary.bathroomsKnown,
+                hasFacts: session.extractedFacts.contains { $0.category.group == .usage }
+            )
+            KnowledgeReadinessRow(
+                label: "Current System",
+                symbol: "boiler.fill",
+                isKnown: summary.systemKnown,
+                hasFacts: session.extractedFacts.contains { $0.category.group == .system }
+            )
+            KnowledgeReadinessRow(
+                label: "Priorities",
+                symbol: "star.fill",
+                isKnown: summary.prioritiesKnown,
+                hasFacts: session.extractedFacts.contains { $0.category.group == .priorities }
+            )
+            KnowledgeReadinessRow(
+                label: "Constraints",
+                symbol: "exclamationmark.triangle.fill",
+                isKnown: summary.constraintsKnown,
+                hasFacts: session.extractedFacts.contains { $0.category.group == .constraints }
+            )
+        } footer: {
+            Text("Captured knowledge is not required for handoff but improves recommendation quality in Atlas Mind.")
+                .font(.caption2)
         }
     }
 
@@ -185,6 +225,53 @@ struct SessionCompletionView: View {
                 showingReview = true
             } label: {
                 Label("Review Session", systemImage: "doc.text.magnifyingglass")
+            }
+        }
+    }
+}
+
+// MARK: - KnowledgeReadinessRow
+
+/// A single row in the knowledge readiness panel inside SessionCompletionView.
+private struct KnowledgeReadinessRow: View {
+    let label: String
+    let symbol: String
+    let isKnown: Bool
+    let hasFacts: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.subheadline)
+                .foregroundStyle(iconColor)
+                .frame(width: 24)
+            Text(label)
+                .font(.subheadline)
+            Spacer()
+            statusLabel
+        }
+    }
+
+    private var iconColor: Color {
+        if isKnown { return .green }
+        if hasFacts { return .orange }
+        return .secondary
+    }
+
+    private var statusLabel: some View {
+        Group {
+            if isKnown {
+                Label("Confirmed", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else if hasFacts {
+                Label("Review", systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                Label("Missing", systemImage: "circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }

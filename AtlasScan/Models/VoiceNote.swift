@@ -106,6 +106,11 @@ struct VoiceNote: Identifiable, Codable {
     /// Optional associated tagged object.
     var linkedObjectID: UUID?
 
+    /// Optional extraction category hint set by the engineer at recording time.
+    /// When set, `SessionKnowledgeExtractor` produces a high-confidence fact
+    /// in this category rather than relying on keyword matching.
+    var extractionHint: SessionFactCategory?
+
     /// Filename stored in local app Documents/VoiceNotes/ directory.
     var localFilename: String
 
@@ -138,6 +143,7 @@ struct VoiceNote: Identifiable, Codable {
         id: UUID = UUID(),
         linkedRoomID: UUID? = nil,
         linkedObjectID: UUID? = nil,
+        extractionHint: SessionFactCategory? = nil,
         localFilename: String,
         duration: TimeInterval = 0,
         caption: String = "",
@@ -150,6 +156,7 @@ struct VoiceNote: Identifiable, Codable {
         self.id = id
         self.linkedRoomID = linkedRoomID
         self.linkedObjectID = linkedObjectID
+        self.extractionHint = extractionHint
         self.localFilename = localFilename
         self.duration = duration
         self.caption = caption
@@ -165,6 +172,7 @@ struct VoiceNote: Identifiable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case id, linkedRoomID, linkedObjectID
+        case extractionHint
         case localFilename, duration
         case caption, kind
         case transcriptStatus, transcript
@@ -177,6 +185,7 @@ struct VoiceNote: Identifiable, Codable {
         id               = try c.decode(UUID.self,          forKey: .id)
         linkedRoomID     = try c.decodeIfPresent(UUID.self, forKey: .linkedRoomID)
         linkedObjectID   = try c.decodeIfPresent(UUID.self, forKey: .linkedObjectID)
+        extractionHint   = try c.decodeIfPresent(SessionFactCategory.self, forKey: .extractionHint)
         localFilename    = try c.decode(String.self,        forKey: .localFilename)
         duration         = try c.decodeIfPresent(TimeInterval.self, forKey: .duration) ?? 0
         caption          = try c.decodeIfPresent(String.self, forKey: .caption) ?? ""

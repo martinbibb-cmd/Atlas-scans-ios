@@ -250,6 +250,8 @@ final class SessionCaptureViewModel: ObservableObject {
         } else {
             session.addVoiceNote(n)
         }
+        // Re-extract structured facts from the updated note set.
+        session.refreshExtractedFacts()
         scheduleAutosave()
     }
 
