@@ -207,7 +207,6 @@ struct AtlasHandoffView: View {
         do {
             try propertyJSON.write(to: url, atomically: true, encoding: .utf8)
             shareItem = HandoffShareItem(url: url)
-            onHandoffComplete?()
         } catch {
             buildError = error.localizedDescription
         }
