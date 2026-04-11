@@ -23,7 +23,7 @@ struct SessionCaptureView: View {
     @StateObject private var viewModel: SessionCaptureViewModel
 
     // Sheet presentation state
-    @State private var showingHandoff = false
+    @State private var showingCompletion = false
     @State private var showingAddObject = false
     @State private var showingAddPhoto = false
     @State private var showingAddVoiceNote = false
@@ -92,8 +92,12 @@ struct SessionCaptureView: View {
         .sheet(isPresented: $showingAddRoom) {
             addRoomSheet
         }
-        .sheet(isPresented: $showingHandoff) {
-            AtlasHandoffView(session: viewModel.session)
+        .sheet(isPresented: $showingCompletion) {
+            SessionCompletionView(
+                session: viewModel.session,
+                onHandoffSent: { viewModel.markHandoffSent() },
+                onHandoffExported: { viewModel.markHandoffExported() }
+            )
         }
         .fullScreenCover(isPresented: $showingLiveView) {
             liveViewTaggingCover
@@ -167,6 +171,15 @@ struct SessionCaptureView: View {
                     Label("\(viewModel.session.totalVoiceNotes) note(s)", systemImage: "mic.fill")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+            }
+            // Handoff state badge — visible once the session has been sent or exported
+            if viewModel.session.handoffState != .notSent {
+                Label(
+                    viewModel.session.handoffState.displayName,
+                    systemImage: viewModel.session.handoffState.symbolName
+                )
+                .font(.caption)
+                .foregroundStyle(.blue)
             }
         } header: {
             Text("Session")
@@ -621,10 +634,10 @@ struct SessionCaptureView: View {
 
     private var atlasSyncSection: some View {
         Section {
-            // Primary handoff CTA
+            // Primary handoff CTA — routes through SessionCompletionView
             Button {
                 viewModel.saveNow()
-                showingHandoff = true
+                showingCompletion = true
             } label: {
                 HStack {
                     Image(systemName: "paperplane.fill")
@@ -637,7 +650,7 @@ struct SessionCaptureView: View {
                         Text("Send to Atlas Mind")
                             .font(.headline)
                             .foregroundStyle(.primary)
-                        Text("Export canonical AtlasPropertyV1 for handoff")
+                        Text(sendToAtlasMindDetail)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -683,6 +696,14 @@ struct SessionCaptureView: View {
         }
     }
 
+    private var sendToAtlasMindDetail: String {
+        switch viewModel.session.handoffState {
+        case .notSent:   return "Review readiness and export AtlasPropertyV1"
+        case .sent:      return "Already sent — tap to send again"
+        case .exported:  return "Already exported — tap to send again"
+        }
+    }
+
     // MARK: - Toolbar
 
     @ToolbarContentBuilder
@@ -723,7 +744,7 @@ struct SessionCaptureView: View {
                 }
                 Button {
                     viewModel.saveNow()
-                    showingHandoff = true
+                    showingCompletion = true
                 } label: {
                     Label("Send to Atlas Mind", systemImage: "paperplane.fill")
                 }

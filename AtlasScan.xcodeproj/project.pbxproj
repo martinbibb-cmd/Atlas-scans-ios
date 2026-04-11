@@ -7,7 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7AADD3422F883D9000A17A52 /* SessionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AADD3412F883D9000A17A52 /* SessionReviewView.swift */; };
+		AA010072 /* SessionCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020072 /* SessionCompletionView.swift */; };
+		AA010073 /* SessionCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020073 /* SessionCompletionTests.swift */; };
+		AA010074 /* SessionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020074 /* SessionReviewView.swift */; };
+		AA010075 /* SessionArtifactInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020075 /* SessionArtifactInspectorView.swift */; };
 		AA010001 /* AtlasScanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020001 /* AtlasScanApp.swift */; };
 		AA010002 /* ScanSessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020002 /* ScanSessionListView.swift */; };
 		AA010003 /* ScanJobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020003 /* ScanJobDetailView.swift */; };
@@ -100,7 +103,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7AADD3412F883D9000A17A52 /* SessionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReviewView.swift; sourceTree = "<group>"; };
+		AA020072 /* SessionCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionView.swift; sourceTree = "<group>"; };
+		AA020073 /* SessionCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionTests.swift; sourceTree = "<group>"; };
+		AA020074 /* SessionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReviewView.swift; sourceTree = "<group>"; };
+		AA020075 /* SessionArtifactInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionArtifactInspectorView.swift; sourceTree = "<group>"; };
 		AA020001 /* AtlasScanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanApp.swift; sourceTree = "<group>"; };
 		AA020002 /* ScanSessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionListView.swift; sourceTree = "<group>"; };
 		AA020003 /* ScanJobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanJobDetailView.swift; sourceTree = "<group>"; };
@@ -245,6 +251,7 @@
 				AA050017 /* LiDARClearance */,
 				AA050018 /* SessionCapture */,
 				AA050019 /* LiveTagging */,
+				AA050023 /* SessionReview */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -357,6 +364,7 @@
 				AA020068 /* AtlasHandoffView.swift */,
 				AA020070 /* JSONInspectorView.swift */,
 				AA020071 /* ShareSheet.swift */,
+				AA020072 /* SessionCompletionView.swift */,
 			);
 			path = Export;
 			sourceTree = "<group>";
@@ -400,7 +408,6 @@
 				AA020057 /* PropertySessionListView.swift */,
 				AA020058 /* NewPropertySessionView.swift */,
 				AA02005A /* ClearanceOverlayView.swift */,
-				7AADD3412F883D9000A17A52 /* SessionReviewView.swift */,
 			);
 			path = SessionCapture;
 			sourceTree = "<group>";
@@ -415,6 +422,15 @@
 				AA020067 /* WalkthroughRoomPickerSheet.swift */,
 			);
 			path = LiveTagging;
+			sourceTree = "<group>";
+		};
+		AA050023 /* SessionReview */ = {
+			isa = PBXGroup;
+			children = (
+				AA020074 /* SessionReviewView.swift */,
+				AA020075 /* SessionArtifactInspectorView.swift */,
+			);
+			path = SessionReview;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -445,6 +461,7 @@
 				AA02005E /* LiveViewTaggingViewModelTests.swift */,
 				AA020064 /* VoiceNoteTests.swift */,
 				AA020069 /* AtlasPropertyV1Tests.swift */,
+				AA020073 /* SessionCompletionTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -592,7 +609,6 @@
 				AA010040 /* PhotoStore.swift in Sources */,
 				AA010041 /* ImagePickerView.swift in Sources */,
 				AA010042 /* AddPhotoSheet.swift in Sources */,
-				7AADD3422F883D9000A17A52 /* SessionReviewView.swift in Sources */,
 				AA010043 /* PhotoGalleryView.swift in Sources */,
 				AA010045 /* ExportPackageBuilder.swift in Sources */,
 				AA010047 /* LiDARClearanceMeasurement.swift in Sources */,
@@ -620,6 +636,9 @@
 				AA010068 /* AtlasHandoffView.swift in Sources */,
 				AA010070 /* JSONInspectorView.swift in Sources */,
 				AA010071 /* ShareSheet.swift in Sources */,
+				AA010072 /* SessionCompletionView.swift in Sources */,
+				AA010074 /* SessionReviewView.swift in Sources */,
+				AA010075 /* SessionArtifactInspectorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -642,6 +661,7 @@
 				AA01005E /* LiveViewTaggingViewModelTests.swift in Sources */,
 				AA010064 /* VoiceNoteTests.swift in Sources */,
 				AA010069 /* AtlasPropertyV1Tests.swift in Sources */,
+				AA010073 /* SessionCompletionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
