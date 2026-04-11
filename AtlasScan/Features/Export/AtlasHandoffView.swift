@@ -15,6 +15,8 @@ import AtlasContracts
 struct AtlasHandoffView: View {
 
     let session: PropertyScanSession
+    /// Called when the engineer successfully shares or saves the payload.
+    var onHandoffComplete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     @State private var property: AtlasPropertyV1?
@@ -205,6 +207,7 @@ struct AtlasHandoffView: View {
         do {
             try propertyJSON.write(to: url, atomically: true, encoding: .utf8)
             shareItem = HandoffShareItem(url: url)
+            onHandoffComplete?()
         } catch {
             buildError = error.localizedDescription
         }
@@ -220,6 +223,7 @@ struct AtlasHandoffView: View {
         let file = docs.appendingPathComponent("\(session.safeFileNameReference).atlasproperty.json")
         do {
             try propertyJSON.write(to: file, atomically: true, encoding: .utf8)
+            onHandoffComplete?()
             dismiss()
         } catch {
             buildError = error.localizedDescription

@@ -315,6 +315,20 @@ final class SessionCaptureViewModel: ObservableObject {
         atlasSync.processQueue()
     }
 
+    // MARK: - Handoff state
+
+    /// Marks the session as sent to Atlas Mind and saves.
+    func markHandoffSent() {
+        session.handoffState = .sent
+        saveNow()
+    }
+
+    /// Marks the session as exported (JSON saved to Files) and saves.
+    func markHandoffExported() {
+        session.handoffState = .exported
+        saveNow()
+    }
+
     // MARK: - Computed helpers
 
     var selectedRoom: ScannedRoom? {

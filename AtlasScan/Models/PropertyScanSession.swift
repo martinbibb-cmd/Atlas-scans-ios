@@ -58,6 +58,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Atlas sync state for the session as a whole.
     var syncState: SessionSyncState
 
+    /// Handoff state — tracks whether the canonical payload has been sent to Atlas Mind.
+    var handoffState: HandoffState
+
     // MARK: Children
 
     /// Rooms discovered or manually added during the session.
@@ -102,6 +105,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         scanState: ScanSessionState = .notStarted,
         reviewState: ReviewState = .pending,
         syncState: SessionSyncState = .localOnly,
+        handoffState: HandoffState = .notSent,
         rooms: [ScannedRoom] = [],
         roomAdjacencies: [RoomAdjacency] = [],
         roomPlacements: [RoomPlacementOverride] = [],
@@ -123,6 +127,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.scanState = scanState
         self.reviewState = reviewState
         self.syncState = syncState
+        self.handoffState = handoffState
         self.rooms = rooms
         self.roomAdjacencies = roomAdjacencies
         self.roomPlacements = roomPlacements
@@ -138,7 +143,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
 
     private enum CodingKeys: String, CodingKey {
         case id, jobReference, propertyAddress, engineerName, atlasJobID
-        case scanState, reviewState, syncState
+        case scanState, reviewState, syncState, handoffState
         case rooms, roomAdjacencies, roomPlacements
         case taggedObjects, photos, voiceNotes, issues
         case createdAt, updatedAt
@@ -154,6 +159,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         scanState        = try c.decodeIfPresent(ScanSessionState.self,  forKey: .scanState)   ?? .notStarted
         reviewState      = try c.decodeIfPresent(ReviewState.self,       forKey: .reviewState)  ?? .pending
         syncState        = try c.decodeIfPresent(SessionSyncState.self,  forKey: .syncState)    ?? .localOnly
+        handoffState     = try c.decodeIfPresent(HandoffState.self,      forKey: .handoffState) ?? .notSent
         rooms            = try c.decodeIfPresent([ScannedRoom].self,          forKey: .rooms)            ?? []
         roomAdjacencies  = try c.decodeIfPresent([RoomAdjacency].self,        forKey: .roomAdjacencies)  ?? []
         roomPlacements   = try c.decodeIfPresent([RoomPlacementOverride].self, forKey: .roomPlacements)  ?? []
@@ -454,8 +460,64 @@ enum SessionSyncState: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - HandoffState
 
-// MARK: - AtlasSurveySessionV2
+/// Tracks whether the canonical AtlasPropertyV1 payload has been sent to Atlas Mind.
+enum HandoffState: String, Codable, CaseIterable {
+    case notSent   = "not_sent"
+    case sent      = "sent"
+    case exported  = "exported"
+
+    var displayName: String {
+        switch self {
+        case .notSent:   return "Not Sent"
+        case .sent:      return "Sent to Atlas Mind"
+        case .exported:  return "Exported"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .notSent:   return "paperplane"
+        case .sent:      return "paperplane.fill"
+        case .exported:  return "checkmark.circle.fill"
+        }
+    }
+}
+
+// MARK: - HandoffReadiness
+
+/// Computed readiness of a session for Atlas Mind handoff.
+///
+/// A session is ready when the minimum set of essentials is present:
+/// at least one room, at least one tagged object, and at least one photo.
+/// Any missing essentials are surfaced as human-readable reasons.
+struct HandoffReadiness {
+    /// True when all essentials are present and the session can be sent cleanly.
+    let isReady: Bool
+    /// Human-readable descriptions of missing essentials (empty when `isReady` is true).
+    let missingEssentials: [String]
+}
+
+extension PropertyScanSession {
+
+    // MARK: - Handoff readiness
+
+    /// Computes the current handoff readiness of this session.
+    var handoffReadiness: HandoffReadiness {
+        var missing: [String] = []
+        if rooms.isEmpty {
+            missing.append("No rooms captured")
+        }
+        if totalTaggedObjects == 0 {
+            missing.append("No objects tagged")
+        }
+        if totalPhotos == 0 {
+            missing.append("No photos taken")
+        }
+        return HandoffReadiness(isReady: missing.isEmpty, missingEssentials: missing)
+    }
+}
 
 /// Unified survey session composed from multiple concurrent capture streams.
 ///
