@@ -23,6 +23,7 @@ struct SessionCaptureView: View {
     @StateObject private var viewModel: SessionCaptureViewModel
 
     // Sheet presentation state
+    @State private var showingHandoff = false
     @State private var showingAddObject = false
     @State private var showingAddPhoto = false
     @State private var showingAddVoiceNote = false
@@ -90,6 +91,9 @@ struct SessionCaptureView: View {
         }
         .sheet(isPresented: $showingAddRoom) {
             addRoomSheet
+        }
+        .sheet(isPresented: $showingHandoff) {
+            AtlasHandoffView(session: viewModel.session)
         }
         .fullScreenCover(isPresented: $showingLiveView) {
             liveViewTaggingCover
@@ -551,7 +555,7 @@ struct SessionCaptureView: View {
                         .background(Color.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Resume Unified Survey")
+                        Text("Continue Capture")
                             .font(.headline)
                             .foregroundStyle(.primary)
                         Text("Scan rooms, add objects, capture evidence")
@@ -590,7 +594,7 @@ struct SessionCaptureView: View {
         } header: {
             Text("Capture")
         } footer: {
-            Text("Resume Unified Survey to place objects in the live camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
+            Text("Continue Capture to place objects in the live camera feed. Attaching to: \(viewModel.pendingPhotoTarget.displayName).")
                 .font(.caption2)
         }
     }
@@ -617,9 +621,39 @@ struct SessionCaptureView: View {
 
     private var atlasSyncSection: some View {
         Section {
+            // Primary handoff CTA
+            Button {
+                viewModel.saveNow()
+                showingHandoff = true
+            } label: {
+                HStack {
+                    Image(systemName: "paperplane.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color.green)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Send to Atlas Mind")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("Export canonical AtlasPropertyV1 for handoff")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 4)
+
+            // Background sync queue
             if viewModel.syncQueueCount > 0 {
                 Label(
-                    "\(viewModel.syncQueueCount) item(s) queued for Atlas",
+                    "\(viewModel.syncQueueCount) item(s) queued for upload",
                     systemImage: "clock.arrow.circlepath"
                 )
                 .font(.subheadline).foregroundStyle(.secondary)
@@ -627,10 +661,10 @@ struct SessionCaptureView: View {
             Button {
                 showingSyncConfirm = true
             } label: {
-                Label("Queue for Atlas Sync", systemImage: "icloud.and.arrow.up")
+                Label("Queue for Background Upload", systemImage: "icloud.and.arrow.up")
             }
             .confirmationDialog(
-                "Queue for Atlas Sync?",
+                "Queue for Background Upload?",
                 isPresented: $showingSyncConfirm,
                 titleVisibility: .visible
             ) {
@@ -642,9 +676,9 @@ struct SessionCaptureView: View {
                 Text("The session and all unsynced photos will be queued for upload when a connection is available.")
             }
         } header: {
-            Text("Atlas Sync")
+            Text("Handoff")
         } footer: {
-            Text("Local data is always saved first. Upload begins only when you tap Queue.")
+            Text("Send to Atlas Mind exports the canonical property payload. Background upload syncs raw capture data automatically.")
                 .font(.caption2)
         }
     }
@@ -658,7 +692,7 @@ struct SessionCaptureView: View {
                 Button {
                     showingLiveView = true
                 } label: {
-                    Label("Unified Survey", systemImage: "camera.viewfinder")
+                    Label("Continue Capture", systemImage: "camera.viewfinder")
                 }
                 Button {
                     showingAddObject = true
@@ -686,6 +720,12 @@ struct SessionCaptureView: View {
                     showingReview = true
                 } label: {
                     Label("Review Session", systemImage: "doc.text.magnifyingglass")
+                }
+                Button {
+                    viewModel.saveNow()
+                    showingHandoff = true
+                } label: {
+                    Label("Send to Atlas Mind", systemImage: "paperplane.fill")
                 }
                 Button {
                     viewModel.saveNow()

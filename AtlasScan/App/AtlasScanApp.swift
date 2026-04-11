@@ -17,11 +17,13 @@ struct AtlasScanApp: App {
                         Label("Sessions", systemImage: "camera.viewfinder")
                     }
 
+                #if DEBUG
                 ScanSessionListView()
                     .environmentObject(jobStore)
                     .tabItem {
                         Label("Jobs (Legacy)", systemImage: "folder")
                     }
+                #endif
             }
         }
     }

@@ -8,6 +8,47 @@ import Foundation
 #if DEBUG
 enum MockData {
 
+    // MARK: Single session (PropertyScanSession)
+
+    static var sampleSession: PropertyScanSession {
+        let sessionID = UUID(uuidString: "A1B2C3D4-0000-0000-0000-000000000010")!
+        var session = PropertyScanSession(
+            id: sessionID,
+            jobReference: "ATL-2024-001",
+            propertyAddress: "14 Maple Street, Anytown, AN1 2BT",
+            engineerName: "Sam Taylor",
+            scanState: .inProgress,
+            reviewState: .inReview
+        )
+
+        var lr = livingRoom
+        lr.jobID = sessionID
+        lr.isReviewed = true
+
+        var kitchen = Self.kitchen
+        kitchen.jobID = sessionID
+
+        var utility = utilityRoom
+        utility.jobID = sessionID
+
+        session.rooms = [lr, kitchen, utility]
+        session.roomAdjacencies = [
+            RoomAdjacency(
+                fromRoomID: lr.id,
+                toRoomID: kitchen.id,
+                kind: .archway,
+                isConfirmed: true
+            ),
+            RoomAdjacency(
+                fromRoomID: kitchen.id,
+                toRoomID: utility.id,
+                kind: .door,
+                isConfirmed: true
+            ),
+        ]
+        return session
+    }
+
     // MARK: Single job
 
     static var sampleJob: ScanJob {
