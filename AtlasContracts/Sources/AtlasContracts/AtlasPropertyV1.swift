@@ -89,6 +89,12 @@ public struct AtlasPropertyV1: Codable, Sendable {
     /// Aggregate counts of evidence captured during the session.
     public let evidenceSummary: AtlasEvidenceSummaryV1
 
+    // MARK: Session knowledge (structured voice capture)
+
+    /// Structured knowledge extracted from voice notes during the session.
+    /// Nil when no facts were extracted (e.g. for older sessions without structured capture).
+    public let sessionKnowledge: AtlasSessionKnowledgeV1?
+
     // MARK: Init
 
     public init(
@@ -105,7 +111,8 @@ public struct AtlasPropertyV1: Codable, Sendable {
         rooms: [AtlasPropertyRoomV1],
         adjacencies: [AtlasPropertyAdjacencyV1],
         sessionObjects: [AtlasPropertyObjectV1],
-        evidenceSummary: AtlasEvidenceSummaryV1
+        evidenceSummary: AtlasEvidenceSummaryV1,
+        sessionKnowledge: AtlasSessionKnowledgeV1? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.propertyID = propertyID
@@ -121,6 +128,7 @@ public struct AtlasPropertyV1: Codable, Sendable {
         self.adjacencies = adjacencies
         self.sessionObjects = sessionObjects
         self.evidenceSummary = evidenceSummary
+        self.sessionKnowledge = sessionKnowledge
     }
 }
 
@@ -356,5 +364,71 @@ public struct AtlasEvidenceSummaryV1: Codable, Sendable {
         self.totalVoiceNotes = totalVoiceNotes
         self.sessionPhotoCount = sessionPhotoCount
         self.sessionVoiceNoteCount = sessionVoiceNoteCount
+    }
+}
+
+// MARK: - Session knowledge (structured voice capture)
+
+/// Structured knowledge extracted from engineer voice notes during a session.
+///
+/// Produced by the Scan app's `SessionKnowledgeExtractor` and projected
+/// alongside the spatial content into the canonical handoff payload.
+/// Only medium/high-confidence facts are included in the handoff.
+public struct AtlasSessionKnowledgeV1: Codable, Sendable {
+
+    /// Structured facts projected from voice notes into canonical knowledge.
+    /// Only facts with sufficient confidence are included.
+    public let extractedFacts: [AtlasExtractedFactV1]
+
+    public init(extractedFacts: [AtlasExtractedFactV1]) {
+        self.extractedFacts = extractedFacts
+    }
+}
+
+/// A single structured knowledge fact carried in the canonical handoff.
+public struct AtlasExtractedFactV1: Codable, Sendable {
+
+    /// UUID of the originating `ExtractedSessionFact`.
+    public let id: String
+
+    /// Raw value of `SessionFactCategory` (e.g. "household_composition").
+    public let category: String
+
+    /// Human-readable extracted value.
+    public let value: String
+
+    /// Confidence: "low" | "medium" | "high".
+    public let confidence: String
+
+    /// UUID of the originating voice note; nil when manually entered.
+    public let sourceNoteID: String?
+
+    /// UUID of the room scope; nil for session-level facts.
+    public let roomID: String?
+
+    /// UUID of the object scope; nil when not tied to a specific object.
+    public let objectID: String?
+
+    /// ISO-8601 timestamp when the fact was extracted.
+    public let createdAt: String
+
+    public init(
+        id: String,
+        category: String,
+        value: String,
+        confidence: String,
+        sourceNoteID: String?,
+        roomID: String?,
+        objectID: String?,
+        createdAt: String
+    ) {
+        self.id = id
+        self.category = category
+        self.value = value
+        self.confidence = confidence
+        self.sourceNoteID = sourceNoteID
+        self.roomID = roomID
+        self.objectID = objectID
+        self.createdAt = createdAt
     }
 }

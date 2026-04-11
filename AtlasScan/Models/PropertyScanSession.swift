@@ -86,6 +86,10 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Notes at session level are not assigned to a specific room.
     var voiceNotes: [VoiceNote]
 
+    /// Structured facts extracted from voice notes during this session.
+    /// Extraction is conservative — voice evidence is always preserved separately in `voiceNotes`.
+    var extractedFacts: [ExtractedSessionFact]
+
     /// Validation issues collected during review or export validation.
     var issues: [ValidationIssue]
 
@@ -112,6 +116,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         taggedObjects: [TaggedObject] = [],
         photos: [TaggedPhoto] = [],
         voiceNotes: [VoiceNote] = [],
+        extractedFacts: [ExtractedSessionFact] = [],
         issues: [ValidationIssue] = []
     ) {
         self.id = id
@@ -134,6 +139,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.taggedObjects = taggedObjects
         self.photos = photos
         self.voiceNotes = voiceNotes
+        self.extractedFacts = extractedFacts
         self.issues = issues
         self.createdAt = Date()
         self.updatedAt = Date()
@@ -145,7 +151,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case id, jobReference, propertyAddress, engineerName, atlasJobID
         case scanState, reviewState, syncState, handoffState
         case rooms, roomAdjacencies, roomPlacements
-        case taggedObjects, photos, voiceNotes, issues
+        case taggedObjects, photos, voiceNotes, extractedFacts, issues
         case createdAt, updatedAt
     }
 
@@ -166,6 +172,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         taggedObjects    = try c.decodeIfPresent([TaggedObject].self,          forKey: .taggedObjects)    ?? []
         photos           = try c.decodeIfPresent([TaggedPhoto].self,           forKey: .photos)           ?? []
         voiceNotes       = try c.decodeIfPresent([VoiceNote].self,             forKey: .voiceNotes)       ?? []
+        extractedFacts   = try c.decodeIfPresent([ExtractedSessionFact].self,  forKey: .extractedFacts)   ?? []
         issues           = try c.decodeIfPresent([ValidationIssue].self,       forKey: .issues)           ?? []
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
@@ -285,6 +292,37 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     mutating func updateVoiceNote(_ updated: VoiceNote) {
         guard let index = voiceNotes.firstIndex(where: { $0.id == updated.id }) else { return }
         voiceNotes[index] = updated
+        touch()
+    }
+
+    // MARK: Extracted fact helpers
+
+    mutating func addExtractedFact(_ fact: ExtractedSessionFact) {
+        extractedFacts.append(fact)
+        touch()
+    }
+
+    mutating func removeExtractedFact(id: UUID) {
+        extractedFacts.removeAll { $0.id == id }
+        touch()
+    }
+
+    mutating func replaceExtractedFacts(_ facts: [ExtractedSessionFact]) {
+        extractedFacts = facts
+        touch()
+    }
+
+    /// Computed knowledge coverage summary derived from `extractedFacts`.
+    var knowledgeSummary: SessionKnowledgeSummary {
+        SessionKnowledgeExtractor.knowledgeSummary(from: extractedFacts)
+    }
+
+    /// Re-runs extraction from all current voice notes and replaces existing extracted facts.
+    ///
+    /// Call this after adding or editing voice notes to keep the structured knowledge
+    /// layer in sync with captured evidence.
+    mutating func refreshExtractedFacts() {
+        extractedFacts = SessionKnowledgeExtractor.extractFacts(from: allVoiceNotes)
         touch()
     }
 
@@ -652,6 +690,25 @@ extension PropertyScanSession {
             sessionVoiceNoteCount: voiceNotes.count
         )
 
+        // Session knowledge — project medium/high-confidence extracted facts only.
+        let projectedFacts: [AtlasExtractedFactV1] = extractedFacts
+            .filter { $0.confidence >= .medium }
+            .map { fact in
+                AtlasExtractedFactV1(
+                    id: fact.id.uuidString,
+                    category: fact.category.rawValue,
+                    value: fact.value,
+                    confidence: fact.confidence.rawValue,
+                    sourceNoteID: fact.sourceNoteID?.uuidString,
+                    roomID: fact.roomID?.uuidString,
+                    objectID: fact.objectID?.uuidString,
+                    createdAt: iso.string(from: fact.createdAt)
+                )
+            }
+        let sessionKnowledge: AtlasSessionKnowledgeV1? = projectedFacts.isEmpty
+            ? nil
+            : AtlasSessionKnowledgeV1(extractedFacts: projectedFacts)
+
         return AtlasPropertyV1(
             schemaVersion: currentAtlasPropertyVersion,
             propertyID: id.uuidString,
@@ -666,7 +723,8 @@ extension PropertyScanSession {
             rooms: roomPayloads,
             adjacencies: adjacencyPayloads,
             sessionObjects: sessionObjectPayloads,
-            evidenceSummary: evidenceSummary
+            evidenceSummary: evidenceSummary,
+            sessionKnowledge: sessionKnowledge
         )
     }
 

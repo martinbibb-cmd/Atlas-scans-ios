@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA010076 /* ExtractedSessionFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020076 /* ExtractedSessionFact.swift */; };
+		AA010077 /* SessionKnowledgeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020077 /* SessionKnowledgeExtractor.swift */; };
+		AA010078 /* SessionKnowledgeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020078 /* SessionKnowledgeSection.swift */; };
+		AA010079 /* VoiceNoteCategoryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020079 /* VoiceNoteCategoryPicker.swift */; };
+		AA01007A /* SessionFactReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007A /* SessionFactReviewView.swift */; };
+		AA01007B /* SessionKnowledgeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007B /* SessionKnowledgeExtractorTests.swift */; };
+		AA01007C /* SessionKnowledgeSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007C /* SessionKnowledgeSummaryTests.swift */; };
+		AA01007D /* AtlasPropertyVoiceProjectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007D /* AtlasPropertyVoiceProjectionTests.swift */; };
 		AA010072 /* SessionCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020072 /* SessionCompletionView.swift */; };
 		AA010073 /* SessionCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020073 /* SessionCompletionTests.swift */; };
 		AA010074 /* SessionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020074 /* SessionReviewView.swift */; };
@@ -103,6 +111,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA020076 /* ExtractedSessionFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedSessionFact.swift; sourceTree = "<group>"; };
+		AA020077 /* SessionKnowledgeExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeExtractor.swift; sourceTree = "<group>"; };
+		AA020078 /* SessionKnowledgeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeSection.swift; sourceTree = "<group>"; };
+		AA020079 /* VoiceNoteCategoryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteCategoryPicker.swift; sourceTree = "<group>"; };
+		AA02007A /* SessionFactReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFactReviewView.swift; sourceTree = "<group>"; };
+		AA02007B /* SessionKnowledgeExtractorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeExtractorTests.swift; sourceTree = "<group>"; };
+		AA02007C /* SessionKnowledgeSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeSummaryTests.swift; sourceTree = "<group>"; };
+		AA02007D /* AtlasPropertyVoiceProjectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasPropertyVoiceProjectionTests.swift; sourceTree = "<group>"; };
 		AA020072 /* SessionCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionView.swift; sourceTree = "<group>"; };
 		AA020073 /* SessionCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionTests.swift; sourceTree = "<group>"; };
 		AA020074 /* SessionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReviewView.swift; sourceTree = "<group>"; };
@@ -266,6 +282,7 @@
 				AA020016 /* TaggedObject.swift */,
 				AA020017 /* TaggedPhoto.swift */,
 				AA020060 /* VoiceNote.swift */,
+				AA020076 /* ExtractedSessionFact.swift */,
 				AA020018 /* ServiceObjectCategory.swift */,
 				AA020019 /* ExportDraftState.swift */,
 				AA020028 /* ObjectPlacement.swift */,
@@ -287,6 +304,7 @@
 				AA020061 /* VoiceNoteStore.swift */,
 				AA020062 /* VoiceNoteRecorder.swift */,
 				AA020065 /* VoiceNotePlaybackManager.swift */,
+				AA020077 /* SessionKnowledgeExtractor.swift */,
 				AA020045 /* ExportPackageBuilder.swift */,
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
@@ -386,6 +404,7 @@
 				AA020043 /* PhotoGalleryView.swift */,
 				AA020063 /* VoiceNoteRecorderSheet.swift */,
 				AA020066 /* VoiceNoteRowView.swift */,
+				AA020079 /* VoiceNoteCategoryPicker.swift */,
 			);
 			path = Evidence;
 			sourceTree = "<group>";
@@ -429,6 +448,8 @@
 			children = (
 				AA020074 /* SessionReviewView.swift */,
 				AA020075 /* SessionArtifactInspectorView.swift */,
+				AA020078 /* SessionKnowledgeSection.swift */,
+				AA02007A /* SessionFactReviewView.swift */,
 			);
 			path = SessionReview;
 			sourceTree = "<group>";
@@ -462,6 +483,9 @@
 				AA020064 /* VoiceNoteTests.swift */,
 				AA020069 /* AtlasPropertyV1Tests.swift */,
 				AA020073 /* SessionCompletionTests.swift */,
+				AA02007B /* SessionKnowledgeExtractorTests.swift */,
+				AA02007C /* SessionKnowledgeSummaryTests.swift */,
+				AA02007D /* AtlasPropertyVoiceProjectionTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -639,6 +663,11 @@
 				AA010072 /* SessionCompletionView.swift in Sources */,
 				AA010074 /* SessionReviewView.swift in Sources */,
 				AA010075 /* SessionArtifactInspectorView.swift in Sources */,
+				AA010076 /* ExtractedSessionFact.swift in Sources */,
+				AA010077 /* SessionKnowledgeExtractor.swift in Sources */,
+				AA010078 /* SessionKnowledgeSection.swift in Sources */,
+				AA010079 /* VoiceNoteCategoryPicker.swift in Sources */,
+				AA01007A /* SessionFactReviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -662,6 +691,9 @@
 				AA010064 /* VoiceNoteTests.swift in Sources */,
 				AA010069 /* AtlasPropertyV1Tests.swift in Sources */,
 				AA010073 /* SessionCompletionTests.swift in Sources */,
+				AA01007B /* SessionKnowledgeExtractorTests.swift in Sources */,
+				AA01007C /* SessionKnowledgeSummaryTests.swift in Sources */,
+				AA01007D /* AtlasPropertyVoiceProjectionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

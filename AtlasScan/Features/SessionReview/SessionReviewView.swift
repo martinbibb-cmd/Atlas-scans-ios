@@ -33,6 +33,7 @@ struct SessionReviewView: View {
         case objects = "Objects"
         case photos  = "Photos"
         case notes   = "Notes"
+        case needs   = "Needs"
 
         var symbolName: String {
             switch self {
@@ -40,6 +41,7 @@ struct SessionReviewView: View {
             case .objects: return "tag.fill"
             case .photos:  return "photo.stack"
             case .notes:   return "mic.fill"
+            case .needs:   return "person.text.rectangle"
             }
         }
     }
@@ -48,6 +50,7 @@ struct SessionReviewView: View {
     @State private var selectedRoomID: UUID? = nil
     @State private var selectedObjectID: UUID? = nil
     @State private var showingArtifactInspector = false
+    @State private var showingFactReview = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,6 +87,9 @@ struct SessionReviewView: View {
 
                 notesTab
                     .tag(ReviewTab.notes)
+
+                needsTab
+                    .tag(ReviewTab.needs)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
@@ -106,6 +112,9 @@ struct SessionReviewView: View {
         }
         .sheet(isPresented: $showingArtifactInspector) {
             SessionArtifactInspectorView(session: session)
+        }
+        .sheet(isPresented: $showingFactReview) {
+            SessionFactReviewView(session: session)
         }
     }
 
@@ -381,6 +390,61 @@ struct SessionReviewView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    // MARK: - Needs tab
+
+    private var needsTab: some View {
+        List {
+            Section {
+                SessionKnowledgeSection(session: session)
+            } header: {
+                Text("Captured Needs")
+            } footer: {
+                needsTabFooter
+            }
+
+            if !session.extractedFacts.isEmpty {
+                Section {
+                    Button {
+                        showingFactReview = true
+                    } label: {
+                        Label("View All Extracted Facts", systemImage: "list.bullet.rectangle")
+                    }
+                }
+            }
+
+            knowledgeGapsSection
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private var needsTabFooter: some View {
+        let summary = session.knowledgeSummary
+        if summary.hasAnyFacts {
+            Text("Facts are extracted conservatively from voice notes. Capture more notes to improve coverage.")
+                .font(.caption2)
+        }
+    }
+
+    @ViewBuilder
+    private var knowledgeGapsSection: some View {
+        let summary = session.knowledgeSummary
+        if !summary.missingEssentials.isEmpty || !summary.reviewWarnings.isEmpty {
+            Section("Knowledge Gaps") {
+                ForEach(summary.missingEssentials, id: \.self) { msg in
+                    Label(msg, systemImage: "circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(summary.reviewWarnings, id: \.self) { msg in
+                    Label(msg, systemImage: "exclamationmark.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
     }
 
     // MARK: - Helpers
