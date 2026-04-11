@@ -83,6 +83,8 @@
 		AA010067 /* WalkthroughRoomPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020067 /* WalkthroughRoomPickerSheet.swift */; };
 		AA010068 /* AtlasHandoffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020068 /* AtlasHandoffView.swift */; };
 		AA010069 /* AtlasPropertyV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020069 /* AtlasPropertyV1Tests.swift */; };
+		AA010070 /* JSONInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020070 /* JSONInspectorView.swift */; };
+		AA010071 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020071 /* ShareSheet.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 /* End PBXBuildFile section */
@@ -174,6 +176,8 @@
 		AA020067 /* WalkthroughRoomPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughRoomPickerSheet.swift; sourceTree = "<group>"; };
 		AA020068 /* AtlasHandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasHandoffView.swift; sourceTree = "<group>"; };
 		AA020069 /* AtlasPropertyV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasPropertyV1Tests.swift; sourceTree = "<group>"; };
+		AA020070 /* JSONInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONInspectorView.swift; sourceTree = "<group>"; };
+		AA020071 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -351,6 +355,8 @@
 			children = (
 				AA020011 /* ExportPreviewView.swift */,
 				AA020068 /* AtlasHandoffView.swift */,
+				AA020070 /* JSONInspectorView.swift */,
+				AA020071 /* ShareSheet.swift */,
 			);
 			path = Export;
 			sourceTree = "<group>";
@@ -612,6 +618,8 @@
 				AA010066 /* VoiceNoteRowView.swift in Sources */,
 				AA010067 /* WalkthroughRoomPickerSheet.swift in Sources */,
 				AA010068 /* AtlasHandoffView.swift in Sources */,
+				AA010070 /* JSONInspectorView.swift in Sources */,
+				AA010071 /* ShareSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
