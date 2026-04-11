@@ -614,7 +614,7 @@ extension PropertyScanSession {
     ///   - obj: The tagged object to map.
     ///   - roomID: The UUID of the room this object belongs to, or `nil` for
     ///             session-level objects that are not assigned to any room.
-    private func atlasObject(from obj: TaggedObject, roomID: UUID? = nil) -> AtlasPropertyObjectV1 {
+    private func atlasObject(from obj: TaggedObject, roomID: UUID?) -> AtlasPropertyObjectV1 {
         let anchor: AtlasWorldAnchorV1? = obj.worldAnchor.map { wa in
             AtlasWorldAnchorV1(
                 x: wa.x,

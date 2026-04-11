@@ -212,7 +212,11 @@ struct AtlasHandoffView: View {
 
     private func saveToFiles() {
         guard !propertyJSON.isEmpty else { return }
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let docURLs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        guard let docs = docURLs.first else {
+            buildError = "Could not resolve Documents directory."
+            return
+        }
         let file = docs.appendingPathComponent("\(session.safeFileNameReference).atlasproperty.json")
         do {
             try propertyJSON.write(to: file, atomically: true, encoding: .utf8)
