@@ -345,7 +345,7 @@ struct ExternalFlueCaptureView: View {
                 Divider()
             }
 
-            Text("Guidance only — verify with manufacturer specification and Gas Safe guidelines.")
+            Text("Guidance only — verify with manufacturer specification, Gas Safe guidelines, and BS 5440 Part 1.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .italic()
@@ -413,7 +413,7 @@ struct ExternalFlueCaptureView: View {
 
     private func saveScene() {
         // Take AR snapshot for preview
-        let snapshot = _arViewSnapshot()
+        let snapshot = arViewSnapshot()
         let scene = session.buildScene(
             propertySessionID: propertySessionID,
             captureSessionID: captureSessionID,
@@ -423,7 +423,7 @@ struct ExternalFlueCaptureView: View {
         dismiss()
     }
 
-    private func _arViewSnapshot() -> UIImage? {
+    private func arViewSnapshot() -> UIImage? {
         guard let view = session.arView as? ARSCNView else { return nil }
         return view.snapshot()
     }

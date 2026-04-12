@@ -112,7 +112,10 @@ final class SessionCaptureViewModel: ObservableObject {
         session.addRoom(room)
         selectedRoomID = room.id
         pendingPhotoTarget = .room(room.id)
-        // Auto-create a metadata-only room scan evidence record for geometry-captured rooms.
+        // For rooms captured via RoomPlan (geometryCaptured == true), auto-create a
+        // metadata-only evidence record so there is always a linkable audit trail.
+        // The record has no USDZ asset (localFileURLString is nil) — it is a provenance
+        // record only. Engineers can add richer evidence via the 3D Evidence section.
         if room.geometryCaptured {
             let evidence = RoomScanEvidenceBuilder.buildMetadataOnly(
                 from: room,

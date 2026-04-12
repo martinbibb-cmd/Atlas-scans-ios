@@ -90,7 +90,10 @@ final class RoomScanEvidenceBuilder {
     /// Builds a metadata-only `RoomScanEvidence` from an existing `ScannedRoom`.
     ///
     /// No USDZ is exported; `localFileURLString` is left nil.
-    /// Suitable when the raw scan data has already been processed into a `ScannedRoom`.
+    /// The evidence record carries available metadata (area, height) as bounds
+    /// but cannot provide individual width/length since `ScannedRoom` only stores
+    /// floor area. Suitable when the raw scan data has already been processed into a
+    /// `ScannedRoom`.
     static func buildMetadataOnly(
         from room: ScannedRoom,
         propertySessionID: UUID
@@ -98,10 +101,13 @@ final class RoomScanEvidenceBuilder {
         let captureSessionID = UUID()
         let device = UIDevice.current.model
 
-        let bounds: RoomScanEvidence.Bounds? = (room.areaSquareMetres != nil || room.ceilingHeightMetres != nil)
+        // Only populate bounds when actual geometry data is available.
+        // width and length cannot be accurately derived from area alone,
+        // so they are left as 0 when not directly measured.
+        let bounds: RoomScanEvidence.Bounds? = room.ceilingHeightMetres != nil
             ? RoomScanEvidence.Bounds(
-                width: room.areaSquareMetres.map { sqrt($0) } ?? 0,
-                length: room.areaSquareMetres.map { sqrt($0) } ?? 0,
+                width: 0,
+                length: 0,
                 height: room.ceilingHeightMetres ?? 0
               )
             : nil

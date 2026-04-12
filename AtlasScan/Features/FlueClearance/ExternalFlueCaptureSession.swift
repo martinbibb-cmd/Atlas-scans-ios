@@ -262,17 +262,17 @@ final class ExternalFlueCaptureSession: NSObject, ObservableObject {
     // MARK: - Private: world-position resolution
 
     /// Resolves a screen tap to a world-space position using ARKit raycasting.
-    /// Falls back to plane estimation if LiDAR mesh is not available.
+    /// Tries existing-plane geometry first; falls back to estimated-plane if no hit.
     private func resolveWorldPosition(screenPoint: CGPoint) -> simd_float3? {
-        if let q = _arView.raycastQuery(from: screenPoint, allowing: .existingPlaneGeometry, alignment: .any),
-           let hit = _arView.session.raycast(q).first {
-            let col = hit.worldTransform.columns.3
-            return simd_float3(col.x, col.y, col.z)
-        }
-        if let q = _arView.raycastQuery(from: screenPoint, allowing: .estimatedPlane, alignment: .any),
-           let hit = _arView.session.raycast(q).first {
-            let col = hit.worldTransform.columns.3
-            return simd_float3(col.x, col.y, col.z)
+        // Try LiDAR mesh / existing-plane first for better accuracy, then fall back
+        // to estimated plane. Both targets are checked in priority order to minimise
+        // duplicate query creation.
+        for target: ARRaycastQuery.Target in [.existingPlaneGeometry, .estimatedPlane] {
+            if let q = _arView.raycastQuery(from: screenPoint, allowing: target, alignment: .any),
+               let hit = _arView.session.raycast(q).first {
+                let col = hit.worldTransform.columns.3
+                return simd_float3(col.x, col.y, col.z)
+            }
         }
         return nil
     }

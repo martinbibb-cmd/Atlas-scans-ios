@@ -584,11 +584,16 @@ struct SessionCaptureView: View {
                             Text("\(evidence.linkedRoomIDs.count) room(s) linked")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                            if evidence.localFileURLString == nil {
+                                Text("Metadata only — no 3D asset")
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                            }
                         }
                         Spacer()
-                        Image(systemName: "cube.transparent")
+                        Image(systemName: evidence.localFileURLString != nil ? "cube.transparent" : "cube.transparent")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(evidence.localFileURLString != nil ? .primary : .secondary)
                     }
                 }
                 .onDelete { offsets in

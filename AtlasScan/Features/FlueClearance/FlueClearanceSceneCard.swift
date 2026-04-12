@@ -307,7 +307,7 @@ struct FlueClearanceDetailView: View {
 
     private var legalNoticeSection: some View {
         Section {
-            Text("Guidance only — not a compliance approval. Verify with manufacturer specification, Gas Safe guidelines, and applicable British Standards.")
+            Text("Guidance only — not a compliance approval. Verify with manufacturer specification, Gas Safe guidelines, and BS 5440 Part 1.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .italic()

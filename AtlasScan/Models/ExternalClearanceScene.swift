@@ -377,25 +377,25 @@ extension ExternalClearanceScene {
                 if m.valueM < 0.30 {
                     pass = false
                     warnings.append(
-                        "Terminal is \(formattedM(m.valueM)) from an opening — minimum 300 mm required (BS 5440)."
+                        "Terminal is \(formattedM(m.valueM)) from an opening — minimum 300 mm required (BS 5440 Part 1)."
                     )
                 } else if m.valueM < 0.40 {
                     warnings.append(
-                        "Terminal is \(formattedM(m.valueM)) from an opening — marginal; verify with manufacturer spec."
+                        "Terminal is \(formattedM(m.valueM)) from an opening — marginal; verify with manufacturer spec and BS 5440 Part 1."
                     )
                 }
             case .terminalToBoundary:
                 if m.valueM < 0.60 {
                     pass = false
                     warnings.append(
-                        "Terminal is \(formattedM(m.valueM)) from a boundary — minimum 600 mm required."
+                        "Terminal is \(formattedM(m.valueM)) from a boundary — minimum 600 mm required (BS 5440 Part 1)."
                     )
                 }
             case .terminalToEaves:
                 if m.valueM < 0.30 {
                     pass = false
                     warnings.append(
-                        "Terminal is \(formattedM(m.valueM)) from eaves — minimum 300 mm required (BS 5440)."
+                        "Terminal is \(formattedM(m.valueM)) from eaves — minimum 300 mm required (BS 5440 Part 1)."
                     )
                 }
             }
