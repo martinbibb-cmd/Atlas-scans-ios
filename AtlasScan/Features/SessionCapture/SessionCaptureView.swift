@@ -31,6 +31,7 @@ struct SessionCaptureView: View {
     @State private var showingSyncConfirm = false
     @State private var showingLiveView = false
     @State private var showingReview = false
+    @State private var showingFlueCapture = false
     @State private var newRoomName = ""
     @State private var newRoomFloor = 0
 
@@ -64,6 +65,7 @@ struct SessionCaptureView: View {
             if !viewModel.sessionLevelVoiceNotes.isEmpty {
                 sessionVoiceNotesSection
             }
+            evidence3DSection
             quickActionsSection
             atlasSyncSection
         }
@@ -101,6 +103,13 @@ struct SessionCaptureView: View {
         }
         .fullScreenCover(isPresented: $showingLiveView) {
             liveViewTaggingCover
+        }
+        .fullScreenCover(isPresented: $showingFlueCapture) {
+            NavigationStack {
+                ExternalFlueCaptureView(propertySessionID: viewModel.session.id) { scene in
+                    viewModel.addExternalClearanceScene(scene)
+                }
+            }
         }
         .navigationDestination(isPresented: $showingReview) {
             SessionReviewView(
@@ -552,6 +561,81 @@ struct SessionCaptureView: View {
         }
     }
 
+    // MARK: - 3D Evidence section
+
+    private var evidence3DSection: some View {
+        Section {
+            // Internal room scan evidence
+            let roomScans = viewModel.session.roomScanEvidence
+            if !roomScans.isEmpty {
+                ForEach(roomScans) { evidence in
+                    HStack(spacing: 10) {
+                        Image(systemName: "camera.viewfinder")
+                            .foregroundStyle(.blue)
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Indoor Room Scan")
+                                .font(.subheadline)
+                            if let meta = evidence.captureMeta {
+                                Text(meta.device)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("\(evidence.linkedRoomIDs.count) room(s) linked")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "cube.transparent")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onDelete { offsets in
+                    for i in offsets {
+                        viewModel.removeRoomScanEvidence(id: roomScans[i].id)
+                    }
+                }
+            }
+
+            // Flue clearance scenes
+            let flueScenesAll = viewModel.session.externalClearanceScenes
+            if !flueScenesAll.isEmpty {
+                ForEach(flueScenesAll) { scene in
+                    NavigationLink {
+                        FlueClearanceDetailView(scene: scene)
+                    } label: {
+                        FlueClearanceSceneCard(scene: scene)
+                            .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                    }
+                }
+                .onDelete { offsets in
+                    for i in offsets {
+                        viewModel.removeExternalClearanceScene(id: flueScenesAll[i].id)
+                    }
+                }
+            }
+
+            if roomScans.isEmpty && flueScenesAll.isEmpty {
+                Text("No 3D evidence captured yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Entry point: outdoor flue clearance
+            Button {
+                showingFlueCapture = true
+            } label: {
+                Label("Capture Flue Clearance Scene", systemImage: "smoke")
+            }
+        } header: {
+            Text("3D Evidence")
+        } footer: {
+            Text("Indoor room scans are captured with RoomPlan. Outdoor flue-clearance scenes use AR marker placement and structured measurement — not raw point clouds.")
+                .font(.caption2)
+        }
+    }
+
     // MARK: - Quick actions section
 
     private var quickActionsSection: some View {
@@ -734,6 +818,11 @@ struct SessionCaptureView: View {
                     showingAddRoom = true
                 } label: {
                     Label("Add / Scan Room", systemImage: "plus.square")
+                }
+                Button {
+                    showingFlueCapture = true
+                } label: {
+                    Label("Capture Flue Clearance", systemImage: "smoke")
                 }
                 Divider()
                 Button {
