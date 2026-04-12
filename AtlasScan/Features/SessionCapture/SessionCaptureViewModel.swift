@@ -112,6 +112,17 @@ final class SessionCaptureViewModel: ObservableObject {
         session.addRoom(room)
         selectedRoomID = room.id
         pendingPhotoTarget = .room(room.id)
+        // For rooms captured via RoomPlan (geometryCaptured == true), auto-create a
+        // metadata-only evidence record so there is always a linkable audit trail.
+        // The record has no USDZ asset (localFileURLString is nil) — it is a provenance
+        // record only. Engineers can add richer evidence via the 3D Evidence section.
+        if room.geometryCaptured {
+            let evidence = RoomScanEvidenceBuilder.buildMetadataOnly(
+                from: room,
+                propertySessionID: session.id
+            )
+            session.addRoomScanEvidence(evidence)
+        }
         scheduleAutosave()
     }
 
@@ -382,5 +393,42 @@ final class SessionCaptureViewModel: ObservableObject {
             name: selectedRoom?.name ?? session.propertyAddress,
             floor: selectedRoom?.floor ?? 0
         )
+    }
+
+    // MARK: - Room scan evidence
+
+    /// Adds a room-scan evidence record to the session.
+    func addRoomScanEvidence(_ evidence: RoomScanEvidence) {
+        session.addRoomScanEvidence(evidence)
+        scheduleAutosave()
+    }
+
+    /// Removes a room-scan evidence record by ID.
+    func removeRoomScanEvidence(id: UUID) {
+        session.removeRoomScanEvidence(id: id)
+        scheduleAutosave()
+    }
+
+    /// Links a room-scan evidence record to a room ID.
+    func linkRoomScanEvidence(id: UUID, toRoomID roomID: UUID) {
+        guard let index = session.roomScanEvidence.firstIndex(where: { $0.id == id }) else { return }
+        if !session.roomScanEvidence[index].linkedRoomIDs.contains(roomID) {
+            session.roomScanEvidence[index].linkedRoomIDs.append(roomID)
+        }
+        scheduleAutosave()
+    }
+
+    // MARK: - External clearance scene management
+
+    /// Adds an external flue-clearance scene to the session.
+    func addExternalClearanceScene(_ scene: ExternalClearanceScene) {
+        session.addExternalClearanceScene(scene)
+        scheduleAutosave()
+    }
+
+    /// Removes an external clearance scene by ID.
+    func removeExternalClearanceScene(id: UUID) {
+        session.removeExternalClearanceScene(id: id)
+        scheduleAutosave()
     }
 }

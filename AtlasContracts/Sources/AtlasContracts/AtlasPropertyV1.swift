@@ -95,6 +95,26 @@ public struct AtlasPropertyV1: Codable, Sendable {
     /// Nil when no facts were extracted (e.g. for older sessions without structured capture).
     public let sessionKnowledge: AtlasSessionKnowledgeV1?
 
+    // MARK: 3D evidence (optional)
+
+    /// Indoor room-scan evidence records (RoomPlan / LiDAR captures).
+    /// Each entry references a heavy 3-D asset stored externally.
+    /// nil / empty when no room scans have been captured or associated.
+    ///
+    /// Architecture rule: consumers must NOT derive heat-loss or engine inputs
+    /// from these assets.  They are evidence records only.
+    public let spatialEvidence3d: [SpatialEvidence3D]?
+
+    /// Outdoor flue-clearance AR scene records.
+    /// Each entry contains tagged features, measured distances, and a
+    /// compliance summary derived from structured measurements.
+    /// nil / empty when no external clearance scene has been captured.
+    ///
+    /// Architecture rule: compliance must be evaluated from
+    /// `ExternalClearanceSceneV1.measurements` and `nearbyFeatures`,
+    /// not from raw point-cloud geometry.
+    public let externalClearanceScenes: [ExternalClearanceSceneV1]?
+
     // MARK: Init
 
     public init(
@@ -112,7 +132,9 @@ public struct AtlasPropertyV1: Codable, Sendable {
         adjacencies: [AtlasPropertyAdjacencyV1],
         sessionObjects: [AtlasPropertyObjectV1],
         evidenceSummary: AtlasEvidenceSummaryV1,
-        sessionKnowledge: AtlasSessionKnowledgeV1? = nil
+        sessionKnowledge: AtlasSessionKnowledgeV1? = nil,
+        spatialEvidence3d: [SpatialEvidence3D]? = nil,
+        externalClearanceScenes: [ExternalClearanceSceneV1]? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.propertyID = propertyID
@@ -129,6 +151,8 @@ public struct AtlasPropertyV1: Codable, Sendable {
         self.sessionObjects = sessionObjects
         self.evidenceSummary = evidenceSummary
         self.sessionKnowledge = sessionKnowledge
+        self.spatialEvidence3d = spatialEvidence3d
+        self.externalClearanceScenes = externalClearanceScenes
     }
 }
 

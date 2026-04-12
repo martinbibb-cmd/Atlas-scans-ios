@@ -93,6 +93,16 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Validation issues collected during review or export validation.
     var issues: [ValidationIssue]
 
+    // MARK: 3D evidence
+
+    /// Indoor room-scan evidence records (RoomPlan / LiDAR captures).
+    /// Each entry is evidence only — no maths may be derived from the asset.
+    var roomScanEvidence: [RoomScanEvidence]
+
+    /// Outdoor flue-clearance AR scene records.
+    /// Compliance runs from `measurements` and `nearbyFeatures`, not raw geometry.
+    var externalClearanceScenes: [ExternalClearanceScene]
+
     // MARK: Timestamps
 
     var createdAt: Date
@@ -117,7 +127,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         photos: [TaggedPhoto] = [],
         voiceNotes: [VoiceNote] = [],
         extractedFacts: [ExtractedSessionFact] = [],
-        issues: [ValidationIssue] = []
+        issues: [ValidationIssue] = [],
+        roomScanEvidence: [RoomScanEvidence] = [],
+        externalClearanceScenes: [ExternalClearanceScene] = []
     ) {
         self.id = id
         if jobReference.isEmpty {
@@ -141,6 +153,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.voiceNotes = voiceNotes
         self.extractedFacts = extractedFacts
         self.issues = issues
+        self.roomScanEvidence = roomScanEvidence
+        self.externalClearanceScenes = externalClearanceScenes
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -152,6 +166,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case scanState, reviewState, syncState, handoffState
         case rooms, roomAdjacencies, roomPlacements
         case taggedObjects, photos, voiceNotes, extractedFacts, issues
+        case roomScanEvidence, externalClearanceScenes
         case createdAt, updatedAt
     }
 
@@ -174,6 +189,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         voiceNotes       = try c.decodeIfPresent([VoiceNote].self,             forKey: .voiceNotes)       ?? []
         extractedFacts   = try c.decodeIfPresent([ExtractedSessionFact].self,  forKey: .extractedFacts)   ?? []
         issues           = try c.decodeIfPresent([ValidationIssue].self,       forKey: .issues)           ?? []
+        roomScanEvidence        = try c.decodeIfPresent([RoomScanEvidence].self,        forKey: .roomScanEvidence)        ?? []
+        externalClearanceScenes = try c.decodeIfPresent([ExternalClearanceScene].self,  forKey: .externalClearanceScenes) ?? []
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
     }
@@ -372,6 +389,47 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
 
     mutating func clearIssues() {
         issues = []
+        touch()
+    }
+
+    // MARK: Room scan evidence helpers
+
+    mutating func addRoomScanEvidence(_ evidence: RoomScanEvidence) {
+        roomScanEvidence.append(evidence)
+        touch()
+    }
+
+    mutating func removeRoomScanEvidence(id: UUID) {
+        roomScanEvidence.removeAll { $0.id == id }
+        touch()
+    }
+
+    mutating func updateRoomScanEvidence(_ updated: RoomScanEvidence) {
+        guard let index = roomScanEvidence.firstIndex(where: { $0.id == updated.id }) else { return }
+        roomScanEvidence[index] = updated
+        touch()
+    }
+
+    /// Returns all room scan evidence linked to a specific room.
+    func roomScanEvidence(for roomID: UUID) -> [RoomScanEvidence] {
+        roomScanEvidence.filter { $0.linkedRoomIDs.contains(roomID) }
+    }
+
+    // MARK: External clearance scene helpers
+
+    mutating func addExternalClearanceScene(_ scene: ExternalClearanceScene) {
+        externalClearanceScenes.append(scene)
+        touch()
+    }
+
+    mutating func removeExternalClearanceScene(id: UUID) {
+        externalClearanceScenes.removeAll { $0.id == id }
+        touch()
+    }
+
+    mutating func updateExternalClearanceScene(_ updated: ExternalClearanceScene) {
+        guard let index = externalClearanceScenes.firstIndex(where: { $0.id == updated.id }) else { return }
+        externalClearanceScenes[index] = updated
         touch()
     }
 
@@ -724,7 +782,13 @@ extension PropertyScanSession {
             adjacencies: adjacencyPayloads,
             sessionObjects: sessionObjectPayloads,
             evidenceSummary: evidenceSummary,
-            sessionKnowledge: sessionKnowledge
+            sessionKnowledge: sessionKnowledge,
+            spatialEvidence3d: roomScanEvidence.isEmpty
+                ? nil
+                : roomScanEvidence.map { $0.toSpatialEvidence3D() },
+            externalClearanceScenes: externalClearanceScenes.isEmpty
+                ? nil
+                : externalClearanceScenes.map { $0.toExternalClearanceSceneV1() }
         )
     }
 
