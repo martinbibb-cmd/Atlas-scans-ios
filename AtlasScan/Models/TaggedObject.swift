@@ -69,7 +69,7 @@ struct TaggedObject: Identifiable, Codable {
     var isConfirmed: Bool
 
     /// Confidence level for the tag placement
-    var confidence: ConfidenceLevel
+    var confidence: TaggedObjectConfidenceLevel
 
     var createdAt: Date
     var updatedAt: Date
@@ -96,7 +96,7 @@ struct TaggedObject: Identifiable, Codable {
         quickFieldValues: [String: String] = [:],
         notes: String = "",
         isConfirmed: Bool = false,
-        confidence: ConfidenceLevel = .medium
+        confidence: TaggedObjectConfidenceLevel = .medium
     ) {
         self.id = id
         self.roomID = roomID
@@ -174,9 +174,35 @@ struct TaggedObject: Identifiable, Codable {
         quickFieldValues    = try c.decode([String: String].self,        forKey: .quickFieldValues)
         notes               = try c.decode(String.self,                  forKey: .notes)
         isConfirmed         = try c.decode(Bool.self,                    forKey: .isConfirmed)
-        confidence          = try c.decode(ConfidenceLevel.self,         forKey: .confidence)
+        confidence          = try c.decode(TaggedObjectConfidenceLevel.self, forKey: .confidence)
         createdAt           = try c.decode(Date.self,                    forKey: .createdAt)
         updatedAt           = try c.decode(Date.self,                    forKey: .updatedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(roomID, forKey: .roomID)
+        try c.encode(category, forKey: .category)
+        try c.encode(label, forKey: .label)
+        try c.encodeIfPresent(normalizedPosition, forKey: .normalizedPosition)
+        try c.encodeIfPresent(wallIndex, forKey: .wallIndex)
+        try c.encodeIfPresent(attachedWallID, forKey: .attachedWallID)
+        try c.encode(placementMode, forKey: .placementMode)
+        try c.encode(rotation, forKey: .rotation)
+        try c.encodeIfPresent(boundingSize, forKey: .boundingSize)
+        try c.encodeIfPresent(applianceProfileID, forKey: .applianceProfileID)
+        try c.encodeIfPresent(clearanceProfileID, forKey: .clearanceProfileID)
+        try c.encodeIfPresent(worldAnchor, forKey: .worldAnchor)
+        try c.encode(linkedPhotoIDs, forKey: .linkedPhotoIDs)
+        try c.encode(linkedVoiceNoteIDs, forKey: .linkedVoiceNoteIDs)
+        try c.encode(linkedIssueIDs, forKey: .linkedIssueIDs)
+        try c.encode(quickFieldValues, forKey: .quickFieldValues)
+        try c.encode(notes, forKey: .notes)
+        try c.encode(isConfirmed, forKey: .isConfirmed)
+        try c.encode(confidence, forKey: .confidence)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -209,9 +235,9 @@ enum AnchorConfidence: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - ConfidenceLevel
+// MARK: - TaggedObjectConfidenceLevel
 
-enum ConfidenceLevel: String, Codable, CaseIterable {
+enum TaggedObjectConfidenceLevel: String, Codable, CaseIterable {
     case high    = "high"
     case medium  = "medium"
     case low     = "low"
@@ -312,3 +338,4 @@ struct WorldAnchor3D: Codable, Equatable {
                                                   forKey: .anchorConfidence) ?? .screenOnly
     }
 }
+

@@ -100,6 +100,17 @@ private struct FactRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.primary)
 
+            if let snippet = fact.verbatimSnippet {
+                Label {
+                    Text("You mentioned \"" + snippet + "\"")
+                } icon: {
+                    Image(systemName: "quote.opening")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .italic()
+            }
+
             HStack(spacing: 8) {
                 if let roomID = fact.roomID,
                    let room = session.rooms.first(where: { $0.id == roomID }) {
@@ -160,27 +171,7 @@ private struct FactRow: View {
 
 #if DEBUG
 #Preview {
-    var session = MockData.sampleSession
-    session.extractedFacts = [
-        ExtractedSessionFact(
-            category: .householdComposition,
-            value: "Family of five, two adults, three children.",
-            confidence: .high,
-            sourceNoteID: UUID()
-        ),
-        ExtractedSessionFact(
-            category: .customerPriority,
-            value: "Low disruption is important.",
-            confidence: .high,
-            sourceNoteID: UUID()
-        ),
-        ExtractedSessionFact(
-            category: .currentSystemIssue,
-            value: "Current combi struggles when both showers run.",
-            confidence: .medium,
-            sourceNoteID: UUID()
-        ),
-    ]
-    return SessionFactReviewView(session: session)
+    SessionFactReviewView(session: MockData.sampleSession)
 }
 #endif
+

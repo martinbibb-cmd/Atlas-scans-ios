@@ -218,6 +218,29 @@ struct ExternalFlueCaptureView: View {
 
     private var placingFeaturesPanel: some View {
         VStack(spacing: 12) {
+            // Real-time obstruction warning banner (BS 5440 Part 1)
+            if !session.liveViolations.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                        Text("Clearance issue detected")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                    }
+                    ForEach(session.liveViolations, id: \.self) { violation in
+                        Text(violation)
+                            .font(.caption2)
+                            .foregroundStyle(.red.opacity(0.9))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(.red.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             HStack(spacing: 8) {
                 Image(systemName: session.pendingFeatureKind.symbolName)
                     .foregroundStyle(.white)

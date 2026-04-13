@@ -389,4 +389,21 @@ final class AtlasSyncVoiceNoteTests: XCTestCase {
         XCTAssertTrue(atlasSync.uploadQueue.isEmpty)
         XCTAssertFalse(atlasSync.isUploading)
     }
+
+    // MARK: - Upload priority ordering (offline-first)
+
+    func test_uploadPriority_sessionMetadata_isLowestNumber() {
+        let session = PropertyScanSession(propertyAddress: "1 Test St")
+        let note    = VoiceNote(localFilename: "n.m4a")
+        let photo   = TaggedPhoto(filename: "p.jpg")
+
+        let sessionPriority = AtlasSyncUploadItem.ItemKind.sessionMetadata(session).uploadPriority
+        let notePriority    = AtlasSyncUploadItem.ItemKind.voiceNote(note).uploadPriority
+        let photoPriority   = AtlasSyncUploadItem.ItemKind.photo(photo).uploadPriority
+
+        XCTAssertLessThan(sessionPriority, notePriority,
+                          "Session metadata must upload before voice notes")
+        XCTAssertLessThan(notePriority, photoPriority,
+                          "Voice notes must upload before photos")
+    }
 }

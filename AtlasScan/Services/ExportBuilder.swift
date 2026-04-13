@@ -384,9 +384,28 @@ final class ExportBuilder {
 
     private func contractConfidence(from level: ConfidenceLevel) -> ScanConfidenceBand {
         switch level {
-        case .high:    return .high
-        case .medium:  return .medium
-        case .low, .unknown: return .low
+        case .high:
+            return .high
+        case .medium:
+            return .medium
+        case .low:
+            return .low
+        @unknown default:
+            return .low
+        }
+    }
+    private func contractConfidence(from level: TaggedObjectConfidenceLevel) -> ScanConfidenceBand {
+        switch level {
+        case .high:
+            return .high
+        case .medium:
+            return .medium
+        case .low:
+            return .low
+        case .unknown:
+            return .low
+        @unknown default:
+            return .low
         }
     }
 
