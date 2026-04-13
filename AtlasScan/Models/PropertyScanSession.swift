@@ -103,6 +103,16 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Compliance runs from `measurements` and `nearbyFeatures`, not raw geometry.
     var externalClearanceScenes: [ExternalClearanceScene]
 
+    // MARK: Install markup
+
+    /// Install objects placed by the engineer on floor plans or wall photos.
+    /// Converted to `InstallObjectModelV1` at handoff time.
+    var installMarkupObjects: [InstallMarkupObject]
+
+    /// Pipe/gas routes drawn by the engineer on floor plans or wall photos.
+    /// Converted to `InstallRouteModelV1` at handoff time.
+    var installMarkupRoutes: [InstallMarkupRoute]
+
     // MARK: Timestamps
 
     var createdAt: Date
@@ -129,7 +139,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         extractedFacts: [ExtractedSessionFact] = [],
         issues: [ValidationIssue] = [],
         roomScanEvidence: [RoomScanEvidence] = [],
-        externalClearanceScenes: [ExternalClearanceScene] = []
+        externalClearanceScenes: [ExternalClearanceScene] = [],
+        installMarkupObjects: [InstallMarkupObject] = [],
+        installMarkupRoutes: [InstallMarkupRoute] = []
     ) {
         self.id = id
         if jobReference.isEmpty {
@@ -155,6 +167,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.issues = issues
         self.roomScanEvidence = roomScanEvidence
         self.externalClearanceScenes = externalClearanceScenes
+        self.installMarkupObjects = installMarkupObjects
+        self.installMarkupRoutes = installMarkupRoutes
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -167,6 +181,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case rooms, roomAdjacencies, roomPlacements
         case taggedObjects, photos, voiceNotes, extractedFacts, issues
         case roomScanEvidence, externalClearanceScenes
+        case installMarkupObjects, installMarkupRoutes
         case createdAt, updatedAt
     }
 
@@ -191,6 +206,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         issues           = try c.decodeIfPresent([ValidationIssue].self,       forKey: .issues)           ?? []
         roomScanEvidence        = try c.decodeIfPresent([RoomScanEvidence].self,        forKey: .roomScanEvidence)        ?? []
         externalClearanceScenes = try c.decodeIfPresent([ExternalClearanceScene].self,  forKey: .externalClearanceScenes) ?? []
+        installMarkupObjects    = try c.decodeIfPresent([InstallMarkupObject].self,     forKey: .installMarkupObjects)    ?? []
+        installMarkupRoutes     = try c.decodeIfPresent([InstallMarkupRoute].self,      forKey: .installMarkupRoutes)     ?? []
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
     }
@@ -788,7 +805,8 @@ extension PropertyScanSession {
                 : roomScanEvidence.map { $0.toSpatialEvidence3D() },
             externalClearanceScenes: externalClearanceScenes.isEmpty
                 ? nil
-                : externalClearanceScenes.map { $0.toExternalClearanceSceneV1() }
+                : externalClearanceScenes.map { $0.toExternalClearanceSceneV1() },
+            installLayer: toInstallLayerModelV1()
         )
     }
 
@@ -820,6 +838,51 @@ extension PropertyScanSession {
             voiceNoteCount: obj.linkedVoiceNoteIDs.count,
             quickFields: obj.quickFieldValues,
             worldAnchor: anchor
+        )
+    }
+
+    /// Projects local `InstallMarkupObject` and `InstallMarkupRoute` arrays into
+    /// the canonical `InstallLayerModelV1` contract model.
+    ///
+    /// Returns `nil` when no markup has been captured, so the handoff payload
+    /// can omit the field entirely rather than carrying an empty layer.
+    func toInstallLayerModelV1() -> InstallLayerModelV1? {
+        guard !installMarkupObjects.isEmpty || !installMarkupRoutes.isEmpty else { return nil }
+
+        let contractObjects: [InstallObjectModelV1] = installMarkupObjects.map { obj in
+            InstallObjectModelV1(
+                id: obj.id.uuidString,
+                type: obj.categoryRawValue,
+                label: obj.displayLabel,
+                position: InstallPathPointV1(x: obj.position.x, y: obj.position.y),
+                widthM: obj.widthM,
+                depthM: obj.depthM,
+                rotationRad: obj.rotationRad,
+                source: obj.source.rawValue,
+                layer: obj.layer.rawValue,
+                roomID: obj.roomID?.uuidString
+            )
+        }
+
+        let contractRoutes: [InstallRouteModelV1] = installMarkupRoutes.map { route in
+            InstallRouteModelV1(
+                id: route.id.uuidString,
+                kind: route.kind.rawValue,
+                diameterMm: route.diameterMm,
+                path: route.path.map { InstallPathPointV1(x: $0.x, y: $0.y) },
+                mounting: route.mounting.rawValue,
+                confidence: route.confidence.rawValue,
+                layer: route.layer.rawValue,
+                roomID: route.roomID?.uuidString,
+                notes: route.notes.isEmpty ? nil : route.notes
+            )
+        }
+
+        return InstallLayerModelV1(
+            existingObjects: contractObjects.filter { $0.layer == MarkupLayer.existing.rawValue },
+            proposedObjects: contractObjects.filter { $0.layer == MarkupLayer.proposed.rawValue },
+            existingRoutes:  contractRoutes.filter  { $0.layer == MarkupLayer.existing.rawValue },
+            proposedRoutes:  contractRoutes.filter  { $0.layer == MarkupLayer.proposed.rawValue }
         )
     }
 }

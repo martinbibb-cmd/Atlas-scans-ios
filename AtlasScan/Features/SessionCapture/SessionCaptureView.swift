@@ -32,6 +32,7 @@ struct SessionCaptureView: View {
     @State private var showingLiveView = false
     @State private var showingReview = false
     @State private var showingFlueCapture = false
+    @State private var showingInstallMarkup = false
     @State private var newRoomName = ""
     @State private var newRoomFloor = 0
 
@@ -110,6 +111,9 @@ struct SessionCaptureView: View {
                     viewModel.addExternalClearanceScene(scene)
                 }
             }
+        }
+        .sheet(isPresented: $showingInstallMarkup) {
+            installMarkupSheet
         }
         .navigationDestination(isPresented: $showingReview) {
             SessionReviewView(
@@ -693,6 +697,13 @@ struct SessionCaptureView: View {
             } label: {
                 Label(noteMarkerButtonLabel, systemImage: "mic.badge.plus")
             }
+
+            // Install markup
+            Button {
+                showingInstallMarkup = true
+            } label: {
+                Label("Install Markup", systemImage: "pencil.and.ruler")
+            }
         } header: {
             Text("Capture")
         } footer: {
@@ -716,6 +727,41 @@ struct SessionCaptureView: View {
             return "Note Marker (Room)"
         } else {
             return "Note Marker"
+        }
+    }
+
+    // MARK: - Install markup sheet
+
+    @ViewBuilder
+    private var installMarkupSheet: some View {
+        let room = viewModel.selectedRoom ?? viewModel.session.rooms.first
+        if let room {
+            InstallMarkupSheet(
+                room: room,
+                existingObjects: viewModel.session.installMarkupObjects,
+                existingRoutes: viewModel.session.installMarkupRoutes,
+                onCommit: { newObject, newRoute in
+                    if let obj = newObject {
+                        viewModel.addInstallMarkupObject(obj)
+                    }
+                    if let route = newRoute {
+                        viewModel.addInstallMarkupRoute(route)
+                    }
+                },
+                onDismiss: { showingInstallMarkup = false }
+            )
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "pencil.and.ruler")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text("Add a room first to use Install Markup.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Dismiss") { showingInstallMarkup = false }
+                    .buttonStyle(.bordered)
+            }
+            .padding()
         }
     }
 

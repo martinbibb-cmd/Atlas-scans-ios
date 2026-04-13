@@ -431,4 +431,52 @@ final class SessionCaptureViewModel: ObservableObject {
         session.removeExternalClearanceScene(id: id)
         scheduleAutosave()
     }
+
+    // MARK: - Install markup management
+
+    /// Adds a new install markup object to the session.
+    func addInstallMarkupObject(_ obj: InstallMarkupObject) {
+        session.installMarkupObjects.append(obj)
+        session.touch()
+        scheduleAutosave()
+    }
+
+    /// Updates an existing install markup object, matched by `id`.
+    func updateInstallMarkupObject(_ updated: InstallMarkupObject) {
+        guard let index = session.installMarkupObjects.firstIndex(where: { $0.id == updated.id })
+        else { return }
+        session.installMarkupObjects[index] = updated
+        session.touch()
+        scheduleAutosave()
+    }
+
+    /// Removes an install markup object by `id`.
+    func removeInstallMarkupObject(id: UUID) {
+        session.installMarkupObjects.removeAll { $0.id == id }
+        session.touch()
+        scheduleAutosave()
+    }
+
+    /// Adds a new install markup route to the session.
+    func addInstallMarkupRoute(_ route: InstallMarkupRoute) {
+        session.installMarkupRoutes.append(route)
+        session.touch()
+        scheduleAutosave()
+    }
+
+    /// Updates an existing install markup route, matched by `id`.
+    func updateInstallMarkupRoute(_ updated: InstallMarkupRoute) {
+        guard let index = session.installMarkupRoutes.firstIndex(where: { $0.id == updated.id })
+        else { return }
+        session.installMarkupRoutes[index] = updated
+        session.touch()
+        scheduleAutosave()
+    }
+
+    /// Removes an install markup route by `id`.
+    func removeInstallMarkupRoute(id: UUID) {
+        session.installMarkupRoutes.removeAll { $0.id == id }
+        session.touch()
+        scheduleAutosave()
+    }
 }
