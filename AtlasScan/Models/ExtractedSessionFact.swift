@@ -164,6 +164,11 @@ struct ExtractedSessionFact: Identifiable, Codable, Equatable {
     /// Object scope of the fact; nil when not tied to a specific object.
     var objectID: UUID?
 
+    /// The verbatim phrase from the voice note that triggered this extraction.
+    /// Nil when extraction was based on the full note text (e.g. explicit hint path).
+    /// Shown in the UI as a "You mentioned…" provenance callout to aid trust and correction.
+    var verbatimSnippet: String?
+
     var createdAt: Date
 
     // MARK: Init
@@ -176,6 +181,7 @@ struct ExtractedSessionFact: Identifiable, Codable, Equatable {
         sourceNoteID: UUID? = nil,
         roomID: UUID? = nil,
         objectID: UUID? = nil,
+        verbatimSnippet: String? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -185,6 +191,7 @@ struct ExtractedSessionFact: Identifiable, Codable, Equatable {
         self.sourceNoteID = sourceNoteID
         self.roomID = roomID
         self.objectID = objectID
+        self.verbatimSnippet = verbatimSnippet
         self.createdAt = createdAt
     }
 
@@ -193,19 +200,21 @@ struct ExtractedSessionFact: Identifiable, Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case id, category, value, confidence
         case sourceNoteID, roomID, objectID
+        case verbatimSnippet
         case createdAt
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id           = try c.decode(UUID.self,                         forKey: .id)
-        category     = try c.decode(SessionFactCategory.self,          forKey: .category)
-        value        = try c.decode(String.self,                       forKey: .value)
-        confidence   = try c.decodeIfPresent(ConfidenceLevel.self,     forKey: .confidence) ?? .medium
-        sourceNoteID = try c.decodeIfPresent(UUID.self,                forKey: .sourceNoteID)
-        roomID       = try c.decodeIfPresent(UUID.self,                forKey: .roomID)
-        objectID     = try c.decodeIfPresent(UUID.self,                forKey: .objectID)
-        createdAt    = try c.decodeIfPresent(Date.self,                forKey: .createdAt) ?? Date()
+        id              = try c.decode(UUID.self,                         forKey: .id)
+        category        = try c.decode(SessionFactCategory.self,          forKey: .category)
+        value           = try c.decode(String.self,                       forKey: .value)
+        confidence      = try c.decodeIfPresent(ConfidenceLevel.self,     forKey: .confidence) ?? .medium
+        sourceNoteID    = try c.decodeIfPresent(UUID.self,                forKey: .sourceNoteID)
+        roomID          = try c.decodeIfPresent(UUID.self,                forKey: .roomID)
+        objectID        = try c.decodeIfPresent(UUID.self,                forKey: .objectID)
+        verbatimSnippet = try c.decodeIfPresent(String.self,              forKey: .verbatimSnippet)
+        createdAt       = try c.decodeIfPresent(Date.self,                forKey: .createdAt) ?? Date()
     }
 }
 

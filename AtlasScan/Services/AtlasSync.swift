@@ -166,15 +166,19 @@ final class AtlasSync: ObservableObject {
     // MARK: Upload processing
 
     /// Starts processing the upload queue.
-    /// Items are processed concurrently up to the system's limit.
+    /// Items are processed in priority order: session metadata → voice notes → photos.
+    /// This ensures lightweight, report-critical data reaches Atlas first, which is
+    /// particularly important in areas with poor mobile signal (e.g. plant rooms).
     func processQueue() {
         guard configuration.isEnabled else { return }
         guard !uploadQueue.isEmpty else { return }
         isUploading = true
 
-        let pending = uploadQueue.filter { item in
-            activeTasks[item.id] == nil
-        }
+        // Sort pending items by upload priority before starting tasks so that
+        // session metadata and voice notes are dispatched ahead of heavy photo assets.
+        let pending = uploadQueue
+            .filter { activeTasks[$0.id] == nil }
+            .sorted { $0.kind.uploadPriority < $1.kind.uploadPriority }
 
         for item in pending {
             let task = Task { [weak self] in
@@ -361,6 +365,20 @@ extension AtlasSyncUploadItem.ItemKind: CustomStringConvertible {
         case .photo(let p): return "photo(\(p.id.uuidString))"
         case .sessionMetadata(let s): return "session(\(s.id.uuidString))"
         case .voiceNote(let n): return "voiceNote(\(n.id.uuidString))"
+        }
+    }
+
+    /// Upload priority: lower value = higher priority.
+    ///
+    /// Ordering (offline-first, lightweight-before-heavy):
+    ///   1. Session metadata — tiny JSON, essential for report hydration
+    ///   2. Voice notes    — small audio files; carry extracted facts
+    ///   3. Photos         — largest binary assets; uploaded last
+    var uploadPriority: Int {
+        switch self {
+        case .sessionMetadata: return 0
+        case .voiceNote:       return 1
+        case .photo:           return 2
         }
     }
 }
