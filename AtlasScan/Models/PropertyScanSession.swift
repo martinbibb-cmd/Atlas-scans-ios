@@ -878,11 +878,26 @@ extension PropertyScanSession {
             )
         }
 
+        let existingKey = MarkupLayer.existing.rawValue
+        let proposedKey = MarkupLayer.proposed.rawValue
+
+        var existingObjs = [InstallObjectModelV1](), proposedObjs = [InstallObjectModelV1]()
+        for obj in contractObjects {
+            if obj.layer == existingKey { existingObjs.append(obj) }
+            else if obj.layer == proposedKey { proposedObjs.append(obj) }
+        }
+
+        var existingRts = [InstallRouteModelV1](), proposedRts = [InstallRouteModelV1]()
+        for route in contractRoutes {
+            if route.layer == existingKey { existingRts.append(route) }
+            else if route.layer == proposedKey { proposedRts.append(route) }
+        }
+
         return InstallLayerModelV1(
-            existingObjects: contractObjects.filter { $0.layer == MarkupLayer.existing.rawValue },
-            proposedObjects: contractObjects.filter { $0.layer == MarkupLayer.proposed.rawValue },
-            existingRoutes:  contractRoutes.filter  { $0.layer == MarkupLayer.existing.rawValue },
-            proposedRoutes:  contractRoutes.filter  { $0.layer == MarkupLayer.proposed.rawValue }
+            existingObjects: existingObjs,
+            proposedObjects: proposedObjs,
+            existingRoutes: existingRts,
+            proposedRoutes: proposedRts
         )
     }
 }

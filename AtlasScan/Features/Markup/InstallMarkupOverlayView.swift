@@ -37,8 +37,8 @@ struct InstallMarkupOverlayView: View {
                 // Transparent tap surface
                 Color.clear
                     .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        let norm = normalize(location, size: geo.size)
+                    .onTapGesture { point in
+                        let norm = normalize(point, size: geo.size)
                         viewModel.handleTap(at: norm)
                     }
 
@@ -246,7 +246,7 @@ struct InstallMarkupOverlayView: View {
         case .hotWater:   return .orange
         case .condensate: return .purple
         case .flue:       return .brown
-        case .electrical: return .yellow
+        case .electrical: return .mint
         case .other:      return .gray
         }
     }
