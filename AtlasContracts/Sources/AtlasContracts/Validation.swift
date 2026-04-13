@@ -87,6 +87,18 @@ public func validateScanBundle(_ data: Data) -> ScanValidationResult {
 
     do {
         let bundle = try JSONDecoder().decode(ScanBundleV1.self, from: data)
+        // Versioning guardrail: warn in DEBUG builds when an incoming bundle was
+        // produced by an older contract generation.  This surfaces "stale data"
+        // earlier in the pipeline rather than silently accepting it.
+        #if DEBUG
+        if isBundleVersionStale(bundle.version) {
+            print(
+                "[AtlasContracts] ⚠️ Stale bundle detected: version '\(bundle.version)' is older " +
+                "than the current contract version '\(currentScanBundleVersion)'. " +
+                "Fields added in newer versions will be missing from this payload."
+            )
+        }
+        #endif
         return .success(bundle)
     } catch {
         return .failure(["Failed to decode bundle: \(error.localizedDescription)"])

@@ -166,6 +166,56 @@ final class SessionKnowledgeExtractorTests: XCTestCase {
         XCTAssertTrue(facts.contains { $0.category == .waterQuality })
     }
 
+    // MARK: - Verbatim snippet (voice-to-fact accuracy)
+
+    func test_extractFacts_householdKeyword_populatesVerbatimSnippet() {
+        let note = makeNote(caption: "Family of five people living here.")
+        let facts = SessionKnowledgeExtractor.extractFacts(from: note)
+        let household = facts.first { $0.category == .householdComposition }
+        XCTAssertNotNil(household?.verbatimSnippet)
+        XCTAssertEqual(household?.verbatimSnippet, "family of")
+    }
+
+    func test_extractFacts_waterQualityKeyword_populatesVerbatimSnippet() {
+        let note = makeNote(caption: "Hard water area, scaling around taps.")
+        let facts = SessionKnowledgeExtractor.extractFacts(from: note)
+        let wq = facts.first { $0.category == .waterQuality }
+        XCTAssertNotNil(wq?.verbatimSnippet)
+    }
+
+    func test_extractFacts_explicitHint_verbatimSnippetIsNil() {
+        // Explicit hint path does not extract a keyword snippet — the whole note is the value.
+        let note = VoiceNote(
+            localFilename: "test.m4a",
+            caption: "Family of five, two adults, three children.",
+            extractionHint: .householdComposition
+        )
+        let facts = SessionKnowledgeExtractor.extractFacts(from: note)
+        XCTAssertEqual(facts.count, 1)
+        XCTAssertNil(facts[0].verbatimSnippet)
+    }
+
+    func test_extractFacts_constraintKindTrigger_verbatimSnippetIsNil() {
+        // Kind-driven extraction (no keyword match needed) produces no snippet.
+        let note = VoiceNote(
+            localFilename: "test.m4a",
+            caption: "Low disruption is important.",
+            kind: .constraint
+        )
+        let facts = SessionKnowledgeExtractor.extractFacts(from: note)
+        let constraintFacts = facts.filter { $0.category == .customerConstraint }
+        XCTAssertFalse(constraintFacts.isEmpty)
+        XCTAssertNil(constraintFacts[0].verbatimSnippet)
+    }
+
+    func test_extractFacts_constraintKeyword_populatesVerbatimSnippet() {
+        let note = makeNote(caption: "Customer wants to keep airing cupboard free.")
+        let facts = SessionKnowledgeExtractor.extractFacts(from: note)
+        let constraintFacts = facts.filter { $0.category == .customerConstraint }
+        XCTAssertFalse(constraintFacts.isEmpty)
+        XCTAssertNotNil(constraintFacts[0].verbatimSnippet)
+    }
+
     // MARK: - Helpers
 
     private func makeNote(caption: String) -> VoiceNote {

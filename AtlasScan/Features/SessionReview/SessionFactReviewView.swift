@@ -100,6 +100,13 @@ private struct FactRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.primary)
 
+            if let snippet = fact.verbatimSnippet {
+                Label("You mentioned "\(snippet)"", systemImage: "quote.opening")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .italic()
+            }
+
             HStack(spacing: 8) {
                 if let roomID = fact.roomID,
                    let room = session.rooms.first(where: { $0.id == roomID }) {

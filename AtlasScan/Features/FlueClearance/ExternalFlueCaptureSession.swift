@@ -54,6 +54,13 @@ final class ExternalFlueCaptureSession: NSObject, ObservableObject {
     @Published private(set) var terminalCapture: FlueTerminalCapture?
     @Published private(set) var nearbyFeatures: [NearbyFeatureCapture] = []
 
+    /// Real-time obstruction violation messages derived from `nearbyFeatures`.
+    ///
+    /// Updated immediately whenever a feature is placed or removed, giving the
+    /// engineer instant feedback (per BS 5440 / Gas Safe minimum clearances) rather
+    /// than waiting until the Review phase.  Empty when all features are clear.
+    @Published private(set) var liveViolations: [String] = []
+
     /// The kind that will be assigned to the next tapped feature anchor.
     @Published var pendingFeatureKind: ClearanceFeatureKind = .window
 
@@ -114,6 +121,7 @@ final class ExternalFlueCaptureSession: NSObject, ObservableObject {
     /// Removes a nearby feature by ID.
     func removeFeature(id: UUID) {
         nearbyFeatures.removeAll { $0.id == id }
+        recomputeLiveViolations()
     }
 
     /// Updates the notes on an existing nearby feature.
@@ -233,6 +241,38 @@ final class ExternalFlueCaptureSession: NSObject, ObservableObject {
             distanceToTerminalM: distanceM
         )
         nearbyFeatures.append(feature)
+        recomputeLiveViolations()
+    }
+
+    // MARK: - Private: live violation check
+
+    /// Recomputes `liveViolations` from the current `nearbyFeatures`.
+    ///
+    /// Minimum clearances applied (BS 5440 Part 1 / Gas Safe guidance):
+    ///   • Terminal to opening (window, door, air brick, opening, adjacent flue): 300 mm
+    ///   • Terminal to boundary: 600 mm
+    ///   • Terminal to eaves / gutter: 300 mm
+    ///   • All other feature kinds: 300 mm (conservative fallback)
+    private func recomputeLiveViolations() {
+        var violations: [String] = []
+        for feature in nearbyFeatures {
+            guard let dist = feature.distanceToTerminalM else { continue }
+            let minimum: Double
+            switch feature.kind {
+            case .boundary:
+                minimum = 0.60
+            default:
+                minimum = 0.30
+            }
+            if dist < minimum {
+                let distMM = Int((dist * 1000).rounded())
+                let minMM = Int(minimum * 1000)
+                violations.append(
+                    "\(feature.kind.displayName) is \(distMM) mm away — minimum \(minMM) mm required (BS 5440 Part 1)."
+                )
+            }
+        }
+        liveViolations = violations
     }
 
     // MARK: - Private: measurement builder

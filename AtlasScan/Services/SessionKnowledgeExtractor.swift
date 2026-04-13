@@ -134,36 +134,39 @@ struct SessionKnowledgeExtractor {
         let keywords = ["family of", "household of", "two adults", "three adults",
                         "single adult", "couple", "occupants", "residents",
                         "adults and", "children", "kids"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
-        return makeFact(category: .householdComposition, note: note, confidence: .medium)
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
+        return makeFact(category: .householdComposition, note: note, confidence: .medium, verbatimSnippet: matched)
     }
 
     private static func extractOccupancy(text: String, note: VoiceNote) -> ExtractedSessionFact? {
         let keywords = ["at home during", "works from home", "school hours", "mostly empty",
                         "occupied all day", "shift work", "commute", "home all day",
                         "away during"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
-        return makeFact(category: .occupancyPattern, note: note, confidence: .medium)
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
+        return makeFact(category: .occupancyPattern, note: note, confidence: .medium, verbatimSnippet: matched)
     }
 
     private static func extractBathrooms(text: String, note: VoiceNote) -> ExtractedSessionFact? {
         let keywords = ["bathroom", "bathrooms", "shower", "bath", "en suite", "en-suite",
                         "wet room", "cloakroom"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
         // If it reads more like a usage observation than a count, let extractHotWaterUsage handle it.
         let countKeywords = ["one bathroom", "two bathroom", "three bathroom",
                              "1 bathroom", "2 bathroom", "3 bathroom",
                              "single bathroom", "double bathroom"]
-        let confidence: ConfidenceLevel = countKeywords.contains(where: { text.contains($0) }) ? .high : .medium
-        return makeFact(category: .bathroomCount, note: note, confidence: confidence)
+        let countMatch = countKeywords.first(where: { text.contains($0) })
+        let confidence: ConfidenceLevel = countMatch != nil ? .high : .medium
+        // Prefer the more specific count phrase as the verbatim snippet when available,
+        // otherwise use the general bathroom keyword that triggered the extraction.
+        return makeFact(category: .bathroomCount, note: note, confidence: confidence, verbatimSnippet: countMatch ?? matched)
     }
 
     private static func extractHotWaterUsage(text: String, note: VoiceNote) -> ExtractedSessionFact? {
         let keywords = ["hot water", "shower mostly", "bath mostly", "both showers",
                         "simultaneous", "peak demand", "morning demand", "evening demand",
                         "hot water usage", "only use shower"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
-        return makeFact(category: .hotWaterUsage, note: note, confidence: .medium)
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
+        return makeFact(category: .hotWaterUsage, note: note, confidence: .medium, verbatimSnippet: matched)
     }
 
     private static func extractPriority(text: String, note: VoiceNote) -> ExtractedSessionFact? {
@@ -172,9 +175,11 @@ struct SessionKnowledgeExtractor {
                         "customer wants", "prefers", "keen on", "really wants",
                         "must have", "critical for", "value", "quick hot water",
                         "lower bills", "quieter", "reliability"]
-        let keywordMatch = keywords.contains(where: { text.contains($0) })
-        guard kindMatch || keywordMatch else { return nil }
-        return makeFact(category: .customerPriority, note: note, confidence: kindMatch ? .high : .medium)
+        let matchedKeyword = keywords.first(where: { text.contains($0) })
+        guard kindMatch || matchedKeyword != nil else { return nil }
+        // When the note kind drives extraction, use the note kind as the snippet indicator.
+        let snippet: String? = kindMatch ? nil : matchedKeyword
+        return makeFact(category: .customerPriority, note: note, confidence: kindMatch ? .high : .medium, verbatimSnippet: snippet)
     }
 
     private static func extractConstraint(text: String, note: VoiceNote) -> ExtractedSessionFact? {
@@ -183,9 +188,10 @@ struct SessionKnowledgeExtractor {
                         "no access", "low disruption", "minimal disruption",
                         "not allowed", "restricted", "listed building",
                         "conservation area", "tenant", "landlord", "permission needed"]
-        let keywordMatch = keywords.contains(where: { text.contains($0) })
-        guard kindMatch || keywordMatch else { return nil }
-        return makeFact(category: .customerConstraint, note: note, confidence: kindMatch ? .high : .medium)
+        let matchedKeyword = keywords.first(where: { text.contains($0) })
+        guard kindMatch || matchedKeyword != nil else { return nil }
+        let snippet: String? = kindMatch ? nil : matchedKeyword
+        return makeFact(category: .customerConstraint, note: note, confidence: kindMatch ? .high : .medium, verbatimSnippet: snippet)
     }
 
     private static func extractSystemType(text: String, note: VoiceNote) -> ExtractedSessionFact? {
@@ -193,8 +199,8 @@ struct SessionKnowledgeExtractor {
                         "open vent", "sealed system", "heat pump", "solar thermal",
                         "back boiler", "combination boiler", "cylinder", "unvented",
                         "vented cylinder", "this is the boiler", "this is the cylinder"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
-        return makeFact(category: .currentSystemType, note: note, confidence: .medium)
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
+        return makeFact(category: .currentSystemType, note: note, confidence: .medium, verbatimSnippet: matched)
     }
 
     private static func extractSystemIssue(text: String, note: VoiceNote) -> ExtractedSessionFact? {
@@ -203,23 +209,25 @@ struct SessionKnowledgeExtractor {
                         "leaking", "corrosion", "pressure dropping", "losing pressure",
                         "cutting out", "not heating", "cold spots", "intermittent",
                         "old boiler", "failing", "inefficient", "frequent breakdowns"]
-        let keywordMatch = keywords.contains(where: { text.contains($0) })
-        guard kindMatch || keywordMatch else { return nil }
-        return makeFact(category: .currentSystemIssue, note: note, confidence: kindMatch ? .high : .medium)
+        let matchedKeyword = keywords.first(where: { text.contains($0) })
+        guard kindMatch || matchedKeyword != nil else { return nil }
+        let snippet: String? = kindMatch ? nil : matchedKeyword
+        return makeFact(category: .currentSystemIssue, note: note, confidence: kindMatch ? .high : .medium, verbatimSnippet: snippet)
     }
 
     private static func extractWaterQuality(text: String, note: VoiceNote) -> ExtractedSessionFact? {
         let keywords = ["hard water", "soft water", "scaling", "limescale", "scale",
                         "calcium", "water quality", "filter needed", "softener",
                         "chalky", "kettle scaling", "furring up"]
-        guard keywords.contains(where: { text.contains($0) }) else { return nil }
-        return makeFact(category: .waterQuality, note: note, confidence: .medium)
+        guard let matched = keywords.first(where: { text.contains($0) }) else { return nil }
+        return makeFact(category: .waterQuality, note: note, confidence: .medium, verbatimSnippet: matched)
     }
 
     private static func makeFact(
         category: SessionFactCategory,
         note: VoiceNote,
-        confidence: ConfidenceLevel
+        confidence: ConfidenceLevel,
+        verbatimSnippet: String? = nil
     ) -> ExtractedSessionFact {
         let value = effectiveText(for: note)
         return ExtractedSessionFact(
@@ -229,6 +237,7 @@ struct SessionKnowledgeExtractor {
             sourceNoteID: note.id,
             roomID: note.linkedRoomID,
             objectID: note.linkedObjectID,
+            verbatimSnippet: verbatimSnippet,
             createdAt: note.createdAt
         )
     }
