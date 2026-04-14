@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA010089 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA020089 /* Assets.xcassets */; };
 		AA010076 /* ExtractedSessionFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020076 /* ExtractedSessionFact.swift */; };
 		AA010077 /* SessionKnowledgeExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020077 /* SessionKnowledgeExtractor.swift */; };
 		AA010078 /* SessionKnowledgeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020078 /* SessionKnowledgeSection.swift */; };
@@ -217,6 +218,7 @@
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA020089 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -239,13 +241,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		7AF30DB42F85457C001E33CC /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		AA050001 /* AtlasScan */ = {
 			isa = PBXGroup;
 			children = (
@@ -352,6 +347,7 @@
 			isa = PBXGroup;
 			children = (
 				AA030003 /* Info.plist */,
+				AA020089 /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -498,7 +494,6 @@
 			children = (
 				AA050001 /* AtlasScan */,
 				AA060001 /* AtlasScanTests */,
-				7AF30DB42F85457C001E33CC /* Frameworks */,
 				AA060002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -608,7 +603,7 @@
 			);
 			mainGroup = AA060000;
 			packageReferences = (
-				7AF30DB32F854561001E33CC /* XCRemoteSwiftPackageReference "Atlas-contracts" */,
+				AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */,
 			);
 			productRefGroup = AA060002 /* Products */;
 			projectDirPath = "";
@@ -625,6 +620,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA010089 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1009,16 +1005,7 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		7AF30DB32F854561001E33CC /* XCRemoteSwiftPackageReference "Atlas-contracts" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/martinbibb-cmd/Atlas-contracts";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
+
 
 /* Begin XCSwiftPackageProductDependency section */
 		AAPKG002 /* AtlasContracts */ = {
