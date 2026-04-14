@@ -319,48 +319,11 @@ struct ExportPreviewView: View {
     }
 }
 
-// MARK: - JSONInspectorView
-
-struct JSONInspectorView: View {
-    let json: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                Text(json)
-                    .font(.system(.caption, design: .monospaced))
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .navigationTitle("Bundle JSON")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - ShareItem (Identifiable wrapper)
 
 struct ShareItem: Identifiable {
     let id = UUID()
     let url: URL
-}
-
-// MARK: - ShareSheet (UIActivityViewController wrapper)
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Previews
