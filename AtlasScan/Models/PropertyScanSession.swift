@@ -575,7 +575,7 @@ enum SessionSyncState: String, Codable, CaseIterable {
 
 // MARK: - HandoffState
 
-/// Tracks whether the canonical AtlasPropertyV1 payload has been sent to Atlas Mind.
+/// Tracks whether the export payload has been sent to Atlas Mind.
 enum HandoffState: String, Codable, CaseIterable {
     case notSent   = "not_sent"
     case sent      = "sent"
@@ -699,148 +699,7 @@ struct ServiceInputsStreamV1: Codable, Equatable {
     )
 }
 
-// MARK: - AtlasPropertyV1 projection
-
 extension PropertyScanSession {
-
-    /// Projects this session into a canonical `AtlasPropertyV1` for Atlas Mind handoff.
-    ///
-    /// This is the primary export path introduced in PR 5.  The legacy
-    /// `toScanJob()` / `ExportPackageBuilder` path is preserved as a fallback.
-    ///
-    /// - Parameter handoffDate: Timestamp to record as `handoffAt`. Defaults to now.
-    /// - Returns: A fully populated `AtlasPropertyV1` ready for sharing or upload.
-    func toAtlasPropertyV1(handoffDate: Date = Date()) -> AtlasPropertyV1 {
-        let iso: ISO8601DateFormatter = {
-            let f = ISO8601DateFormatter()
-            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            return f
-        }()
-
-        // Build room projections
-        let roomPayloads: [AtlasPropertyRoomV1] = rooms.map { room in
-            let objectPayloads = room.taggedObjects.map { obj in
-                atlasObject(from: obj, roomID: room.id)
-            }
-            let photoCount = room.photos.count +
-                room.taggedObjects.reduce(0) { $0 + $1.linkedPhotoIDs.count }
-            let voiceNoteCount = room.voiceNotes.count +
-                room.taggedObjects.reduce(0) { $0 + $1.linkedVoiceNoteIDs.count }
-
-            return AtlasPropertyRoomV1(
-                id: room.id.uuidString,
-                name: room.name,
-                floorIndex: room.floor,
-                geometryCaptured: room.geometryCaptured,
-                areaM2: room.areaSquareMetres,
-                heightM: room.ceilingHeightMetres,
-                isReviewed: room.isReviewed,
-                objects: objectPayloads,
-                photoCount: photoCount,
-                voiceNoteCount: voiceNoteCount
-            )
-        }
-
-        // Session-level (floating) objects — not assigned to any room
-        let sessionObjectPayloads = taggedObjects.map { atlasObject(from: $0, roomID: nil) }
-
-        // Adjacencies
-        let adjacencyPayloads: [AtlasPropertyAdjacencyV1] = roomAdjacencies.map { adj in
-            AtlasPropertyAdjacencyV1(
-                id: adj.id.uuidString,
-                fromRoomID: adj.fromRoomID.uuidString,
-                toRoomID: adj.toRoomID.uuidString,
-                kind: adj.kind.rawValue,
-                isConfirmed: adj.isConfirmed,
-                openingID: adj.openingID?.uuidString,
-                notes: adj.notes
-            )
-        }
-
-        // Evidence summary
-        let evidenceSummary = AtlasEvidenceSummaryV1(
-            totalPhotos: totalPhotos,
-            totalVoiceNotes: totalVoiceNotes,
-            sessionPhotoCount: photos.count,
-            sessionVoiceNoteCount: voiceNotes.count
-        )
-
-        // Session knowledge — project medium/high-confidence extracted facts only.
-        let projectedFacts: [AtlasExtractedFactV1] = extractedFacts
-            .filter { $0.confidence >= .medium }
-            .map { fact in
-                AtlasExtractedFactV1(
-                    id: fact.id.uuidString,
-                    category: fact.category.rawValue,
-                    value: fact.value,
-                    confidence: fact.confidence.rawValue,
-                    sourceNoteID: fact.sourceNoteID?.uuidString,
-                    roomID: fact.roomID?.uuidString,
-                    objectID: fact.objectID?.uuidString,
-                    createdAt: iso.string(from: fact.createdAt)
-                )
-            }
-        let sessionKnowledge: AtlasSessionKnowledgeV1? = projectedFacts.isEmpty
-            ? nil
-            : AtlasSessionKnowledgeV1(extractedFacts: projectedFacts)
-
-        return AtlasPropertyV1(
-            schemaVersion: currentAtlasPropertyVersion,
-            propertyID: id.uuidString,
-            jobReference: jobReference,
-            propertyAddress: propertyAddress,
-            engineerName: engineerName,
-            atlasJobID: atlasJobID,
-            capturedAt: iso.string(from: createdAt),
-            handoffAt: iso.string(from: handoffDate),
-            scanState: scanState.rawValue,
-            reviewState: reviewState.rawValue,
-            rooms: roomPayloads,
-            adjacencies: adjacencyPayloads,
-            sessionObjects: sessionObjectPayloads,
-            evidenceSummary: evidenceSummary,
-            sessionKnowledge: sessionKnowledge,
-            spatialEvidence3d: roomScanEvidence.isEmpty
-                ? nil
-                : roomScanEvidence.map { $0.toSpatialEvidence3D() },
-            externalClearanceScenes: externalClearanceScenes.isEmpty
-                ? nil
-                : externalClearanceScenes.map { $0.toExternalClearanceSceneV1() },
-            installLayer: toInstallLayerModelV1()
-        )
-    }
-
-    /// Maps a `TaggedObject` to `AtlasPropertyObjectV1`.
-    ///
-    /// - Parameters:
-    ///   - obj: The tagged object to map.
-    ///   - roomID: The UUID of the room this object belongs to, or `nil` for
-    ///             session-level objects that are not assigned to any room.
-    private func atlasObject(from obj: TaggedObject, roomID: UUID?) -> AtlasPropertyObjectV1 {
-        let anchor: AtlasWorldAnchorV1? = obj.worldAnchor.map { wa in
-            AtlasWorldAnchorV1(
-                x: wa.x,
-                y: wa.y,
-                z: wa.z,
-                screenX: wa.screenX,
-                screenY: wa.screenY,
-                anchorConfidence: wa.anchorConfidence.rawValue
-            )
-        }
-        return AtlasPropertyObjectV1(
-            id: obj.id.uuidString,
-            category: obj.category.rawValue,
-            label: obj.displayLabel,
-            roomID: roomID?.uuidString,
-            placementMode: obj.placementMode.rawValue,
-            confidence: obj.confidence.rawValue,
-            photoCount: obj.linkedPhotoIDs.count,
-            voiceNoteCount: obj.linkedVoiceNoteIDs.count,
-            quickFields: obj.quickFieldValues,
-            worldAnchor: anchor
-        )
-    }
-
     /// Projects local `InstallMarkupObject` and `InstallMarkupRoute` arrays into
     /// the canonical `InstallLayerModelV1` contract model.
     ///

@@ -6,7 +6,7 @@ import UIKit
 //
 // A thin UIViewControllerRepresentable wrapper around UIActivityViewController.
 // Used by AtlasHandoffView to present the system share sheet for the
-// AtlasPropertyV1 export file.
+// export file.
 
 struct ShareSheet: UIViewControllerRepresentable {
 
