@@ -9,7 +9,7 @@ import AtlasContracts
 //   2. Local RoomScanEvidence → SpatialEvidence3D projection
 //   3. Local ExternalClearanceScene → ExternalClearanceSceneV1 projection
 //   4. ExternalClearanceScene compliance evaluation
-//   5. PropertyScanSession toAtlasPropertyV1() evidence projection
+//   5. PropertyScanSession backward-compatible decode
 
 final class SpatialEvidence3DTests: XCTestCase {
 
@@ -289,51 +289,6 @@ final class SpatialEvidence3DTests: XCTestCase {
         )
         let comp = scene.evaluateCompliance()
         XCTAssertEqual(comp.standardRef, "BS 5440")
-    }
-
-    // MARK: - PropertyScanSession evidence projection
-
-    func test_toAtlasPropertyV1_spatialEvidence3d_nilWhenEmpty() {
-        let session = PropertyScanSession(propertyAddress: "1 Test Street")
-        let property = session.toAtlasPropertyV1()
-        XCTAssertNil(property.spatialEvidence3d)
-    }
-
-    func test_toAtlasPropertyV1_externalClearanceScenes_nilWhenEmpty() {
-        let session = PropertyScanSession(propertyAddress: "1 Test Street")
-        let property = session.toAtlasPropertyV1()
-        XCTAssertNil(property.externalClearanceScenes)
-    }
-
-    func test_toAtlasPropertyV1_spatialEvidence3d_projected() {
-        var session = PropertyScanSession(propertyAddress: "1 Test Street")
-        let evidence = RoomScanEvidence(
-            propertySessionID: session.id,
-            captureSessionID: UUID(),
-            localFileURLString: "file:///room.usdz",
-            assetFormat: .usdz
-        )
-        session.addRoomScanEvidence(evidence)
-        let property = session.toAtlasPropertyV1()
-        XCTAssertEqual(property.spatialEvidence3d?.count, 1)
-        XCTAssertEqual(property.spatialEvidence3d?.first?.kind, "internal_room_scan")
-    }
-
-    func test_toAtlasPropertyV1_externalClearanceScenes_projected() {
-        var session = PropertyScanSession(propertyAddress: "1 Test Street")
-        var scene = ExternalClearanceScene(
-            propertySessionID: session.id,
-            captureSessionID: UUID()
-        )
-        scene.measurements = [
-            ClearanceMeasurementCapture(kind: .terminalToOpening, valueM: 0.50)
-        ]
-        scene.compliance = scene.evaluateCompliance()
-        session.addExternalClearanceScene(scene)
-        let property = session.toAtlasPropertyV1()
-        XCTAssertEqual(property.externalClearanceScenes?.count, 1)
-        XCTAssertEqual(property.externalClearanceScenes?.first?.kind, "external_flue_clearance")
-        XCTAssertEqual(property.externalClearanceScenes?.first?.measurements.count, 1)
     }
 
     // MARK: - PropertyScanSession backward-compatible decode

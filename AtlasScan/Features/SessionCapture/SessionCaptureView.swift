@@ -833,7 +833,7 @@ struct SessionCaptureView: View {
 
     private var sendToAtlasMindDetail: String {
         switch viewModel.session.handoffState {
-        case .notSent:   return "Review readiness and export AtlasPropertyV1"
+        case .notSent:   return "Review readiness and export ScanBundle package"
         case .sent:      return "Already sent — tap to send again"
         case .exported:  return "Already exported — tap to send again"
         }

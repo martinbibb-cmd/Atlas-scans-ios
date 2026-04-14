@@ -197,7 +197,7 @@ struct SessionCompletionView: View {
             }
             .buttonStyle(.plain)
         } footer: {
-            Text("Sends the canonical AtlasPropertyV1 payload. Atlas Mind reads this directly — no conversion needed.")
+            Text("Builds and shares the ScanBundle export package for Atlas ingestion.")
                 .font(.caption2)
         }
     }
@@ -210,7 +210,7 @@ struct SessionCompletionView: View {
         switch session.handoffState {
         case .notSent:
             return readiness.isReady
-                ? "Export and share the AtlasPropertyV1 payload"
+                ? "Export and share the ScanBundle package"
                 : "Session has gaps — you can still send it"
         case .sent:
             return "Send again to Atlas Mind"

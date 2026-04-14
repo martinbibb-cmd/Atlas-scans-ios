@@ -8,7 +8,7 @@ import Foundation
 // via gesture-based drawing on room floor plans and wall photos.
 //
 // They are converted to AtlasContracts types (InstallObjectModelV1,
-// InstallRouteModelV1, InstallLayerModelV1) when building the AtlasPropertyV1
+// InstallRouteModelV1, InstallLayerModelV1) when building the export payload
 // handoff for atlas-recommendation.
 //
 // Architecture rule:

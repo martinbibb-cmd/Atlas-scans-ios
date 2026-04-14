@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - JSONInspectorView
 //
 // A read-only inspector for a JSON string.
-// Used by AtlasHandoffView to let engineers inspect the raw AtlasPropertyV1 payload
+// Used by AtlasHandoffView to let engineers inspect the raw export payload
 // before sharing or saving.
 
 struct JSONInspectorView: View {
