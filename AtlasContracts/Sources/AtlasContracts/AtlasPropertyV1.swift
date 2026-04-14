@@ -115,6 +115,18 @@ public struct AtlasPropertyV1: Codable, Sendable {
     /// not from raw point-cloud geometry.
     public let externalClearanceScenes: [ExternalClearanceSceneV1]?
 
+    // MARK: Install markup
+
+    /// Structured install markup captured by the engineer on floor plans and wall photos.
+    ///
+    /// Carries both existing and proposed install objects and pipe routes, plus
+    /// spatial annotations.  Nil when no install markup has been captured.
+    ///
+    /// Architecture rule: atlas-recommendation consumes this to derive routing
+    /// complexity, material estimates, and install feasibility signals.
+    /// It must NOT be derived from raw scan geometry; only from engineer-drawn markup.
+    public let installLayer: InstallLayerModelV1?
+
     // MARK: Init
 
     public init(
@@ -134,7 +146,8 @@ public struct AtlasPropertyV1: Codable, Sendable {
         evidenceSummary: AtlasEvidenceSummaryV1,
         sessionKnowledge: AtlasSessionKnowledgeV1? = nil,
         spatialEvidence3d: [SpatialEvidence3D]? = nil,
-        externalClearanceScenes: [ExternalClearanceSceneV1]? = nil
+        externalClearanceScenes: [ExternalClearanceSceneV1]? = nil,
+        installLayer: InstallLayerModelV1? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.propertyID = propertyID
@@ -153,6 +166,7 @@ public struct AtlasPropertyV1: Codable, Sendable {
         self.sessionKnowledge = sessionKnowledge
         self.spatialEvidence3d = spatialEvidence3d
         self.externalClearanceScenes = externalClearanceScenes
+        self.installLayer = installLayer
     }
 }
 
