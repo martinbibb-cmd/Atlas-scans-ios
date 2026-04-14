@@ -40,11 +40,26 @@ public func isUnsupportedVersion(_ input: [String: Any]) -> Bool {
 /// - Returns: `true` when the bundle is from an older contract generation.
 public func isBundleVersionStale(_ version: String) -> Bool {
     guard isSupportedVersion(version) else { return false }
-    return versionComponents(version) < versionComponents(currentScanBundleVersion)
+    return isVersion(version, olderThan: currentScanBundleVersion)
 }
 
 // MARK: - Internal helpers
 
 private func versionComponents(_ version: String) -> [Int] {
     version.split(separator: ".").compactMap { Int($0) }
+}
+
+private func isVersion(_ lhs: String, olderThan rhs: String) -> Bool {
+    let l = versionComponents(lhs)
+    let r = versionComponents(rhs)
+    let maxCount = max(l.count, r.count)
+
+    for i in 0..<maxCount {
+        let lv = i < l.count ? l[i] : 0
+        let rv = i < r.count ? r[i] : 0
+        if lv < rv { return true }
+        if lv > rv { return false }
+    }
+
+    return false
 }
