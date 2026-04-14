@@ -54,9 +54,9 @@ private func isVersion(_ lhs: String, olderThan rhs: String) -> Bool {
     let rightComponents = versionComponents(rhs)
     let maxCount = max(leftComponents.count, rightComponents.count)
 
-    for i in 0..<maxCount {
-        let leftValue = i < leftComponents.count ? leftComponents[i] : 0
-        let rightValue = i < rightComponents.count ? rightComponents[i] : 0
+    for componentIndex in 0..<maxCount {
+        let leftValue = componentIndex < leftComponents.count ? leftComponents[componentIndex] : 0
+        let rightValue = componentIndex < rightComponents.count ? rightComponents[componentIndex] : 0
         if leftValue < rightValue { return true }
         if leftValue > rightValue { return false }
     }
