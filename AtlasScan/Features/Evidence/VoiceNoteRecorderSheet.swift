@@ -195,11 +195,11 @@ struct VoiceNoteRecorderSheet: View {
         // Stop playback if active before committing the note.
         if recorder.state == .playing { recorder.stopPlayback() }
         let note = VoiceNote(
+            extractionHint: extractionHint,
             localFilename: url.lastPathComponent,
             duration: recorder.recordingDuration,
             caption: caption,
-            kind: kind,
-            extractionHint: extractionHint
+            kind: kind
         )
         onAdd(note)
         dismiss()
