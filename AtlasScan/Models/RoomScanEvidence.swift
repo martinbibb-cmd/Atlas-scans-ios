@@ -143,7 +143,7 @@ extension RoomScanEvidence {
 
         return SpatialEvidence3D(
             id: id.uuidString,
-            propertyId: propertySessionID.uuidString,
+            propertyID: propertySessionID.uuidString,
             sourceSessionId: captureSessionID.uuidString,
             format: assetFormat.rawValue,
             fileUrl: localFileURLString ?? "",

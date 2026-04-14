@@ -32,7 +32,7 @@ public struct AtlasVec3V1: Codable, Sendable, Equatable {
 //   • This is evidence only — no derived maths may be performed from the asset.
 //   • AtlasRoomV1 (heat-loss canonical model) must NOT be mutated from this record.
 //   • The heavy asset (USDZ / GLB) is stored externally; only the URL is carried here.
-//   • All fields are optional except `id`, `propertyId`, `sourceSessionId`,
+//   • All fields are optional except `id`, `propertyID`, `sourceSessionId`,
 //     `kind`, and `format` so that partially-captured evidence can still be
 //     persisted and displayed.
 
@@ -49,7 +49,7 @@ public struct SpatialEvidence3D: Codable, Sendable {
     public let id: String
 
     /// UUID of the property session this evidence belongs to.
-    public let propertyId: String
+    public let propertyID: String
 
     /// UUID of the scan capture session that produced this asset.
     public let sourceSessionId: String
@@ -93,7 +93,7 @@ public struct SpatialEvidence3D: Codable, Sendable {
 
     public init(
         id: String,
-        propertyId: String,
+        propertyID: String,
         sourceSessionId: String,
         kind: String = "internal_room_scan",
         format: String,
@@ -105,7 +105,7 @@ public struct SpatialEvidence3D: Codable, Sendable {
         captureMeta: CaptureMeta? = nil
     ) {
         self.id = id
-        self.propertyId = propertyId
+        self.propertyID = propertyID
         self.sourceSessionId = sourceSessionId
         self.kind = kind
         self.format = format
@@ -115,6 +115,55 @@ public struct SpatialEvidence3D: Codable, Sendable {
         self.linkedZoneIds = linkedZoneIds
         self.bounds = bounds
         self.captureMeta = captureMeta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case propertyID
+        case propertyId
+        case sourceSessionId
+        case kind
+        case format
+        case fileUrl
+        case previewImageUrl
+        case linkedRoomIds
+        case linkedZoneIds
+        case bounds
+        case captureMeta
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        if let propertyID = try c.decodeIfPresent(String.self, forKey: .propertyID) {
+            self.propertyID = propertyID
+        } else {
+            self.propertyID = try c.decode(String.self, forKey: .propertyId)
+        }
+        sourceSessionId = try c.decode(String.self, forKey: .sourceSessionId)
+        kind = try c.decode(String.self, forKey: .kind)
+        format = try c.decode(String.self, forKey: .format)
+        fileUrl = try c.decode(String.self, forKey: .fileUrl)
+        previewImageUrl = try c.decodeIfPresent(String.self, forKey: .previewImageUrl)
+        linkedRoomIds = try c.decodeIfPresent([String].self, forKey: .linkedRoomIds) ?? []
+        linkedZoneIds = try c.decodeIfPresent([String].self, forKey: .linkedZoneIds) ?? []
+        bounds = try c.decodeIfPresent(Bounds.self, forKey: .bounds)
+        captureMeta = try c.decodeIfPresent(CaptureMeta.self, forKey: .captureMeta)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(propertyID, forKey: .propertyID)
+        try c.encode(sourceSessionId, forKey: .sourceSessionId)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(format, forKey: .format)
+        try c.encode(fileUrl, forKey: .fileUrl)
+        try c.encodeIfPresent(previewImageUrl, forKey: .previewImageUrl)
+        try c.encode(linkedRoomIds, forKey: .linkedRoomIds)
+        try c.encode(linkedZoneIds, forKey: .linkedZoneIds)
+        try c.encodeIfPresent(bounds, forKey: .bounds)
+        try c.encodeIfPresent(captureMeta, forKey: .captureMeta)
     }
 }
 
@@ -186,7 +235,7 @@ public struct ExternalClearanceSceneV1: Codable, Sendable {
     public let id: String
 
     /// UUID of the property session this scene belongs to.
-    public let propertyId: String
+    public let propertyID: String
 
     /// UUID of the AR capture session that produced this scene.
     public let sourceSessionId: String
@@ -227,7 +276,7 @@ public struct ExternalClearanceSceneV1: Codable, Sendable {
 
     public init(
         id: String,
-        propertyId: String,
+        propertyID: String,
         sourceSessionId: String,
         kind: String = "external_flue_clearance",
         evidence: Evidence = Evidence(),
@@ -237,7 +286,7 @@ public struct ExternalClearanceSceneV1: Codable, Sendable {
         compliance: ComplianceSummary? = nil
     ) {
         self.id = id
-        self.propertyId = propertyId
+        self.propertyID = propertyID
         self.sourceSessionId = sourceSessionId
         self.kind = kind
         self.evidence = evidence
@@ -245,6 +294,49 @@ public struct ExternalClearanceSceneV1: Codable, Sendable {
         self.nearbyFeatures = nearbyFeatures
         self.measurements = measurements
         self.compliance = compliance
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case propertyID
+        case propertyId
+        case sourceSessionId
+        case kind
+        case evidence
+        case flueTerminal
+        case nearbyFeatures
+        case measurements
+        case compliance
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        if let propertyID = try c.decodeIfPresent(String.self, forKey: .propertyID) {
+            self.propertyID = propertyID
+        } else {
+            self.propertyID = try c.decode(String.self, forKey: .propertyId)
+        }
+        sourceSessionId = try c.decode(String.self, forKey: .sourceSessionId)
+        kind = try c.decode(String.self, forKey: .kind)
+        evidence = try c.decode(Evidence.self, forKey: .evidence)
+        flueTerminal = try c.decodeIfPresent(FlueTerminal.self, forKey: .flueTerminal)
+        nearbyFeatures = try c.decodeIfPresent([NearbyFeature].self, forKey: .nearbyFeatures) ?? []
+        measurements = try c.decodeIfPresent([ClearanceMeasurementV1].self, forKey: .measurements) ?? []
+        compliance = try c.decodeIfPresent(ComplianceSummary.self, forKey: .compliance)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(propertyID, forKey: .propertyID)
+        try c.encode(sourceSessionId, forKey: .sourceSessionId)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(evidence, forKey: .evidence)
+        try c.encodeIfPresent(flueTerminal, forKey: .flueTerminal)
+        try c.encode(nearbyFeatures, forKey: .nearbyFeatures)
+        try c.encode(measurements, forKey: .measurements)
+        try c.encodeIfPresent(compliance, forKey: .compliance)
     }
 }
 

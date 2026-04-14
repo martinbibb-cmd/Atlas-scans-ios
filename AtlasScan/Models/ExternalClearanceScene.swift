@@ -342,7 +342,7 @@ extension ExternalClearanceScene {
 
         return ExternalClearanceSceneV1(
             id: id.uuidString,
-            propertyId: propertySessionID.uuidString,
+            propertyID: propertySessionID.uuidString,
             sourceSessionId: captureSessionID.uuidString,
             evidence: evidence,
             flueTerminal: terminal,
