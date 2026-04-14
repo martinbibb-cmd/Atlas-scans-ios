@@ -69,6 +69,24 @@ final class SpatialEvidence3DTests: XCTestCase {
         XCTAssertTrue(decoded.linkedRoomIds.isEmpty)
     }
 
+    func test_spatialEvidence3D_decodesLegacyPropertyIdKey() throws {
+        let legacyJSON = """
+        {
+          "id": "eid-legacy",
+          "propertyId": "prop-legacy",
+          "sourceSessionId": "sess-legacy",
+          "kind": "internal_room_scan",
+          "format": "usdz",
+          "fileUrl": "",
+          "linkedRoomIds": [],
+          "linkedZoneIds": []
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(SpatialEvidence3D.self, from: legacyJSON)
+        XCTAssertEqual(decoded.propertyID, "prop-legacy")
+    }
+
     // MARK: - ExternalClearanceSceneV1 round-trip
 
     func test_externalClearanceScene_roundTrip() throws {
@@ -116,6 +134,23 @@ final class SpatialEvidence3DTests: XCTestCase {
         XCTAssertEqual(decoded.measurements.first?.valueM, 0.28)
         XCTAssertEqual(decoded.compliance?.pass, false)
         XCTAssertFalse(decoded.compliance?.warnings.isEmpty ?? true)
+    }
+
+    func test_externalClearanceScene_decodesLegacyPropertyIdKey() throws {
+        let legacyJSON = """
+        {
+          "id": "scene-legacy",
+          "propertyId": "prop-legacy",
+          "sourceSessionId": "sess-legacy",
+          "kind": "external_flue_clearance",
+          "evidence": {},
+          "nearbyFeatures": [],
+          "measurements": []
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(ExternalClearanceSceneV1.self, from: legacyJSON)
+        XCTAssertEqual(decoded.propertyID, "prop-legacy")
     }
 
     func test_featureType_allCasesHaveRawValues() {
