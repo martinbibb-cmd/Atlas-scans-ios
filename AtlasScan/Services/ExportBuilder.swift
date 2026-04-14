@@ -197,7 +197,7 @@ final class ExportBuilder {
             capturedAt: iso8601.string(from: job.createdAt),
             deviceModel: currentDeviceModel(),
             scannerApp: "AtlasScan 1.0",
-            coordinateConvention: .metricM,
+            coordinateConvention: "metric_m",
             propertyRef: job.atlasJobID,
             operatorNotes: notes.isEmpty ? nil : notes.joined(separator: "; ")
         )
@@ -214,7 +214,7 @@ final class ExportBuilder {
                         flags.append(ScanQAFlag(
                             code: "atlas.service_fields",
                             message: payload,
-                            severity: .info,
+                            severity: "info",
                             entityId: object.id.uuidString
                         ))
                     }
@@ -228,7 +228,7 @@ final class ExportBuilder {
                     flags.append(ScanQAFlag(
                         code: "atlas.placement",
                         message: payload,
-                        severity: .info,
+                        severity: "info",
                         entityId: object.id.uuidString
                     ))
                 }
@@ -242,7 +242,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.room_adjacency",
                     message: payload,
-                    severity: (adjacency.isConfirmed ? .info : .warning),
+                    severity: (adjacency.isConfirmed ? "info" : "warning"),
                     entityId: adjacency.id.uuidString
                 ))
             }
@@ -255,7 +255,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.evidence_count",
                     message: payload,
-                    severity: .info,
+                    severity: "info",
                     entityId: room.id.uuidString
                 ))
             }
@@ -265,7 +265,7 @@ final class ExportBuilder {
                 flags.append(ScanQAFlag(
                     code: "atlas.evidence_count",
                     message: payload,
-                    severity: .info,
+                    severity: "info",
                     entityId: nil
                 ))
             }
@@ -311,7 +311,7 @@ final class ExportBuilder {
             end: coords.end,
             heightM: wall.heightMetres ?? 0.0,
             thicknessMm: 0.0,
-            kind: wall.isExternalWall ? .external : .internal,
+            kind: wall.isExternalWall ? "external" : "internal",
             openings: openings.map { contractOpening(from: $0, wall: wall) },
             confidence: .medium
         )
@@ -327,7 +327,7 @@ final class ExportBuilder {
             widthM: opening.widthMetres ?? 0.9,
             heightM: opening.heightMetres ?? 2.1,
             offsetM: effectiveWallLength / 2.0,
-            type: (opening.kind == .door ? .door : opening.kind == .window ? .window : .unknown),
+            type: (opening.kind == .door ? "door" : opening.kind == .window ? "window" : "unknown"),
             confidence: .medium
         )
     }
@@ -345,7 +345,7 @@ final class ExportBuilder {
             id: object.id.uuidString,
             category: object.category.rawValue,
             label: object.displayLabel,
-            boundingBox: ScanBoundingBox(
+            boundingBox: ScanDetectedObject.BoundingBox(
                 minX: cx - ExportBuilder.serviceObjectHalfBoxM, minY: cy - ExportBuilder.serviceObjectHalfBoxM,
                 maxX: cx + ExportBuilder.serviceObjectHalfBoxM, maxY: cy + ExportBuilder.serviceObjectHalfBoxM,
                 minZ: 0.0, maxZ: ExportBuilder.serviceObjectHalfBoxM * 2
