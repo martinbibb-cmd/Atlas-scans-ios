@@ -29,7 +29,7 @@ final class SpatialEvidence3DTests: XCTestCase {
     func test_spatialEvidence3D_roundTrip() throws {
         let evidence = SpatialEvidence3D(
             id: "eid-001",
-            propertyId: "prop-001",
+            propertyID: "prop-001",
             sourceSessionId: "sess-001",
             format: "usdz",
             fileUrl: "file:///scans/room.usdz",
@@ -45,7 +45,7 @@ final class SpatialEvidence3DTests: XCTestCase {
         let data = try JSONEncoder().encode(evidence)
         let decoded = try JSONDecoder().decode(SpatialEvidence3D.self, from: data)
         XCTAssertEqual(decoded.id, "eid-001")
-        XCTAssertEqual(decoded.propertyId, "prop-001")
+        XCTAssertEqual(decoded.propertyID, "prop-001")
         XCTAssertEqual(decoded.kind, "internal_room_scan")
         XCTAssertEqual(decoded.format, "usdz")
         XCTAssertEqual(decoded.linkedRoomIds, ["room-1", "room-2"])
@@ -56,7 +56,7 @@ final class SpatialEvidence3DTests: XCTestCase {
     func test_spatialEvidence3D_optionalFieldsNil() throws {
         let evidence = SpatialEvidence3D(
             id: "eid-002",
-            propertyId: "prop-001",
+            propertyID: "prop-001",
             sourceSessionId: "sess-001",
             format: "glb",
             fileUrl: ""
@@ -74,7 +74,7 @@ final class SpatialEvidence3DTests: XCTestCase {
     func test_externalClearanceScene_roundTrip() throws {
         let scene = ExternalClearanceSceneV1(
             id: "scene-001",
-            propertyId: "prop-001",
+            propertyID: "prop-001",
             sourceSessionId: "sess-001",
             evidence: ExternalClearanceSceneV1.Evidence(
                 previewImageUrl: "file:///preview.jpg",
@@ -145,7 +145,7 @@ final class SpatialEvidence3DTests: XCTestCase {
         )
         let contract = evidence.toSpatialEvidence3D()
         XCTAssertEqual(contract.id, evidence.id.uuidString)
-        XCTAssertEqual(contract.propertyId, propID.uuidString)
+        XCTAssertEqual(contract.propertyID, propID.uuidString)
         XCTAssertEqual(contract.sourceSessionId, captID.uuidString)
         XCTAssertEqual(contract.kind, "internal_room_scan")
         XCTAssertEqual(contract.format, "usdz")
@@ -185,7 +185,7 @@ final class SpatialEvidence3DTests: XCTestCase {
         )
         let contract = scene.toExternalClearanceSceneV1()
         XCTAssertEqual(contract.id, scene.id.uuidString)
-        XCTAssertEqual(contract.propertyId, propID.uuidString)
+        XCTAssertEqual(contract.propertyID, propID.uuidString)
         XCTAssertEqual(contract.kind, "external_flue_clearance")
     }
 

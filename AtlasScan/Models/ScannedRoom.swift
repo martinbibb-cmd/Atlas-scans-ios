@@ -8,8 +8,14 @@ struct ScannedRoom: Identifiable, Codable {
 
     var id: UUID = UUID()
 
-    /// Owning scan job
-    var jobID: UUID
+    /// Owning property session ID.
+    var propertyID: UUID
+
+    /// Backward-compatible alias for `propertyID`.
+    var jobID: UUID {
+        get { propertyID }
+        set { propertyID = newValue }
+    }
 
     var name: String
 
@@ -53,7 +59,7 @@ struct ScannedRoom: Identifiable, Codable {
 
     init(
         id: UUID = UUID(),
-        jobID: UUID,
+        propertyID: UUID,
         name: String,
         floor: Int = 0,
         areaSquareMetres: Double? = nil,
@@ -68,7 +74,7 @@ struct ScannedRoom: Identifiable, Codable {
         isReviewed: Bool = false
     ) {
         self.id = id
-        self.jobID = jobID
+        self.propertyID = propertyID
         self.name = name
         self.floor = floor
         self.areaSquareMetres = areaSquareMetres
@@ -85,10 +91,44 @@ struct ScannedRoom: Identifiable, Codable {
         self.updatedAt = Date()
     }
 
+    init(
+        id: UUID = UUID(),
+        jobID: UUID,
+        name: String,
+        floor: Int = 0,
+        areaSquareMetres: Double? = nil,
+        ceilingHeightMetres: Double? = nil,
+        walls: [ScannedWall] = [],
+        openings: [ScannedOpening] = [],
+        geometryCaptured: Bool = false,
+        taggedObjects: [TaggedObject] = [],
+        photos: [TaggedPhoto] = [],
+        voiceNotes: [VoiceNote] = [],
+        notes: String = "",
+        isReviewed: Bool = false
+    ) {
+        self.init(
+            id: id,
+            propertyID: jobID,
+            name: name,
+            floor: floor,
+            areaSquareMetres: areaSquareMetres,
+            ceilingHeightMetres: ceilingHeightMetres,
+            walls: walls,
+            openings: openings,
+            geometryCaptured: geometryCaptured,
+            taggedObjects: taggedObjects,
+            photos: photos,
+            voiceNotes: voiceNotes,
+            notes: notes,
+            isReviewed: isReviewed
+        )
+    }
+
     // MARK: Decodable — backward-compatible with earlier room files
 
     private enum CodingKeys: String, CodingKey {
-        case id, jobID, name, floor
+        case id, propertyID, jobID, name, floor
         case areaSquareMetres, ceilingHeightMetres
         case walls, openings, geometryCaptured
         case taggedObjects, photos, voiceNotes, notes, isReviewed
@@ -98,7 +138,11 @@ struct ScannedRoom: Identifiable, Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id                   = try c.decode(UUID.self,    forKey: .id)
-        jobID                = try c.decode(UUID.self,    forKey: .jobID)
+        if let propertyID = try c.decodeIfPresent(UUID.self, forKey: .propertyID) {
+            self.propertyID = propertyID
+        } else {
+            self.propertyID = try c.decode(UUID.self, forKey: .jobID)
+        }
         name                 = try c.decode(String.self,  forKey: .name)
         floor                = try c.decodeIfPresent(Int.self, forKey: .floor) ?? 0
         areaSquareMetres     = try c.decodeIfPresent(Double.self, forKey: .areaSquareMetres)
@@ -113,6 +157,26 @@ struct ScannedRoom: Identifiable, Codable {
         isReviewed           = try c.decodeIfPresent(Bool.self,             forKey: .isReviewed) ?? false
         createdAt            = try c.decode(Date.self,  forKey: .createdAt)
         updatedAt            = try c.decode(Date.self,  forKey: .updatedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(propertyID, forKey: .propertyID)
+        try c.encode(name, forKey: .name)
+        try c.encode(floor, forKey: .floor)
+        try c.encode(areaSquareMetres, forKey: .areaSquareMetres)
+        try c.encode(ceilingHeightMetres, forKey: .ceilingHeightMetres)
+        try c.encode(walls, forKey: .walls)
+        try c.encode(openings, forKey: .openings)
+        try c.encode(geometryCaptured, forKey: .geometryCaptured)
+        try c.encode(taggedObjects, forKey: .taggedObjects)
+        try c.encode(photos, forKey: .photos)
+        try c.encode(voiceNotes, forKey: .voiceNotes)
+        try c.encode(notes, forKey: .notes)
+        try c.encode(isReviewed, forKey: .isReviewed)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
     }
 
     // MARK: Helpers
