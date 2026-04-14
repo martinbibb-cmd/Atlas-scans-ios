@@ -14,6 +14,15 @@
 		AA01007A /* SessionFactReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007A /* SessionFactReviewView.swift */; };
 		AA01007B /* SessionKnowledgeExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007B /* SessionKnowledgeExtractorTests.swift */; };
 		AA01007C /* SessionKnowledgeSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02007C /* SessionKnowledgeSummaryTests.swift */; };
+		AA010080 /* RoomScanEvidence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020080 /* RoomScanEvidence.swift */; };
+		AA010081 /* ExternalClearanceScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020081 /* ExternalClearanceScene.swift */; };
+		AA010082 /* InstallMarkup.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020082 /* InstallMarkup.swift */; };
+		AA010083 /* RoomScanEvidenceBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020083 /* RoomScanEvidenceBuilder.swift */; };
+		AA010084 /* ExternalFlueCaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020084 /* ExternalFlueCaptureSession.swift */; };
+		AA010085 /* ExternalFlueCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020085 /* ExternalFlueCaptureView.swift */; };
+		AA010086 /* FlueClearanceSceneCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020086 /* FlueClearanceSceneCard.swift */; };
+		AA010087 /* InstallMarkupViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020087 /* InstallMarkupViewModel.swift */; };
+		AA010088 /* InstallMarkupOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020088 /* InstallMarkupOverlayView.swift */; };
 		AA010072 /* SessionCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020072 /* SessionCompletionView.swift */; };
 		AA010073 /* SessionCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020073 /* SessionCompletionTests.swift */; };
 		AA010074 /* SessionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020074 /* SessionReviewView.swift */; };
@@ -116,6 +125,15 @@
 		AA02007A /* SessionFactReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFactReviewView.swift; sourceTree = "<group>"; };
 		AA02007B /* SessionKnowledgeExtractorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeExtractorTests.swift; sourceTree = "<group>"; };
 		AA02007C /* SessionKnowledgeSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKnowledgeSummaryTests.swift; sourceTree = "<group>"; };
+		AA020080 /* RoomScanEvidence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanEvidence.swift; sourceTree = "<group>"; };
+		AA020081 /* ExternalClearanceScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalClearanceScene.swift; sourceTree = "<group>"; };
+		AA020082 /* InstallMarkup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMarkup.swift; sourceTree = "<group>"; };
+		AA020083 /* RoomScanEvidenceBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanEvidenceBuilder.swift; sourceTree = "<group>"; };
+		AA020084 /* ExternalFlueCaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalFlueCaptureSession.swift; sourceTree = "<group>"; };
+		AA020085 /* ExternalFlueCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalFlueCaptureView.swift; sourceTree = "<group>"; };
+		AA020086 /* FlueClearanceSceneCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlueClearanceSceneCard.swift; sourceTree = "<group>"; };
+		AA020087 /* InstallMarkupViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMarkupViewModel.swift; sourceTree = "<group>"; };
+		AA020088 /* InstallMarkupOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMarkupOverlayView.swift; sourceTree = "<group>"; };
 		AA020072 /* SessionCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionView.swift; sourceTree = "<group>"; };
 		AA020073 /* SessionCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletionTests.swift; sourceTree = "<group>"; };
 		AA020074 /* SessionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReviewView.swift; sourceTree = "<group>"; };
@@ -264,6 +282,8 @@
 				AA050018 /* SessionCapture */,
 				AA050019 /* LiveTagging */,
 				AA050023 /* SessionReview */,
+				AA050024 /* FlueClearance */,
+				AA050025 /* Markup */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -279,6 +299,9 @@
 				AA020017 /* TaggedPhoto.swift */,
 				AA020060 /* VoiceNote.swift */,
 				AA020076 /* ExtractedSessionFact.swift */,
+				AA020080 /* RoomScanEvidence.swift */,
+				AA020081 /* ExternalClearanceScene.swift */,
+				AA020082 /* InstallMarkup.swift */,
 				AA020018 /* ServiceObjectCategory.swift */,
 				AA020019 /* ExportDraftState.swift */,
 				AA020028 /* ObjectPlacement.swift */,
@@ -301,6 +324,7 @@
 				AA020062 /* VoiceNoteRecorder.swift */,
 				AA020065 /* VoiceNotePlaybackManager.swift */,
 				AA020077 /* SessionKnowledgeExtractor.swift */,
+				AA020083 /* RoomScanEvidenceBuilder.swift */,
 				AA020045 /* ExportPackageBuilder.swift */,
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
@@ -448,6 +472,25 @@
 				AA02007A /* SessionFactReviewView.swift */,
 			);
 			path = SessionReview;
+			sourceTree = "<group>";
+		};
+		AA050024 /* FlueClearance */ = {
+			isa = PBXGroup;
+			children = (
+				AA020084 /* ExternalFlueCaptureSession.swift */,
+				AA020085 /* ExternalFlueCaptureView.swift */,
+				AA020086 /* FlueClearanceSceneCard.swift */,
+			);
+			path = FlueClearance;
+			sourceTree = "<group>";
+		};
+		AA050025 /* Markup */ = {
+			isa = PBXGroup;
+			children = (
+				AA020087 /* InstallMarkupViewModel.swift */,
+				AA020088 /* InstallMarkupOverlayView.swift */,
+			);
+			path = Markup;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -662,6 +705,15 @@
 				AA010078 /* SessionKnowledgeSection.swift in Sources */,
 				AA010079 /* VoiceNoteCategoryPicker.swift in Sources */,
 				AA01007A /* SessionFactReviewView.swift in Sources */,
+				AA010080 /* RoomScanEvidence.swift in Sources */,
+				AA010081 /* ExternalClearanceScene.swift in Sources */,
+				AA010082 /* InstallMarkup.swift in Sources */,
+				AA010083 /* RoomScanEvidenceBuilder.swift in Sources */,
+				AA010084 /* ExternalFlueCaptureSession.swift in Sources */,
+				AA010085 /* ExternalFlueCaptureView.swift in Sources */,
+				AA010086 /* FlueClearanceSceneCard.swift in Sources */,
+				AA010087 /* InstallMarkupViewModel.swift in Sources */,
+				AA010088 /* InstallMarkupOverlayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

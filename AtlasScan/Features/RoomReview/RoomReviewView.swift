@@ -342,7 +342,7 @@ struct TaggedObjectRowView: View {
 // MARK: - ConfidenceDot
 
 struct ConfidenceDot: View {
-    let confidence: ConfidenceLevel
+    let confidence: TaggedObjectConfidenceLevel
 
     var body: some View {
         Circle()
