@@ -143,7 +143,7 @@ final class ExportPackageBuilder {
         for job: ScanJob,
         evidenceFiles: [URL],
         validationIssues: [ValidationIssue]
-    ) -> ScanExportManifest {
+    ) -> ScanImportManifest {
         let allPhotos = job.photos + job.rooms.flatMap(\.photos)
         var contents: [String] = ["scan_bundle.json", "manifest.json"]
         contents += evidenceFiles.map { "evidence/\($0.lastPathComponent)" }
@@ -151,7 +151,7 @@ final class ExportPackageBuilder {
         let warnings = validationIssues.compactMap { $0.severity == .warning ? $0.message : nil }
         let hasBlockers = validationIssues.contains { $0.severity == .blocking }
 
-        let summary = ScanExportManifest.ImportSummary(
+        let summary = ScanImportManifest.ImportSummary(
             roomCount: job.rooms.count,
             reviewedRoomCount: job.rooms.filter(\.isReviewed).count,
             scannedRoomCount: job.rooms.filter(\.geometryCaptured).count,
@@ -161,7 +161,7 @@ final class ExportPackageBuilder {
             validationWarnings: warnings
         )
 
-        return ScanExportManifest(
+        return ScanImportManifest(
             format: "AtlasScanPackageV1",
             jobReference: job.jobReference,
             propertyAddress: job.propertyAddress,
