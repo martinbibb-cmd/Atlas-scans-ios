@@ -98,6 +98,47 @@ final class ScannedRoomTests: XCTestCase {
         let room = ScannedRoom(jobID: UUID(), name: "Cellar", floor: -1)
         XCTAssertEqual(room.displayFloor, "Basement")
     }
+
+    func test_init_withPropertyID_setsJobIDAlias() {
+        let propertyID = UUID()
+        let room = ScannedRoom(propertyID: propertyID, name: "Kitchen")
+        XCTAssertEqual(room.propertyID, propertyID)
+        XCTAssertEqual(room.jobID, propertyID)
+    }
+
+    func test_encode_usesPropertyID_notJobID() throws {
+        let room = ScannedRoom(propertyID: UUID(), name: "Kitchen")
+        let data = try JSONEncoder().encode(room)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertNotNil(json?["propertyID"])
+        XCTAssertNil(json?["jobID"])
+    }
+
+    func test_decode_legacyJobID_populatesPropertyID() throws {
+        let legacyID = UUID()
+        let room = ScannedRoom(propertyID: UUID(), name: "Kitchen")
+        let data = try JSONEncoder().encode(room)
+        var json = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json.removeValue(forKey: "propertyID")
+        json["jobID"] = legacyID.uuidString
+
+        let legacyData = try JSONSerialization.data(withJSONObject: json)
+        let decoded = try JSONDecoder().decode(ScannedRoom.self, from: legacyData)
+        XCTAssertEqual(decoded.propertyID, legacyID)
+    }
+
+    func test_decode_prefersPropertyID_whenBothPresent() throws {
+        let canonicalID = UUID()
+        let legacyID = UUID()
+        let room = ScannedRoom(propertyID: canonicalID, name: "Kitchen")
+        let data = try JSONEncoder().encode(room)
+        var json = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json["jobID"] = legacyID.uuidString
+
+        let combinedData = try JSONSerialization.data(withJSONObject: json)
+        let decoded = try JSONDecoder().decode(ScannedRoom.self, from: combinedData)
+        XCTAssertEqual(decoded.propertyID, canonicalID)
+    }
 }
 
 // MARK: - TaggedObjectTests
