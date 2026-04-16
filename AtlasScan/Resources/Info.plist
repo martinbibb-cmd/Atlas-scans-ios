@@ -20,6 +20,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Atlas Scan uses the camera to capture room geometry for service-engineering surveys.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Atlas Scan records voice notes during site visits. Only transcript text is retained; raw audio is discarded after transcription.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Atlas Scan accesses your photo library to import evidence photos for rooms and service objects.</string>
 	<key>UIApplicationSceneManifest</key>
