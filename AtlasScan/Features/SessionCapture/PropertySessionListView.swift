@@ -94,9 +94,9 @@ struct PropertySessionListView: View {
             Section("Recent Sessions") {
                 ForEach(sessionStore.sessions) { session in
                     NavigationLink {
-                        SessionCaptureView(
+                        VisitCaptureRootView(
                             session: session,
-                            store: sessionStore,
+                            sessionStore: sessionStore,
                             atlasSync: atlasSync
                         )
                     } label: {
