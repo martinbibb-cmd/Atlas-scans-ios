@@ -23,9 +23,11 @@ struct VisitCaptureRootView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
                 tabContent
+                screenPickerBar
             }
+            .ignoresSafeArea(edges: .bottom)
             .navigationTitle(viewModel.session.propertyAddress)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
@@ -55,14 +57,29 @@ struct VisitCaptureRootView: View {
                 .tag(VisitCaptureScreen.summary)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .ignoresSafeArea(edges: .bottom)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Screen picker bar (bottom)
+
+    private var screenPickerBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(VisitCaptureScreen.allCases, id: \.self) { screen in
+                    screenTab(screen)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .background(.bar)
+        .padding(.bottom, 0)
     }
 
     // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-
         // Screen title + save indicator
         ToolbarItem(placement: .principal) {
             VStack(spacing: 1) {
@@ -70,11 +87,6 @@ struct VisitCaptureRootView: View {
                     .font(.headline)
                 saveStateBadge
             }
-        }
-
-        // Segmented screen picker
-        ToolbarItem(placement: .bottomBar) {
-            screenPicker
         }
     }
 
@@ -93,18 +105,6 @@ struct VisitCaptureRootView: View {
             Text("Saved")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-        }
-    }
-
-    private var screenPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(VisitCaptureScreen.allCases, id: \.self) { screen in
-                    screenTab(screen)
-                }
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
         }
     }
 
