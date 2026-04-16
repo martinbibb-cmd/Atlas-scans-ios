@@ -130,36 +130,35 @@ struct SessionCompletionView: View {
     }
 
     private var knowledgeReadinessSection: some View {
-        let summary = session.knowledgeSummary
-        return Section("Captured Knowledge") {
+        Section(header: Text("Captured Knowledge")) {
             KnowledgeReadinessRow(
                 label: "Household",
                 symbol: "person.3.fill",
-                isKnown: summary.householdKnown,
+                isKnown: session.knowledgeSummary.householdKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .household }
             )
             KnowledgeReadinessRow(
                 label: "Bathrooms / Usage",
                 symbol: "drop.fill",
-                isKnown: summary.bathroomsKnown,
+                isKnown: session.knowledgeSummary.bathroomsKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .usage }
             )
             KnowledgeReadinessRow(
                 label: "Current System",
                 symbol: "boiler.fill",
-                isKnown: summary.systemKnown,
+                isKnown: session.knowledgeSummary.systemKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .system }
             )
             KnowledgeReadinessRow(
                 label: "Priorities",
                 symbol: "star.fill",
-                isKnown: summary.prioritiesKnown,
+                isKnown: session.knowledgeSummary.prioritiesKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .priorities }
             )
             KnowledgeReadinessRow(
                 label: "Constraints",
                 symbol: "exclamationmark.triangle.fill",
-                isKnown: summary.constraintsKnown,
+                isKnown: session.knowledgeSummary.constraintsKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .constraints }
             )
         } footer: {
