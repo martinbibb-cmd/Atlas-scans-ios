@@ -253,13 +253,10 @@ final class VisitCaptureViewModel: ObservableObject {
 
     // MARK: - Event log
 
-    private func recordEvent(_ type: String, detail: String? = nil) {
-        // Events are recorded as extracted facts with installer note category
-        // so they appear in the session knowledge timeline.
-        // Future: dedicate a first-class timeline model.
-        _ = type
-        _ = detail
-    }
+    // TODO: Replace with a first-class timeline model once the full event log
+    // schema is defined.  Until then, capture events are tracked only in memory
+    // and are not included in the handoff payload.
+    private func recordEvent(_ type: String, detail: String? = nil) {}
 
     // MARK: - Validation
 

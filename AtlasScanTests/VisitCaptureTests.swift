@@ -86,9 +86,8 @@ final class VisitCaptureTests: XCTestCase {
 
     func test_navigate_switchingScreensDoesNotClearObjects() {
         let vm = makeViewModel()
-        var room = ScannedRoom(jobID: vm.session.id, name: "Boiler Room")
-        vm.store.update { $0.addRoom(room) }
-        vm.selectRoom(vm.session.rooms.first!.id)
+        let room = ScannedRoom(jobID: vm.session.id, name: "Boiler Room")
+        vm.addRoom(room)
         let obj = TaggedObject(roomID: vm.session.rooms.first!.id, category: .boiler)
         vm.addObject(obj)
 
@@ -366,18 +365,18 @@ final class VisitCaptureTests: XCTestCase {
     }
 
     func test_mapper_objectsMappedUnderCorrectRoom() {
-        var session = makeSession()
-        var room = ScannedRoom(jobID: session.id, name: "Plant Room", geometryCaptured: true)
-        let obj = TaggedObject(roomID: room.id, category: .boiler)
-        room.addTaggedObject(obj)
-        session.addRoom(room)
+        let vm = makeViewModel()
+        let room = ScannedRoom(jobID: vm.session.id, name: "Plant Room", geometryCaptured: true)
+        vm.addRoom(room)
+        let obj = TaggedObject(roomID: vm.session.rooms.first!.id, category: .boiler)
+        vm.addObject(obj)
 
-        let property = VisitSessionMapper.toAtlasPropertyV1(session)
+        let property = VisitSessionMapper.toAtlasPropertyV1(vm.session)
 
         let contractRoom = property.rooms.first(where: { $0.name == "Plant Room" })
         XCTAssertEqual(contractRoom?.objects.count, 1)
         XCTAssertEqual(contractRoom?.objects.first?.category, "boiler")
-        XCTAssertEqual(contractRoom?.objects.first?.roomID, room.id.uuidString)
+        XCTAssertEqual(contractRoom?.objects.first?.roomID, vm.session.rooms.first!.id.uuidString)
     }
 
     func test_mapper_sessionLevelObjectsInSessionObjects() {

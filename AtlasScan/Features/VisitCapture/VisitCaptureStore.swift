@@ -49,11 +49,13 @@ final class VisitCaptureStore: ObservableObject {
 
     // MARK: Autosave
 
+    private static let autosaveDebounceNanoseconds: UInt64 = 800_000_000
+
     private func scheduleAutosave() {
         saveState = .unsaved
         autosaveTask?.cancel()
         autosaveTask = Task {
-            try? await Task.sleep(nanoseconds: 800_000_000) // 800 ms debounce
+            try? await Task.sleep(nanoseconds: Self.autosaveDebounceNanoseconds)
             guard !Task.isCancelled else { return }
             saveState = .saving
             sessionStore.save(session)

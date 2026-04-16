@@ -19,8 +19,7 @@ enum VisitSessionMapper {
 
     /// Converts `session` into an `AtlasPropertyV1` handoff payload.
     static func toAtlasPropertyV1(_ session: PropertyScanSession) -> AtlasPropertyV1 {
-        let iso = iso8601Formatter()
-        let now = iso.string(from: Date())
+        let now = iso8601.string(from: Date())
 
         return AtlasPropertyV1(
             schemaVersion: currentAtlasPropertyVersion,
@@ -29,7 +28,7 @@ enum VisitSessionMapper {
             propertyAddress: session.propertyAddress,
             engineerName: session.engineerName,
             atlasJobID: session.atlasJobID,
-            capturedAt: iso.string(from: session.createdAt),
+            capturedAt: iso8601.string(from: session.createdAt),
             handoffAt: now,
             scanState: session.scanState.rawValue,
             reviewState: session.reviewState.rawValue,
@@ -121,7 +120,6 @@ enum VisitSessionMapper {
         // Only include medium/high-confidence facts as specified by the contract.
         let qualifyingFacts = session.extractedFacts.filter { $0.confidence >= .medium }
         guard !qualifyingFacts.isEmpty else { return nil }
-        let iso = iso8601Formatter()
         return AtlasSessionKnowledgeV1(
             extractedFacts: qualifyingFacts.map { fact in
                 AtlasExtractedFactV1(
@@ -132,7 +130,7 @@ enum VisitSessionMapper {
                     sourceNoteID: fact.sourceNoteID?.uuidString,
                     roomID: fact.roomID?.uuidString,
                     objectID: fact.objectID?.uuidString,
-                    createdAt: iso.string(from: fact.createdAt)
+                    createdAt: iso8601.string(from: fact.createdAt)
                 )
             }
         )
@@ -152,13 +150,13 @@ enum VisitSessionMapper {
         return session.externalClearanceScenes.map { $0.toExternalClearanceSceneV1() }
     }
 
-    // MARK: - ISO-8601 formatter
+    // MARK: - ISO-8601 formatter (cached)
 
-    private static func iso8601Formatter() -> ISO8601DateFormatter {
+    private static let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
-    }
+    }()
 }
 
 // MARK: - VisitSessionMapper + encode / validate
