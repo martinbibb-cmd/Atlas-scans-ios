@@ -10,11 +10,20 @@ struct AtlasScanApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
+                // MARK: Primary — capture-only visit flow
+                // Start Job → Capture Hub → capture sections → Review & Export
+                CaptureAppRootView()
+                    .tabItem {
+                        Label("Capture", systemImage: "camera.viewfinder")
+                    }
+
+                // MARK: Secondary — completed session history (legacy + AtlasPropertyV1 export)
+                // Quarantined from the default journey; visible but not the primary path.
                 PropertySessionListView()
                     .environmentObject(sessionStore)
                     .environmentObject(atlasSync)
                     .tabItem {
-                        Label("Sessions", systemImage: "camera.viewfinder")
+                        Label("Sessions", systemImage: "clock.arrow.circlepath")
                     }
 
                 #if DEBUG
