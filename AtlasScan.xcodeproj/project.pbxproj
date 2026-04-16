@@ -286,7 +286,7 @@
 				23CE8AD05D0B1BE24E960CF4 /* VisitSummaryView.swift */,
 			);
 			name = VisitCapture;
-			path = Features/VisitCapture;
+			path = VisitCapture;
 			sourceTree = "<group>";
 		};
 		AA050001 /* AtlasScan */ = {
