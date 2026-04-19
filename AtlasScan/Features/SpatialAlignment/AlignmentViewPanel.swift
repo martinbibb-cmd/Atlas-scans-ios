@@ -111,6 +111,11 @@ private struct SideView: View {
     }
 }
 
+// MARK: - Private marker constants
+
+private let sideViewMarkerRadius: CGFloat = 7
+private let topViewMarkerRadius: CGFloat = 6
+
 // MARK: - SideViewCanvas
 
 private struct SideViewCanvas: View {
@@ -144,7 +149,7 @@ private struct SideViewCanvas: View {
                 )
 
                 // Anchor marker
-                let r: CGFloat = 7
+                let r = sideViewMarkerRadius
                 let markerRect = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
                 let markerPath = Path(ellipseIn: markerRect)
                 ctx.fill(
@@ -240,7 +245,7 @@ private struct TopViewCanvas: View {
             for anchor in anchors {
                 let pt = screenPoint(anchor.worldPosition, in: size)
                 let isInferred = anchor.worldPosition.confidence == .inferred
-                let r: CGFloat = 6
+                let r = topViewMarkerRadius
                 let markerRect = CGRect(x: pt.x - r, y: pt.y - r, width: r * 2, height: r * 2)
                 let markerPath = Path(ellipseIn: markerRect)
                 ctx.fill(markerPath, with: .color(isInferred ? .secondary.opacity(0.4) : .primary))

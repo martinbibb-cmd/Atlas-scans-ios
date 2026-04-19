@@ -135,7 +135,7 @@ enum SpatialAlignmentEngine {
         // Bearing: measured clockwise from +z axis (north) when viewed from above.
         // atan2(dx, dz) gives angle from +z axis, rotating towards +x.
         let bearingRad = atan2(dx, dz)
-        let bearingDeg = bearingRad * (180.0 / .pi)
+        let bearingDeg = bearingRad * (180.0 / Double.pi)
         let normalizedBearing = (bearingDeg + 360.0).truncatingRemainder(dividingBy: 360.0)
 
         return RelativePosition(
