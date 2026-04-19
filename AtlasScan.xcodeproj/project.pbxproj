@@ -112,6 +112,10 @@
 		AA010087 /* InstallMarkupViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020087 /* InstallMarkupViewModel.swift */; };
 		AA010088 /* InstallMarkupOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020088 /* InstallMarkupOverlayView.swift */; };
 		AA010089 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA020089 /* Assets.xcassets */; };
+		AA01008A /* SpatialAlignmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02008A /* SpatialAlignmentEngine.swift */; };
+		AA01008B /* SpatialAlignmentSelectors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02008B /* SpatialAlignmentSelectors.swift */; };
+		AA01008C /* AlignmentViewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02008C /* AlignmentViewPanel.swift */; };
+		AA01008D /* SpatialAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02008D /* SpatialAlignmentTests.swift */; };
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 		C7BEDD64B626BFEE7010A956 /* VisitCaptureRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD9E4CEDEABD623B4606608 /* VisitCaptureRootView.swift */; };
@@ -238,6 +242,10 @@
 		AA020087 /* InstallMarkupViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMarkupViewModel.swift; sourceTree = "<group>"; };
 		AA020088 /* InstallMarkupOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMarkupOverlayView.swift; sourceTree = "<group>"; };
 		AA020089 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA02008A /* SpatialAlignmentEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialAlignmentEngine.swift; sourceTree = "<group>"; };
+		AA02008B /* SpatialAlignmentSelectors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialAlignmentSelectors.swift; sourceTree = "<group>"; };
+		AA02008C /* AlignmentViewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlignmentViewPanel.swift; sourceTree = "<group>"; };
+		AA02008D /* SpatialAlignmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialAlignmentTests.swift; sourceTree = "<group>"; };
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -327,6 +335,7 @@
 				AA050023 /* SessionReview */,
 				AA050024 /* FlueClearance */,
 				AA050025 /* Markup */,
+				AA05002A /* SpatialAlignment */,
 				30C58AB3CF4CE0B9BEBAFBFF /* VisitCapture */,
 			);
 			path = Features;
@@ -539,6 +548,16 @@
 			path = Markup;
 			sourceTree = "<group>";
 		};
+		AA05002A /* SpatialAlignment */ = {
+			isa = PBXGroup;
+			children = (
+				AA02008A /* SpatialAlignmentEngine.swift */,
+				AA02008B /* SpatialAlignmentSelectors.swift */,
+				AA02008C /* AlignmentViewPanel.swift */,
+			);
+			path = SpatialAlignment;
+			sourceTree = "<group>";
+		};
 		AA060000 = {
 			isa = PBXGroup;
 			children = (
@@ -569,6 +588,7 @@
 				AA02007B /* SessionKnowledgeExtractorTests.swift */,
 				AA02007C /* SessionKnowledgeSummaryTests.swift */,
 				309512065EC6B651B9F71DA5 /* VisitCaptureTests.swift */,
+				AA02008D /* SpatialAlignmentTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -774,6 +794,9 @@
 				2F653348E39E60DE420A36D5 /* VisitObjectsScreenView.swift in Sources */,
 				7DBFB964A3588C1939B9D671 /* VisitSummaryView.swift in Sources */,
 				F7FB499FD46C2DF309B268A4 /* VisitSessionMapper.swift in Sources */,
+				AA01008A /* SpatialAlignmentEngine.swift in Sources */,
+				AA01008B /* SpatialAlignmentSelectors.swift in Sources */,
+				AA01008C /* AlignmentViewPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -799,6 +822,7 @@
 				AA01007B /* SessionKnowledgeExtractorTests.swift in Sources */,
 				AA01007C /* SessionKnowledgeSummaryTests.swift in Sources */,
 				E7FC807742F5F9E5DEF1A866 /* VisitCaptureTests.swift in Sources */,
+				AA01008D /* SpatialAlignmentTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
