@@ -127,6 +127,21 @@ public struct AtlasPropertyV1: Codable, Sendable {
     /// It must NOT be derived from raw scan geometry; only from engineer-drawn markup.
     public let installLayer: InstallLayerModelV1?
 
+    // MARK: Spatial alignment model
+
+    /// Spatial alignment model carrying object anchors, vertical relationships, and
+    /// inferred service routes for the property.
+    ///
+    /// Produced by the SpatialAlignmentEngine after anchor capture and used by
+    /// Atlas Mind to power the Alignment View, routing estimates, and install
+    /// complexity signals.
+    ///
+    /// Architecture rule: consumers must visually distinguish `confirmed` anchors
+    /// from `inferred` routes.  Inferred routes carry a `reason` string and must
+    /// not be presented as confirmed fact.
+    /// Nil when no spatial alignment data has been captured.
+    public let spatialModel: AtlasSpatialModelV1?
+
     // MARK: Init
 
     public init(
@@ -147,7 +162,8 @@ public struct AtlasPropertyV1: Codable, Sendable {
         sessionKnowledge: AtlasSessionKnowledgeV1? = nil,
         spatialEvidence3d: [SpatialEvidence3D]? = nil,
         externalClearanceScenes: [ExternalClearanceSceneV1]? = nil,
-        installLayer: InstallLayerModelV1? = nil
+        installLayer: InstallLayerModelV1? = nil,
+        spatialModel: AtlasSpatialModelV1? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.propertyID = propertyID
@@ -167,6 +183,7 @@ public struct AtlasPropertyV1: Codable, Sendable {
         self.spatialEvidence3d = spatialEvidence3d
         self.externalClearanceScenes = externalClearanceScenes
         self.installLayer = installLayer
+        self.spatialModel = spatialModel
     }
 }
 
