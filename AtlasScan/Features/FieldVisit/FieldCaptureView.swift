@@ -696,8 +696,8 @@ struct SectionHeader: View {
 #Preview("Populated") {
     let store = ScanSessionStore()
     var session = PropertyScanSession(propertyAddress: "12 Coronation Street")
-    session.addRoom(ScannedRoom(jobID: session.id, name: "Kitchen"))
-    session.addRoom(ScannedRoom(jobID: session.id, name: "Boiler Room"))
+    session.addRoom(ScannedRoom(propertyID: session.id, name: "Kitchen"))
+    session.addRoom(ScannedRoom(propertyID: session.id, name: "Boiler Room"))
     session.addPhoto(TaggedPhoto(filename: "p1.jpg"))
     session.addTaggedObject(TaggedObject(roomID: session.id, category: .boiler))
     session.addTaggedObject(TaggedObject(roomID: session.id, category: .flue))
@@ -711,7 +711,7 @@ struct SectionHeader: View {
     var session = PropertyScanSession(propertyAddress: "12 Coronation Street")
     session.visitLifecycle = .complete
     session.completedAt = Date()
-    session.addRoom(ScannedRoom(jobID: session.id, name: "Kitchen"))
+    session.addRoom(ScannedRoom(propertyID: session.id, name: "Kitchen"))
     let visitStore = FieldVisitStore(session: session, sessionStore: store)
     return FieldCaptureView(store: visitStore)
 }
