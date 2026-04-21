@@ -21,6 +21,7 @@ struct FieldPlanView: View {
             VStack(spacing: 16) {
                 summarySection
                 actionsSection
+                annotationsList
             }
             .padding(16)
         }
@@ -30,8 +31,6 @@ struct FieldPlanView: View {
         }
         .onAppear { store.enterPlanningPhase() }
     }
-
-    // MARK: - Summary
 
     private var summarySection: some View {
         let overlay = store.planningOverlay
