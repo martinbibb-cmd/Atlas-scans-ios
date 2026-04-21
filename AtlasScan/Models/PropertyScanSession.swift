@@ -125,6 +125,24 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Defaults to `.draft` for sessions created before this field was introduced.
     var visitLifecycle: VisitLifecycleStatus
 
+    // MARK: Completion metadata
+
+    /// When this visit was explicitly completed.
+    ///
+    /// Set by `FieldVisitStore.completeVisit()`.  Nil until the visit is completed.
+    var completedAt: Date?
+
+    /// The user ID of the person who completed the visit, if available.
+    ///
+    /// Nil when user identity is not wired.  Set to nil in PR 5;
+    /// user-identity binding is a later feature.
+    var completedByUserId: String?
+
+    /// How the visit was completed.
+    ///
+    /// Set alongside `completedAt`.  Nil until the visit is completed.
+    var completionMethod: CompletionMethod?
+
     // MARK: Timestamps
 
     var createdAt: Date
@@ -155,7 +173,10 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         installMarkupObjects: [InstallMarkupObject] = [],
         installMarkupRoutes: [InstallMarkupRoute] = [],
         planningAnnotations: [PlanningAnnotation] = [],
-        visitLifecycle: VisitLifecycleStatus = .draft
+        visitLifecycle: VisitLifecycleStatus = .draft,
+        completedAt: Date? = nil,
+        completedByUserId: String? = nil,
+        completionMethod: CompletionMethod? = nil
     ) {
         self.id = id
         if jobReference.isEmpty {
@@ -185,6 +206,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.installMarkupRoutes = installMarkupRoutes
         self.planningAnnotations = planningAnnotations
         self.visitLifecycle = visitLifecycle
+        self.completedAt = completedAt
+        self.completedByUserId = completedByUserId
+        self.completionMethod = completionMethod
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -199,6 +223,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case roomScanEvidence, externalClearanceScenes
         case installMarkupObjects, installMarkupRoutes
         case planningAnnotations, visitLifecycle
+        case completedAt, completedByUserId, completionMethod
         case createdAt, updatedAt
     }
 
@@ -227,6 +252,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         installMarkupRoutes     = try c.decodeIfPresent([InstallMarkupRoute].self,      forKey: .installMarkupRoutes)     ?? []
         planningAnnotations     = try c.decodeIfPresent([PlanningAnnotation].self,      forKey: .planningAnnotations)     ?? []
         visitLifecycle          = try c.decodeIfPresent(VisitLifecycleStatus.self,      forKey: .visitLifecycle)          ?? .draft
+        completedAt             = try c.decodeIfPresent(Date.self,                      forKey: .completedAt)
+        completedByUserId       = try c.decodeIfPresent(String.self,                    forKey: .completedByUserId)
+        completionMethod        = try c.decodeIfPresent(CompletionMethod.self,           forKey: .completionMethod)
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
     }

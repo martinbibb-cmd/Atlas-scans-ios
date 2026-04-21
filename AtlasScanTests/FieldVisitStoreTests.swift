@@ -210,10 +210,13 @@ final class FieldVisitStoreTests: XCTestCase {
         session.addPhoto(TaggedPhoto(filename: "p.jpg"))
         session.addTaggedObject(TaggedObject(roomID: session.id, category: .boiler))
         session.addTaggedObject(TaggedObject(roomID: session.id, category: .flue))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .cylinder))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .radiator))
+        session.addVoiceNote(VoiceNote(localFilename: "note.m4a", duration: 10))
 
         let store = makeStore(session: session)
         XCTAssertEqual(store.lifecycleBadgeStatus, .readyToComplete,
-                       "Badge must show readyToComplete when readiness passes, regardless of stored lifecycle")
+                       "Badge must show readyToComplete when all completion checks pass")
     }
 
     func test_lifecycleBadgeStatus_showsStoredLifecycleWhenNotReady() {
@@ -316,5 +319,163 @@ final class FieldVisitStoreTests: XCTestCase {
         XCTAssertFalse(readiness.isReady)
         let planning = store.planningReadiness
         XCTAssertEqual(planning.proposedEmittersCount, 0)
+    }
+
+    // MARK: - Completion validation
+
+    func test_completionValidation_emptySessionIsNotCompletable() {
+        let store = makeStore()
+        let result = store.completionValidation
+        XCTAssertFalse(result.isCompletable)
+        XCTAssertEqual(result.missingItems.count, 7, "All seven items must be listed as missing")
+    }
+
+    func test_canCompleteVisit_falseForEmptySession() {
+        let store = makeStore()
+        XCTAssertFalse(store.canCompleteVisit)
+    }
+
+    func test_canCompleteVisit_trueWhenAllItemsPresent() {
+        let store = makeStore(session: makeFullyReadySession())
+        XCTAssertTrue(store.canCompleteVisit)
+    }
+
+    func test_canCompleteVisit_falseWhenAlreadyComplete() {
+        var session = makeFullyReadySession()
+        session.visitLifecycle = .complete
+        let store = makeStore(session: session)
+        XCTAssertFalse(store.canCompleteVisit,
+                       "canCompleteVisit must be false when the visit is already complete")
+    }
+
+    // MARK: - completeVisit
+
+    func test_completeVisit_doesNotCompleteInvalidVisit() {
+        let store = makeStore() // empty — not completable
+        store.completeVisit()
+        XCTAssertNotEqual(store.session.visitLifecycle, .complete)
+        XCTAssertNotNil(store.completionError,
+                        "completionError must be set when completion is attempted on an invalid visit")
+    }
+
+    func test_completeVisit_setsLifecycleToCompleteWhenValid() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        XCTAssertEqual(store.session.visitLifecycle, .complete)
+    }
+
+    func test_completeVisit_writesCompletedAt() {
+        let store = makeStore(session: makeFullyReadySession())
+        let before = Date()
+        store.completeVisit()
+        let after = Date()
+        guard let completedAt = store.session.completedAt else {
+            return XCTFail("completedAt must be set after completeVisit()")
+        }
+        XCTAssertGreaterThanOrEqual(completedAt, before)
+        XCTAssertLessThanOrEqual(completedAt, after)
+    }
+
+    func test_completeVisit_setsCompletionMethodToManual() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        XCTAssertEqual(store.session.completionMethod, .manual)
+    }
+
+    func test_completeVisit_completedByUserIdIsNil() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        XCTAssertNil(store.session.completedByUserId,
+                     "completedByUserId must be nil when user identity is not wired")
+    }
+
+    func test_completeVisit_isCompletedAfterAction() {
+        let store = makeStore(session: makeFullyReadySession())
+        XCTAssertFalse(store.isCompleted)
+        store.completeVisit()
+        XCTAssertTrue(store.isCompleted)
+    }
+
+    func test_completeVisit_clearsCompletionError() {
+        let store = makeStore()
+        store.completeVisit() // invalid — sets error
+        XCTAssertNotNil(store.completionError)
+        store.clearCompletionError()
+        XCTAssertNil(store.completionError)
+    }
+
+    func test_isCompleted_locksUpdateMutations() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        XCTAssertTrue(store.isCompleted)
+
+        let roomCountBefore = store.session.rooms.count
+        store.update { $0.addRoom(ScannedRoom(jobID: $0.id, name: "New Room")) }
+        XCTAssertEqual(store.session.rooms.count, roomCountBefore,
+                       "update(_:) must be a no-op on a completed visit")
+    }
+
+    func test_completionMetadata_roundTripsViaJson() throws {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        XCTAssertTrue(store.isCompleted)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let data = try encoder.encode(store.session)
+        let decoded = try decoder.decode(PropertyScanSession.self, from: data)
+
+        XCTAssertEqual(decoded.visitLifecycle, .complete)
+        XCTAssertNotNil(decoded.completedAt)
+        XCTAssertEqual(decoded.completionMethod, .manual)
+        XCTAssertNil(decoded.completedByUserId)
+    }
+
+    func test_sessionWithoutCompletionFields_decodesWithNilDefaults() throws {
+        let json = """
+        {
+            "id": "12345678-1234-1234-1234-123456789012",
+            "jobReference": "JOB-OLD",
+            "propertyAddress": "Old Session Street",
+            "engineerName": "",
+            "rooms": [], "photos": [], "voiceNotes": [], "taggedObjects": [],
+            "issues": [], "roomAdjacencies": [], "roomPlacements": [],
+            "roomScanEvidence": [], "externalClearanceScenes": [],
+            "installMarkupObjects": [], "installMarkupRoutes": [],
+            "extractedFacts": [],
+            "scanState": "in_progress", "reviewState": "pending",
+            "syncState": "local_only", "handoffState": "not_sent",
+            "visitLifecycle": "complete",
+            "createdAt": "2024-01-01T10:00:00Z",
+            "updatedAt": "2024-01-01T10:00:00Z"
+        }
+        """
+        let data = Data(json.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let session = try decoder.decode(PropertyScanSession.self, from: data)
+
+        XCTAssertEqual(session.visitLifecycle, .complete)
+        XCTAssertNil(session.completedAt,
+                     "completedAt must default to nil for sessions without that key")
+        XCTAssertNil(session.completionMethod,
+                     "completionMethod must default to nil for sessions without that key")
+    }
+
+    // MARK: - Helpers: fully ready session
+
+    private func makeFullyReadySession() -> PropertyScanSession {
+        var session = makeSession()
+        session.addRoom(ScannedRoom(jobID: session.id, name: "Kitchen"))
+        session.addPhoto(TaggedPhoto(filename: "p.jpg"))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .boiler))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .flue))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .cylinder))
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .radiator))
+        session.addVoiceNote(VoiceNote(localFilename: "note.m4a", duration: 30))
+        return session
     }
 }

@@ -19,8 +19,13 @@ struct FieldPlanView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if store.isCompleted {
+                    completedNotice
+                }
                 summarySection
-                actionsSection
+                if !store.isCompleted {
+                    actionsSection
+                }
                 annotationsList
             }
             .padding(16)
@@ -30,6 +35,22 @@ struct FieldPlanView: View {
             addAnnotationSheet
         }
         .onAppear { store.enterPlanningPhase() }
+    }
+
+    // MARK: - Completed notice
+
+    private var completedNotice: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(.secondary)
+            Text("Visit completed — planning is read-only.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var summarySection: some View {
