@@ -15,13 +15,34 @@ struct FieldCaptureView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if store.isCompleted {
+                    completedNotice
+                }
                 summarySection
-                actionsSection
+                if !store.isCompleted {
+                    actionsSection
+                }
             }
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
         .onAppear { store.enterCapturePhase() }
+    }
+
+    // MARK: - Completed notice
+
+    private var completedNotice: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(.secondary)
+            Text("Visit completed — capture is read-only.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Summary

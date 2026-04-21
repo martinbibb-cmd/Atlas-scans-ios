@@ -46,7 +46,8 @@ final class ScanSessionStore: ObservableObject {
 
     // MARK: Public API
 
-    func save(_ session: PropertyScanSession) {
+    @discardableResult
+    func save(_ session: PropertyScanSession) -> Bool {
         var s = session
         s.touch()
         let url = fileURL(for: s.id)
@@ -59,8 +60,10 @@ final class ScanSessionStore: ObservableObject {
                 sessions.append(s)
             }
             sessions.sort { $0.updatedAt > $1.updatedAt }
+            return true
         } catch {
             print("[ScanSessionStore] Failed to save session \(s.id): \(error)")
+            return false
         }
     }
 

@@ -11,6 +11,7 @@ import AtlasContracts
 ///   - Derives `FieldSurveyV1` and `PlanningOverlayV1` from session state.
 ///   - Exposes `VisitReadinessV1` and `PlanningReadinessV1` via the contract helpers.
 ///   - Advances `visitLifecycle` when the engineer enters a new phase.
+///   - Validates completion readiness and performs the explicit complete action.
 ///   - Persists changes through `ScanSessionStore` with debounced autosave.
 ///
 /// Design:
@@ -19,6 +20,8 @@ import AtlasContracts
 ///     from the session; no duplicate storage.
 ///   - Missing optional fields in older sessions are handled lazily — the store
 ///     never mutates the session on open unless the engineer makes a change.
+///   - `completeVisit()` performs an immediate, non-debounced save; if the save
+///     fails the lifecycle is NOT advanced and `completionError` is set.
 @MainActor
 final class FieldVisitStore: ObservableObject {
 
@@ -35,6 +38,14 @@ final class FieldVisitStore: ObservableObject {
     }
 
     @Published private(set) var saveState: SaveState = .saved
+
+    // MARK: - Completion error
+
+    /// Non-nil when a `completeVisit()` call failed to persist.
+    ///
+    /// The lifecycle is NOT advanced when this is set; the visit remains
+    /// in its pre-completion state so the engineer can retry.
+    @Published private(set) var completionError: String?
 
     // MARK: - Dependencies
 
@@ -70,13 +81,90 @@ final class FieldVisitStore: ObservableObject {
 
     /// The lifecycle status to display in the shell header badge.
     ///
-    /// If the survey readiness passes the critical checks, the badge reflects
-    /// `.readyToComplete` even if the persisted `visitLifecycle` is lower —
-    /// so the engineer sees real-time feedback without needing to navigate.
+    /// If completion validation passes, the badge reflects `.readyToComplete`
+    /// even if the persisted `visitLifecycle` is lower — so the engineer sees
+    /// real-time feedback without needing to navigate to the Complete tab.
     var lifecycleBadgeStatus: VisitLifecycleStatus {
         if session.visitLifecycle == .complete { return .complete }
-        if visitReadiness.isReady { return .readyToComplete }
+        if completionValidation.isCompletable { return .readyToComplete }
         return session.visitLifecycle
+    }
+
+    // MARK: - Derived: completion
+
+    /// Whether the visit is currently in the `.complete` lifecycle state.
+    var isCompleted: Bool {
+        session.visitLifecycle == .complete
+    }
+
+    /// Completion validation result derived from current visit readiness.
+    ///
+    /// Checks all seven required survey items.  This is stricter than
+    /// `visitReadiness.isReady`, which only checks a subset.
+    var completionValidation: VisitCompletionValidationResult {
+        validateVisitForCompletion(readiness: visitReadiness)
+    }
+
+    /// Whether the engineer is allowed to trigger explicit completion right now.
+    ///
+    /// False when the visit is already complete or when validation fails.
+    var canCompleteVisit: Bool {
+        !isCompleted && completionValidation.isCompletable
+    }
+
+    // MARK: - Completion action
+
+    /// Explicitly completes the visit.
+    ///
+    /// Steps:
+    ///   1. Validates completion readiness.
+    ///   2. If invalid: sets `completionError` and returns without changing state.
+    ///   3. If valid:
+    ///      a. Writes lifecycle `.complete` and completion metadata in memory.
+    ///      b. Performs an immediate, non-debounced save.
+    ///      c. If save succeeds: commits the new session state.
+    ///      d. If save fails: reverts the in-memory change, sets `completionError`.
+    ///
+    /// Completion is never implied by navigation or autosave — only this method
+    /// can advance the lifecycle to `.complete`.
+    func completeVisit() {
+        completionError = nil
+
+        guard completionValidation.isCompletable else {
+            completionError = "Visit cannot be completed. Some required items are still missing."
+            return
+        }
+
+        guard !isCompleted else { return }
+
+        // Build the completed session in a local copy first.
+        var completed = session
+        completed.visitLifecycle = .complete
+        completed.completedAt = Date()
+        completed.completedByUserId = nil      // user identity not wired in this PR
+        completed.completionMethod = .manual
+
+        // Cancel any pending debounced save so we don't race with it.
+        autosaveTask?.cancel()
+        autosaveTask = nil
+
+        saveState = .saving
+
+        let saveSucceeded = sessionStore.save(completed)
+
+        if saveSucceeded {
+            session = completed
+            saveState = .saved
+        } else {
+            // Do NOT advance the lifecycle — the visit is still incomplete.
+            saveState = .unsaved
+            completionError = "Failed to save the visit. Please check storage and try again."
+        }
+    }
+
+    /// Clears any pending completion error so the UI can dismiss it.
+    func clearCompletionError() {
+        completionError = nil
     }
 
     // MARK: - Derived: field survey
@@ -211,7 +299,11 @@ final class FieldVisitStore: ObservableObject {
     // MARK: - Session mutation
 
     /// Applies `mutation` to the session and schedules autosave.
+    ///
+    /// Mutations are blocked after the visit has been completed to prevent
+    /// accidental state changes to a closed record.
     func update(_ mutation: (inout PropertyScanSession) -> Void) {
+        guard !isCompleted else { return }
         mutation(&session)
         scheduleAutosave()
     }
