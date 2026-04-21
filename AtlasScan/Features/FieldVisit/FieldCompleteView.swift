@@ -24,6 +24,8 @@ struct FieldCompleteView: View {
 
     @ObservedObject var store: FieldVisitStore
 
+    @State private var showingHandoffReview = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -43,6 +45,9 @@ struct FieldCompleteView: View {
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .navigationDestination(isPresented: $showingHandoffReview) {
+            VisitCompletionReviewView(session: store.session)
+        }
     }
 
     // MARK: - Readiness status card
@@ -198,6 +203,20 @@ struct FieldCompleteView: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+
+            // Review handoff CTA
+            Button {
+                showingHandoffReview = true
+            } label: {
+                HStack {
+                    Image(systemName: "doc.text.magnifyingglass")
+                    Text("Review handoff")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }

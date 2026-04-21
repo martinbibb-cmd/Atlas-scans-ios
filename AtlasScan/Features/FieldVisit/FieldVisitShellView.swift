@@ -47,6 +47,7 @@ struct FieldVisitShellView: View {
 
     @StateObject private var store: FieldVisitStore
     @State private var activeSection: FieldVisitSection = .capture
+    @State private var showingHandoffReview = false
 
     // MARK: Init
 
@@ -68,6 +69,9 @@ struct FieldVisitShellView: View {
         .navigationTitle(store.session.propertyAddress)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
+        .navigationDestination(isPresented: $showingHandoffReview) {
+            VisitCompletionReviewView(session: store.session)
+        }
     }
 
     // MARK: - Visit header
@@ -175,6 +179,16 @@ struct FieldVisitShellView: View {
                 Text("Field Visit")
                     .font(.headline)
                 saveStateBadge
+            }
+        }
+        if store.isCompleted {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingHandoffReview = true
+                } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                }
+                .accessibilityLabel("Review handoff")
             }
         }
     }
