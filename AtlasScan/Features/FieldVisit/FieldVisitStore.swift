@@ -390,8 +390,84 @@ final class FieldVisitStore: ObservableObject {
     }
 
     /// Removes the voice/text note with the given ID from the session.
+    ///
+    /// Delegates to `removeVoiceNote(id:)`.  Kept for backward compatibility
+    /// with existing callers that use the text-note terminology.
     func removeTextNote(id: UUID) {
+        removeVoiceNote(id: id)
+    }
+
+    // MARK: - Voice note recording
+
+    /// Adds a recorded voice note to the session and kicks off transcription.
+    ///
+    /// The note is saved immediately with `transcriptStatus == .pending`.
+    /// Transcription runs asynchronously; the note record is updated when the
+    /// result arrives (via `applyTranscriptResult`).
+    ///
+    /// The note always persists regardless of whether transcription succeeds.
+    /// Blocked after completion.
+    func addVoiceNoteRecording(_ note: VoiceNote) {
+        var pending = note
+        pending.transcriptStatus = .pending
+        update { $0.addVoiceNote(pending) }
+        Task {
+            await startTranscription(for: pending)
+        }
+    }
+
+    /// Removes the voice or text note with the given ID from the session.
+    ///
+    /// Also deletes the local audio file when the note has a non-empty filename.
+    /// Blocked after completion.
+    func removeVoiceNote(id: UUID) {
+        // Capture the note up front so the audio filename is available after the
+        // session mutation, without recomputing allVoiceNotes a second time.
+        let noteToRemove = session.allVoiceNotes.first(where: { $0.id == id })
         update { $0.removeVoiceNote(id: id) }
+        if let filename = noteToRemove?.localFilename, !filename.isEmpty {
+            VoiceNoteStore.shared.delete(filename: filename)
+        }
+    }
+
+    /// Applies a transcription result to an existing voice note record.
+    ///
+    /// This mutation bypasses the completion lock because it is a system-initiated
+    /// update from an in-flight transcription task, not a user-initiated capture.
+    /// The session is persisted via the normal debounced autosave.
+    func applyTranscriptResult(noteID: UUID, transcript: String?, status: TranscriptStatus) {
+        if let idx = session.voiceNotes.firstIndex(where: { $0.id == noteID }) {
+            session.voiceNotes[idx].transcript = transcript
+            session.voiceNotes[idx].transcriptStatus = status
+            scheduleAutosave()
+            return
+        }
+        for roomIdx in session.rooms.indices {
+            if let noteIdx = session.rooms[roomIdx].voiceNotes.firstIndex(where: { $0.id == noteID }) {
+                session.rooms[roomIdx].voiceNotes[noteIdx].transcript = transcript
+                session.rooms[roomIdx].voiceNotes[noteIdx].transcriptStatus = status
+                scheduleAutosave()
+                return
+            }
+        }
+    }
+
+    // MARK: - Derived: consolidated notes
+
+    /// The current consolidated note content derived from all voice and text notes.
+    ///
+    /// Transcript text is preferred for each note; caption is used as fallback.
+    /// Empty/whitespace notes are excluded.  Computed on demand — not stored.
+    var consolidatedNotes: VisitConsolidatedNotes {
+        consolidateVisitNotes(voiceNotes: session.allVoiceNotes)
+    }
+
+    // MARK: - Private: transcription
+
+    private func startTranscription(for note: VoiceNote) async {
+        let fileURL = VoiceNoteStore.shared.fileURL(for: note.localFilename)
+        let result = await VoiceNoteTranscriptionService.shared.transcribe(fileURL: fileURL)
+        applyTranscriptResult(noteID: note.id, transcript: result.transcript, status: result.status)
     }
 
     // MARK: - Planning mutation helpers

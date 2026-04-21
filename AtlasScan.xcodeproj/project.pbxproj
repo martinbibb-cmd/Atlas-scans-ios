@@ -133,6 +133,9 @@
 		AA0100A7 /* PlanningAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A7 /* PlanningAnnotation.swift */; };
 		AA0100A8 /* FieldVisitStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A8 /* FieldVisitStoreTests.swift */; };
 		AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B0 /* VisitCompletionValidatorTests.swift */; };
+		AA0100B1 /* VisitNotesConsolidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B1 /* VisitNotesConsolidator.swift */; };
+		AA0100B2 /* VoiceNoteTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B2 /* VoiceNoteTranscriptionService.swift */; };
+		AA0100B3 /* VisitNotesConsolidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B3 /* VisitNotesConsolidatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -273,6 +276,9 @@
 		AA0200A7 /* PlanningAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningAnnotation.swift; sourceTree = "<group>"; };
 		AA0200A8 /* FieldVisitStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldVisitStoreTests.swift; sourceTree = "<group>"; };
 		AA0200B0 /* VisitCompletionValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitCompletionValidatorTests.swift; sourceTree = "<group>"; };
+		AA0200B1 /* VisitNotesConsolidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitNotesConsolidator.swift; sourceTree = "<group>"; };
+		AA0200B2 /* VoiceNoteTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTranscriptionService.swift; sourceTree = "<group>"; };
+		AA0200B3 /* VisitNotesConsolidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitNotesConsolidatorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -346,6 +352,7 @@
 				AA0200A4 /* FieldPlanView.swift */,
 				AA0200A5 /* FieldReviewView.swift */,
 				AA0200A6 /* FieldCompleteView.swift */,
+				AA0200B1 /* VisitNotesConsolidator.swift */,
 			);
 			path = FieldVisit;
 			sourceTree = "<group>";
@@ -415,6 +422,7 @@
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
 				B0F64E4E6D0C919B8E475B11 /* VisitSessionMapper.swift */,
+				AA0200B2 /* VoiceNoteTranscriptionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -624,6 +632,7 @@
 				AA02008D /* SpatialAlignmentTests.swift */,
 				AA0200A8 /* FieldVisitStoreTests.swift */,
 				AA0200B0 /* VisitCompletionValidatorTests.swift */,
+				AA0200B3 /* VisitNotesConsolidatorTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -839,6 +848,8 @@
 				AA0100A4 /* FieldPlanView.swift in Sources */,
 				AA0100A5 /* FieldReviewView.swift in Sources */,
 				AA0100A6 /* FieldCompleteView.swift in Sources */,
+				AA0100B1 /* VisitNotesConsolidator.swift in Sources */,
+				AA0100B2 /* VoiceNoteTranscriptionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -867,6 +878,7 @@
 				AA01008D /* SpatialAlignmentTests.swift in Sources */,
 				AA0100A8 /* FieldVisitStoreTests.swift in Sources */,
 				AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */,
+				AA0100B3 /* VisitNotesConsolidatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

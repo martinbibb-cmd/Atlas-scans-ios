@@ -26,6 +26,9 @@ struct FieldReviewView: View {
                 statusSection
                 visitReadinessSection
                 planningReadinessSection
+                if store.consolidatedNotes.hasUsableContent {
+                    consolidatedNotesSection
+                }
                 if !store.session.rooms.isEmpty {
                     roomCoverageSection
                 }
@@ -137,6 +140,43 @@ struct FieldReviewView: View {
                 )
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    // MARK: - Consolidated notes
+
+    private var consolidatedNotesSection: some View {
+        let notes = store.consolidatedNotes
+        return VStack(spacing: 0) {
+            SectionHeader(title: "Field Notes Summary")
+                .padding(.bottom, 8)
+
+            VStack(spacing: 1) {
+                ForEach(notes.preview(maxLines: 5), id: \.self) { line in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "text.quote")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18)
+                            .padding(.top, 2)
+                        Text(line)
+                            .font(.body)
+                            .lineLimit(3)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(.secondarySystemGroupedBackground))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            if notes.lines.count > 5 {
+                Text("+ \(notes.lines.count - 5) more notes")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
         }
     }
 

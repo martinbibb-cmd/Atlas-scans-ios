@@ -25,6 +25,7 @@ struct FieldCaptureView: View {
     @State private var showingAddBoiler  = false
     @State private var showingAddFlue    = false
     @State private var showingAddNote    = false
+    @State private var showingRecordNote = false
     @State private var showingCamera     = false
 
     // Photo picker state (PhotosUI)
@@ -57,6 +58,11 @@ struct FieldCaptureView: View {
         }
         .sheet(isPresented: $showingAddNote) {
             AddNoteSheet(store: store, isPresented: $showingAddNote)
+        }
+        .sheet(isPresented: $showingRecordNote) {
+            VoiceNoteRecorderSheet(attachContext: "Visit") { note in
+                store.addVoiceNoteRecording(note)
+            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPickerView(
@@ -284,32 +290,11 @@ struct FieldCaptureView: View {
             tint: .green,
             isEmpty: notes.isEmpty,
             emptyText: "No notes added yet",
-            addButtonLabel: store.isCompleted ? nil : "Add Note",
-            onAdd: { showingAddNote = true }
+            addButtonLabel: nil,
+            onAdd: nil
         ) {
             ForEach(notes.prefix(3)) { note in
-                HStack(alignment: .top) {
-                    Image(systemName: "text.alignleft")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 18)
-                        .padding(.top, 2)
-                    Text(note.caption.isEmpty ? (note.transcript ?? "Note") : note.caption)
-                        .font(.subheadline)
-                        .lineLimit(2)
-                    Spacer()
-                    if !store.isCompleted {
-                        Button(role: .destructive) {
-                            store.removeTextNote(id: note.id)
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.caption)
-                                .foregroundStyle(.red.opacity(0.8))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 4)
+                noteRow(note)
                 Divider()
             }
             if notes.count > 3 {
@@ -317,6 +302,90 @@ struct FieldCaptureView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
+            }
+            if !store.isCompleted {
+                HStack(spacing: 10) {
+                    Button { showingAddNote = true } label: {
+                        Label("Add Note", systemImage: "square.and.pencil")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    Button { showingRecordNote = true } label: {
+                        Label("Record Note", systemImage: "mic.fill")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 6)
+            }
+        }
+    }
+
+    private func noteRow(_ note: VoiceNote) -> some View {
+        HStack(alignment: .top) {
+            Image(systemName: note.localFilename.isEmpty ? "text.alignleft" : "mic")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(noteDisplayText(note))
+                    .font(.subheadline)
+                    .lineLimit(2)
+                transcriptStatusBadge(note)
+            }
+            Spacer()
+            if !store.isCompleted {
+                Button(role: .destructive) {
+                    store.removeVoiceNote(id: note.id)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundStyle(.red.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func noteDisplayText(_ note: VoiceNote) -> String {
+        if note.transcriptStatus == .completed,
+           let t = note.transcript,
+           !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return t.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let caption = note.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !caption.isEmpty { return caption }
+        return "Untitled voice note"
+    }
+
+    @ViewBuilder
+    private func transcriptStatusBadge(_ note: VoiceNote) -> some View {
+        if !note.localFilename.isEmpty {
+            switch note.transcriptStatus {
+            case .completed:
+                Label("Transcript ready", systemImage: "checkmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            case .pending:
+                Label("Processing transcript", systemImage: "clock")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            case .failed:
+                Label("Transcript unavailable", systemImage: "exclamationmark.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            case .none:
+                EmptyView()
             }
         }
     }
