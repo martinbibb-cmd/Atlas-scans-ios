@@ -53,25 +53,31 @@ struct PlanningAnnotation: Identifiable, Codable {
     /// Optional room association.  Nil for property-level notes.
     var roomID: UUID?
 
+    /// Optional category within the note kind (e.g. "ladder" for access notes,
+    /// "emitter" for room plan notes).  Nil means general / uncategorised.
+    var category: String?
+
     var createdAt: Date
 
     init(
         id: UUID = UUID(),
         text: String,
         kind: PlanningAnnotationKind,
-        roomID: UUID? = nil
+        roomID: UUID? = nil,
+        category: String? = nil
     ) {
         self.id = id
         self.text = text
         self.kind = kind
         self.roomID = roomID
+        self.category = category
         self.createdAt = Date()
     }
 
     // MARK: Decodable — backward-compatible
 
     private enum CodingKeys: String, CodingKey {
-        case id, text, kind, roomID, createdAt
+        case id, text, kind, roomID, category, createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -80,6 +86,7 @@ struct PlanningAnnotation: Identifiable, Codable {
         text      = try c.decode(String.self,                forKey: .text)
         kind      = try c.decodeIfPresent(PlanningAnnotationKind.self, forKey: .kind) ?? .specNote
         roomID    = try c.decodeIfPresent(UUID.self,         forKey: .roomID)
+        category  = try c.decodeIfPresent(String.self,       forKey: .category)
         createdAt = try c.decode(Date.self,                  forKey: .createdAt)
     }
 }

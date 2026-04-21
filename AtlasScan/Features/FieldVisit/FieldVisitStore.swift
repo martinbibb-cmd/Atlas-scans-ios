@@ -230,7 +230,9 @@ final class FieldVisitStore: ObservableObject {
                     id: obj.id.uuidString,
                     type: obj.categoryRawValue,
                     label: obj.label,
-                    roomID: obj.roomID?.uuidString
+                    roomID: obj.roomID?.uuidString,
+                    note: obj.note,
+                    replacesExisting: obj.replacesExisting
                 )
             }
 
@@ -390,6 +392,104 @@ final class FieldVisitStore: ObservableObject {
     /// Removes the voice/text note with the given ID from the session.
     func removeTextNote(id: UUID) {
         update { $0.removeVoiceNote(id: id) }
+    }
+
+    // MARK: - Planning mutation helpers
+
+    /// Adds a proposed emitter to the session planning overlay.
+    ///
+    /// Creates an `InstallMarkupObject` on the `.proposed` layer with the given
+    /// emitter type, room, label, note, and replacement intent.
+    ///
+    /// - Parameters:
+    ///   - roomID:           Optional room to associate the emitter with.
+    ///   - type:             Emitter category (e.g. `.radiator`, `.towelRail`).
+    ///   - label:            Optional engineer-assigned label.
+    ///   - note:             Optional planning note.
+    ///   - replacesExisting: True when the proposed emitter replaces an existing one.
+    func addProposedEmitter(
+        roomID: UUID? = nil,
+        type: ServiceObjectCategory,
+        label: String = "",
+        note: String = "",
+        replacesExisting: Bool = false
+    ) {
+        let obj = InstallMarkupObject(
+            categoryRawValue: type.rawValue,
+            label: label,
+            position: NormalizedPoint2D(x: 0.5, y: 0.5),
+            layer: .proposed,
+            roomID: roomID,
+            note: note,
+            replacesExisting: replacesExisting
+        )
+        update { $0.installMarkupObjects.append(obj) }
+    }
+
+    /// Removes the proposed emitter with the given ID from the session.
+    func removeProposedEmitter(id: UUID) {
+        update { $0.installMarkupObjects.removeAll { $0.id == id } }
+    }
+
+    /// Adds an access note to the session planning annotations.
+    ///
+    /// - Parameters:
+    ///   - roomID:        Optional room association.
+    ///   - category:      Access note category (e.g. "ladder", "clearance").
+    ///   - note:          The note text.
+    func addAccessNote(roomID: UUID? = nil, category: String = "general", note: String) {
+        let trimmed = note.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let annotation = PlanningAnnotation(
+            text: trimmed,
+            kind: .accessNote,
+            roomID: roomID,
+            category: category
+        )
+        update { $0.addPlanningAnnotation(annotation) }
+    }
+
+    /// Removes the access note with the given ID from the session.
+    func removeAccessNote(id: UUID) {
+        update { $0.removePlanningAnnotation(id: id) }
+    }
+
+    /// Adds a room plan note to the session planning annotations.
+    ///
+    /// - Parameters:
+    ///   - roomID:    Room association (required for room plan notes).
+    ///   - category:  Room plan category (e.g. "emitter", "pipework").
+    ///   - note:      The note text.
+    func addRoomPlanNote(roomID: UUID? = nil, category: String = "general", note: String) {
+        let trimmed = note.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let annotation = PlanningAnnotation(
+            text: trimmed,
+            kind: .roomPlanNote,
+            roomID: roomID,
+            category: category
+        )
+        update { $0.addPlanningAnnotation(annotation) }
+    }
+
+    /// Removes the room plan note with the given ID from the session.
+    func removeRoomPlanNote(id: UUID) {
+        update { $0.removePlanningAnnotation(id: id) }
+    }
+
+    /// Adds a spec note to the session planning annotations.
+    ///
+    /// No-ops if the trimmed text is empty.
+    func addSpecNote(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let annotation = PlanningAnnotation(text: trimmed, kind: .specNote)
+        update { $0.addPlanningAnnotation(annotation) }
+    }
+
+    /// Removes the spec note with the given ID from the session.
+    func removeSpecNote(id: UUID) {
+        update { $0.removePlanningAnnotation(id: id) }
     }
 
     // MARK: - Autosave

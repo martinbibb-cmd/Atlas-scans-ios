@@ -736,4 +736,201 @@ final class FieldVisitStoreTests: XCTestCase {
         XCTAssertEqual(store.session.rooms.count, roomsCountBefore,
                        "removeRoom must be a no-op on a completed visit")
     }
+
+    // MARK: - addProposedEmitter / removeProposedEmitter
+
+    func test_addProposedEmitter_appearsInPlanningOverlay() {
+        let store = makeStore()
+        store.addProposedEmitter(type: .radiator)
+        XCTAssertEqual(store.planningReadiness.proposedEmittersCount, 1)
+        XCTAssertEqual(store.planningOverlay.proposedEmitters.first?.type, "radiator")
+    }
+
+    func test_addProposedEmitter_preservesRoomTypeLabelNoteReplacesExisting() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        let store = makeStore(session: session)
+
+        store.addProposedEmitter(
+            roomID: room.id,
+            type: .towelRail,
+            label: "Guest bath towel rail",
+            note: "Double panel",
+            replacesExisting: true
+        )
+
+        let emitter = store.planningOverlay.proposedEmitters.first
+        XCTAssertNotNil(emitter)
+        XCTAssertEqual(emitter?.type, "towel_rail")
+        XCTAssertEqual(emitter?.label, "Guest bath towel rail")
+        XCTAssertEqual(emitter?.note, "Double panel")
+        XCTAssertEqual(emitter?.replacesExisting, true)
+        XCTAssertEqual(emitter?.roomID, room.id.uuidString)
+    }
+
+    func test_addProposedEmitter_updatesPlanningReadiness() {
+        let store = makeStore()
+        XCTAssertEqual(store.planningReadiness.proposedEmittersCount, 0)
+        store.addProposedEmitter(type: .radiator)
+        XCTAssertEqual(store.planningReadiness.proposedEmittersCount, 1)
+    }
+
+    func test_removeProposedEmitter_updatesPlanningReadiness() {
+        let store = makeStore()
+        store.addProposedEmitter(type: .radiator)
+        let id = store.session.installMarkupObjects.first!.id
+        XCTAssertEqual(store.planningReadiness.proposedEmittersCount, 1)
+
+        store.removeProposedEmitter(id: id)
+
+        XCTAssertEqual(store.planningReadiness.proposedEmittersCount, 0)
+    }
+
+    // MARK: - addAccessNote / removeAccessNote
+
+    func test_addAccessNote_appearsInPlanningOverlay() {
+        let store = makeStore()
+        store.addAccessNote(note: "Porch blocks straight ladder placement")
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 1)
+        XCTAssertEqual(store.planningOverlay.accessNotes.first?.text,
+                       "Porch blocks straight ladder placement")
+    }
+
+    func test_addAccessNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 0)
+        store.addAccessNote(category: "ladder", note: "Tight passage")
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 1)
+    }
+
+    func test_addAccessNote_emptyTextIsNoOp() {
+        let store = makeStore()
+        store.addAccessNote(note: "   ")
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 0)
+    }
+
+    func test_removeAccessNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        store.addAccessNote(note: "Loft hatch tight")
+        let id = store.session.planningAnnotations.first!.id
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 1)
+
+        store.removeAccessNote(id: id)
+
+        XCTAssertEqual(store.planningReadiness.accessNotesCount, 0)
+    }
+
+    // MARK: - addRoomPlanNote / removeRoomPlanNote
+
+    func test_addRoomPlanNote_appearsInPlanningOverlay() {
+        let store = makeStore()
+        store.addRoomPlanNote(note: "Replace single rad with larger double panel")
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 1)
+        XCTAssertEqual(store.planningOverlay.roomPlanNotes.first?.text,
+                       "Replace single rad with larger double panel")
+    }
+
+    func test_addRoomPlanNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 0)
+        store.addRoomPlanNote(category: "emitter", note: "Upsize rads throughout")
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 1)
+    }
+
+    func test_addRoomPlanNote_emptyTextIsNoOp() {
+        let store = makeStore()
+        store.addRoomPlanNote(note: "  ")
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 0)
+    }
+
+    func test_removeRoomPlanNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        store.addRoomPlanNote(note: "TRV relocation needed")
+        let id = store.session.planningAnnotations.first!.id
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 1)
+
+        store.removeRoomPlanNote(id: id)
+
+        XCTAssertEqual(store.planningReadiness.roomPlansCount, 0)
+    }
+
+    // MARK: - addSpecNote / removeSpecNote
+
+    func test_addSpecNote_appearsInPlanningOverlay() {
+        let store = makeStore()
+        store.addSpecNote("Filter required on return")
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 1)
+        XCTAssertEqual(store.planningOverlay.specNotes.first?.text, "Filter required on return")
+    }
+
+    func test_addSpecNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 0)
+        store.addSpecNote("Move controls to hall")
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 1)
+    }
+
+    func test_addSpecNote_emptyTextIsNoOp() {
+        let store = makeStore()
+        store.addSpecNote("  ")
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 0)
+    }
+
+    func test_removeSpecNote_updatesPlanningReadiness() {
+        let store = makeStore()
+        store.addSpecNote("Customer wants towel rail retained")
+        let id = store.session.planningAnnotations.first!.id
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 1)
+
+        store.removeSpecNote(id: id)
+
+        XCTAssertEqual(store.planningReadiness.specNotesCount, 0)
+    }
+
+    // MARK: - Completion lock blocks planning mutations
+
+    func test_completionLock_blocksAddProposedEmitter() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        let countBefore = store.session.installMarkupObjects.count
+
+        store.addProposedEmitter(type: .radiator)
+
+        XCTAssertEqual(store.session.installMarkupObjects.count, countBefore,
+                       "addProposedEmitter must be a no-op on a completed visit")
+    }
+
+    func test_completionLock_blocksAddAccessNote() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        let countBefore = store.session.planningAnnotations.count
+
+        store.addAccessNote(note: "Late note")
+
+        XCTAssertEqual(store.session.planningAnnotations.count, countBefore,
+                       "addAccessNote must be a no-op on a completed visit")
+    }
+
+    func test_completionLock_blocksAddRoomPlanNote() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        let countBefore = store.session.planningAnnotations.count
+
+        store.addRoomPlanNote(note: "Late room note")
+
+        XCTAssertEqual(store.session.planningAnnotations.count, countBefore,
+                       "addRoomPlanNote must be a no-op on a completed visit")
+    }
+
+    func test_completionLock_blocksAddSpecNote() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        let countBefore = store.session.planningAnnotations.count
+
+        store.addSpecNote("Late spec note")
+
+        XCTAssertEqual(store.session.planningAnnotations.count, countBefore,
+                       "addSpecNote must be a no-op on a completed visit")
+    }
 }
