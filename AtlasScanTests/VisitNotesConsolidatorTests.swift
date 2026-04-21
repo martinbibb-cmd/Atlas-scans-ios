@@ -306,8 +306,10 @@ final class FieldVisitStoreVoiceRecordingTests: XCTestCase {
 
     // MARK: - removeVoiceNote
 
-    func test_removeVoiceNote_removesRecord() {
+    func test_removeVoiceNote_removesSessionLevelNote() {
         let store = makeStore()
+        // addTextNote stores the text as a VoiceNote internally;
+        // removeVoiceNote is the correct removal path for all note types.
         store.addTextNote("Text note")
         let id = store.session.voiceNotes.first!.id
         XCTAssertEqual(store.session.voiceNotes.count, 1)
@@ -317,8 +319,10 @@ final class FieldVisitStoreVoiceRecordingTests: XCTestCase {
         XCTAssertEqual(store.session.voiceNotes.count, 0)
     }
 
-    func test_removeVoiceNote_updatesNotesReadiness() {
+    func test_removeVoiceNote_updatesReadinessAfterLastNoteRemoved() {
         let store = makeStore()
+        // Text notes are stored as VoiceNotes; testing that note readiness
+        // drops to false when the last note is removed via removeVoiceNote.
         store.addTextNote("Some note")
         let id = store.session.voiceNotes.first!.id
         XCTAssertTrue(store.visitReadiness.hasNotes)

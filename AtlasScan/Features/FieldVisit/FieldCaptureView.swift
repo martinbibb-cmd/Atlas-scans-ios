@@ -365,7 +365,7 @@ struct FieldCaptureView: View {
         }
         let caption = note.caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !caption.isEmpty { return caption }
-        return "Voice note"
+        return "Untitled voice note"
     }
 
     @ViewBuilder

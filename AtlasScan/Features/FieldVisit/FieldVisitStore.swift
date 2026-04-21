@@ -421,9 +421,11 @@ final class FieldVisitStore: ObservableObject {
     /// Also deletes the local audio file when the note has a non-empty filename.
     /// Blocked after completion.
     func removeVoiceNote(id: UUID) {
-        let filename = session.allVoiceNotes.first(where: { $0.id == id })?.localFilename
+        // Capture the note up front so the audio filename is available after the
+        // session mutation, without recomputing allVoiceNotes a second time.
+        let noteToRemove = session.allVoiceNotes.first(where: { $0.id == id })
         update { $0.removeVoiceNote(id: id) }
-        if let filename = filename, !filename.isEmpty {
+        if let filename = noteToRemove?.localFilename, !filename.isEmpty {
             VoiceNoteStore.shared.delete(filename: filename)
         }
     }
