@@ -492,6 +492,56 @@ final class FieldVisitStore: ObservableObject {
         update { $0.removePlanningAnnotation(id: id) }
     }
 
+    // MARK: - Room reassignment helpers
+
+    /// Assigns or reassigns a key object to a room.
+    ///
+    /// Pass `nil` to move the object to the unassigned (session-level) state.
+    /// Blocked after completion.
+    func assignKeyObject(_ id: UUID, toRoom roomID: UUID?) {
+        update { session in
+            guard let index = session.taggedObjects.firstIndex(where: { $0.id == id }) else { return }
+            session.taggedObjects[index].roomID = roomID ?? session.id
+        }
+    }
+
+    /// Assigns or reassigns a proposed emitter to a room.
+    ///
+    /// Pass `nil` to mark the emitter as unassigned.
+    /// Blocked after completion.
+    func assignProposedEmitter(_ id: UUID, toRoom roomID: UUID?) {
+        update { session in
+            guard let index = session.installMarkupObjects.firstIndex(where: { $0.id == id }) else { return }
+            session.installMarkupObjects[index].roomID = roomID
+        }
+    }
+
+    /// Assigns or reassigns an access note to a room.
+    ///
+    /// Pass `nil` to mark the note as unassigned.
+    /// Blocked after completion.
+    func assignAccessNote(_ id: UUID, toRoom roomID: UUID?) {
+        update { session in
+            guard let index = session.planningAnnotations.firstIndex(where: {
+                $0.id == id && $0.kind == .accessNote
+            }) else { return }
+            session.planningAnnotations[index].roomID = roomID
+        }
+    }
+
+    /// Assigns or reassigns a room plan note to a room.
+    ///
+    /// Pass `nil` to mark the note as unassigned.
+    /// Blocked after completion.
+    func assignRoomPlanNote(_ id: UUID, toRoom roomID: UUID?) {
+        update { session in
+            guard let index = session.planningAnnotations.firstIndex(where: {
+                $0.id == id && $0.kind == .roomPlanNote
+            }) else { return }
+            session.planningAnnotations[index].roomID = roomID
+        }
+    }
+
     // MARK: - Autosave
 
     private static let autosaveDebounceNanoseconds: UInt64 = 800_000_000
