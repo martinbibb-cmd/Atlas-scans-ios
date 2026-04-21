@@ -26,6 +26,9 @@ struct FieldReviewView: View {
                 statusSection
                 visitReadinessSection
                 planningReadinessSection
+                if !store.session.rooms.isEmpty {
+                    roomCoverageSection
+                }
             }
             .padding(16)
         }
@@ -137,6 +140,57 @@ struct FieldReviewView: View {
         }
     }
 
+    // MARK: - Room coverage
+
+    private let emitterCategoryRawValues: Set<String> = [
+        "radiator", "radiator_drop", "towel_rail", "ufh_zone", "fan_convector"
+    ]
+
+    private var roomCoverageSection: some View {
+        VStack(spacing: 0) {
+            SectionHeader(title: "Room Coverage")
+                .padding(.bottom, 8)
+
+            VStack(spacing: 1) {
+                ForEach(store.session.rooms) { room in
+                    RoomCoverageRow(
+                        room: room,
+                        keyObjectCount: roomKeyObjectCount(room),
+                        proposedEmitterCount: roomProposedEmitterCount(room),
+                        accessNoteCount: roomAccessNoteCount(room),
+                        planNoteCount: roomPlanNoteCount(room)
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func roomKeyObjectCount(_ room: ScannedRoom) -> Int {
+        store.session.taggedObjects.filter { $0.roomID == room.id }.count
+        + room.taggedObjects.count
+    }
+
+    private func roomProposedEmitterCount(_ room: ScannedRoom) -> Int {
+        store.session.installMarkupObjects.filter {
+            $0.layer == .proposed
+            && emitterCategoryRawValues.contains($0.categoryRawValue)
+            && $0.roomID == room.id
+        }.count
+    }
+
+    private func roomAccessNoteCount(_ room: ScannedRoom) -> Int {
+        store.session.planningAnnotations.filter {
+            $0.kind == .accessNote && $0.roomID == room.id
+        }.count
+    }
+
+    private func roomPlanNoteCount(_ room: ScannedRoom) -> Int {
+        store.session.planningAnnotations.filter {
+            $0.kind == .roomPlanNote && $0.roomID == room.id
+        }.count
+    }
+
     // MARK: - Color helper
 
     private func lifecycleColor(_ status: VisitLifecycleStatus) -> Color {
@@ -203,6 +257,50 @@ private struct PlanningCountRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
         .background(Color(.secondarySystemGroupedBackground))
+    }
+}
+
+// MARK: - RoomCoverageRow
+
+/// A row in the room coverage section showing photo/note/object/planning presence
+/// for a single room.
+private struct RoomCoverageRow: View {
+    let room: ScannedRoom
+    let keyObjectCount: Int
+    let proposedEmitterCount: Int
+    let accessNoteCount: Int
+    let planNoteCount: Int
+
+    private var hasPhotos: Bool   { !room.photos.isEmpty }
+    private var hasNotes: Bool    { !room.voiceNotes.isEmpty || !room.notes.isEmpty }
+    private var hasObjects: Bool  { keyObjectCount > 0 }
+    private var hasPlanning: Bool { proposedEmitterCount > 0 || accessNoteCount > 0 || planNoteCount > 0 }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "square.split.2x1")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+            Text(room.name)
+                .font(.body)
+            Spacer()
+            HStack(spacing: 8) {
+                coverageIndicator(symbol: "camera",           present: hasPhotos)
+                coverageIndicator(symbol: "mic",              present: hasNotes)
+                coverageIndicator(symbol: "tag",              present: hasObjects)
+                coverageIndicator(symbol: "pencil.and.ruler", present: hasPlanning)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(Color(.secondarySystemGroupedBackground))
+    }
+
+    private func coverageIndicator(symbol: String, present: Bool) -> some View {
+        Image(systemName: symbol)
+            .font(.caption)
+            .foregroundStyle(present ? Color.green : Color.secondary.opacity(0.3))
     }
 }
 

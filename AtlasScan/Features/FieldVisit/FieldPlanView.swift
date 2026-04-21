@@ -22,12 +22,19 @@ struct FieldPlanView: View {
     @State private var showingAddAccessNote = false
     @State private var showingAddRoomNote   = false
     @State private var showingAddSpecNote   = false
+    @State private var showRoomContext      = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 if store.isCompleted {
                     completedNotice
+                }
+                if !store.session.rooms.isEmpty {
+                    roomContextToggle
+                    if showRoomContext {
+                        RoomContextList(store: store)
+                    }
                 }
                 proposedEmittersCard
                 accessNotesCard
@@ -50,6 +57,33 @@ struct FieldPlanView: View {
         .sheet(isPresented: $showingAddSpecNote) {
             AddSpecNoteSheet(store: store, isPresented: $showingAddSpecNote)
         }
+    }
+
+    // MARK: - Room context toggle
+
+    private var roomContextToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showRoomContext.toggle()
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "square.split.2x1")
+                    .foregroundStyle(.blue)
+                Text("Room Context")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: showRoomContext ? "chevron.up" : "chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Completed notice

@@ -933,4 +933,315 @@ final class FieldVisitStoreTests: XCTestCase {
         XCTAssertEqual(store.session.planningAnnotations.count, countBefore,
                        "addSpecNote must be a no-op on a completed visit")
     }
+
+    // MARK: - assignKeyObject
+
+    func test_assignKeyObject_toRoom_updatesRoomID() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addTaggedObject(TaggedObject(roomID: session.id, category: .boiler))
+        let store = makeStore(session: session)
+        let objectID = store.session.taggedObjects.first!.id
+
+        store.assignKeyObject(objectID, toRoom: room.id)
+
+        XCTAssertEqual(store.session.taggedObjects.first?.roomID, room.id,
+                       "assignKeyObject must update the object's roomID to the given room")
+    }
+
+    func test_assignKeyObject_nilRoomMakesUnassigned() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addTaggedObject(TaggedObject(roomID: room.id, category: .boiler))
+        let store = makeStore(session: session)
+        let objectID = store.session.taggedObjects.first!.id
+
+        store.assignKeyObject(objectID, toRoom: nil)
+
+        // nil → session.id (the unassigned sentinel)
+        XCTAssertEqual(store.session.taggedObjects.first?.roomID, store.session.id,
+                       "assignKeyObject(nil) must move the object to session-level (unassigned)")
+    }
+
+    func test_assignKeyObject_toAnotherRoom_updatesGrouping() {
+        var session = makeSession()
+        let kitchen = ScannedRoom(jobID: session.id, name: "Kitchen")
+        let lounge  = ScannedRoom(jobID: session.id, name: "Lounge")
+        session.addRoom(kitchen)
+        session.addRoom(lounge)
+        session.addTaggedObject(TaggedObject(roomID: kitchen.id, category: .boiler))
+        let store = makeStore(session: session)
+        let objectID = store.session.taggedObjects.first!.id
+
+        store.assignKeyObject(objectID, toRoom: lounge.id)
+
+        XCTAssertEqual(store.session.taggedObjects.first?.roomID, lounge.id,
+                       "assignKeyObject must accept reassignment from one room to another")
+    }
+
+    func test_assignKeyObject_completionLockBlocked() {
+        let store = makeStore(session: makeFullyReadySession())
+        store.completeVisit()
+        let objectID = store.session.taggedObjects.first!.id
+        let roomID   = store.session.rooms.first!.id
+        let originalRoomID = store.session.taggedObjects.first!.roomID
+
+        store.assignKeyObject(objectID, toRoom: roomID)
+
+        XCTAssertEqual(store.session.taggedObjects.first?.roomID, originalRoomID,
+                       "assignKeyObject must be blocked after completion")
+    }
+
+    // MARK: - assignProposedEmitter
+
+    func test_assignProposedEmitter_toRoom_updatesRoomID() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Lounge")
+        session.addRoom(room)
+        session.installMarkupObjects.append(
+            InstallMarkupObject(categoryRawValue: "radiator",
+                                label: "Hall rad",
+                                position: NormalizedPoint2D(x: 0.5, y: 0.5),
+                                layer: .proposed,
+                                roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let emitterID = store.session.installMarkupObjects.first!.id
+
+        store.assignProposedEmitter(emitterID, toRoom: room.id)
+
+        XCTAssertEqual(store.session.installMarkupObjects.first?.roomID, room.id,
+                       "assignProposedEmitter must update roomID to the given room")
+    }
+
+    func test_assignProposedEmitter_nilMakesUnassigned() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Lounge")
+        session.addRoom(room)
+        session.installMarkupObjects.append(
+            InstallMarkupObject(categoryRawValue: "radiator",
+                                label: "Lounge rad",
+                                position: NormalizedPoint2D(x: 0.5, y: 0.5),
+                                layer: .proposed,
+                                roomID: room.id)
+        )
+        let store = makeStore(session: session)
+        let emitterID = store.session.installMarkupObjects.first!.id
+
+        store.assignProposedEmitter(emitterID, toRoom: nil)
+
+        XCTAssertNil(store.session.installMarkupObjects.first?.roomID,
+                     "assignProposedEmitter(nil) must clear the room association")
+    }
+
+    func test_assignProposedEmitter_planningOverlayReflectsNewRoom() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.installMarkupObjects.append(
+            InstallMarkupObject(categoryRawValue: "radiator",
+                                label: "Kitchen rad",
+                                position: NormalizedPoint2D(x: 0.5, y: 0.5),
+                                layer: .proposed,
+                                roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let emitterID = store.session.installMarkupObjects.first!.id
+
+        store.assignProposedEmitter(emitterID, toRoom: room.id)
+
+        let overlay = store.planningOverlay
+        XCTAssertEqual(overlay.proposedEmitters.first?.roomID, room.id.uuidString,
+                       "planningOverlay must reflect the updated room after reassignment")
+    }
+
+    func test_assignProposedEmitter_completionLockBlocked() {
+        var session = makeFullyReadySession()
+        let room = session.rooms.first!
+        session.installMarkupObjects.append(
+            InstallMarkupObject(categoryRawValue: "radiator",
+                                label: "Rad",
+                                position: NormalizedPoint2D(x: 0.5, y: 0.5),
+                                layer: .proposed,
+                                roomID: nil)
+        )
+        let store = makeStore(session: session)
+        store.completeVisit()
+        let emitterID = store.session.installMarkupObjects.first!.id
+
+        store.assignProposedEmitter(emitterID, toRoom: room.id)
+
+        XCTAssertNil(store.session.installMarkupObjects.first?.roomID,
+                     "assignProposedEmitter must be blocked after completion")
+    }
+
+    // MARK: - assignAccessNote
+
+    func test_assignAccessNote_toRoom_updatesRoomID() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Loft")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Hatch very tight", kind: .accessNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let noteID = store.session.planningAnnotations.first!.id
+
+        store.assignAccessNote(noteID, toRoom: room.id)
+
+        XCTAssertEqual(store.session.planningAnnotations.first?.roomID, room.id,
+                       "assignAccessNote must update the note's roomID to the given room")
+    }
+
+    func test_assignAccessNote_nilMakesUnassigned() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Loft")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Hatch tight", kind: .accessNote, roomID: room.id)
+        )
+        let store = makeStore(session: session)
+        let noteID = store.session.planningAnnotations.first!.id
+
+        store.assignAccessNote(noteID, toRoom: nil)
+
+        XCTAssertNil(store.session.planningAnnotations.first?.roomID,
+                     "assignAccessNote(nil) must clear the room association")
+    }
+
+    func test_assignAccessNote_doesNotAffectRoomPlanNotes() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Pipe via cupboard", kind: .roomPlanNote, roomID: nil)
+        )
+        let planNoteID = session.planningAnnotations.first!.id
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Hatch tight", kind: .accessNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let accessNoteID = store.session.planningAnnotations
+            .first(where: { $0.kind == .accessNote })!.id
+
+        store.assignAccessNote(accessNoteID, toRoom: room.id)
+
+        // The roomPlanNote must remain unaffected
+        let planNote = store.session.planningAnnotations.first(where: { $0.id == planNoteID })
+        XCTAssertNil(planNote?.roomID,
+                     "assignAccessNote must not affect room plan notes with the same ID pattern")
+    }
+
+    func test_assignAccessNote_completionLockBlocked() {
+        var session = makeFullyReadySession()
+        let room = session.rooms.first!
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Hatch blocked", kind: .accessNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        store.completeVisit()
+        let noteID = store.session.planningAnnotations
+            .first(where: { $0.kind == .accessNote })!.id
+
+        store.assignAccessNote(noteID, toRoom: room.id)
+
+        let note = store.session.planningAnnotations.first(where: { $0.id == noteID })
+        XCTAssertNil(note?.roomID,
+                     "assignAccessNote must be blocked after completion")
+    }
+
+    // MARK: - assignRoomPlanNote
+
+    func test_assignRoomPlanNote_toRoom_updatesRoomID() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Upsize radiator", kind: .roomPlanNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let noteID = store.session.planningAnnotations.first!.id
+
+        store.assignRoomPlanNote(noteID, toRoom: room.id)
+
+        XCTAssertEqual(store.session.planningAnnotations.first?.roomID, room.id,
+                       "assignRoomPlanNote must update the note's roomID to the given room")
+    }
+
+    func test_assignRoomPlanNote_nilMakesUnassigned() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Upsize radiator", kind: .roomPlanNote, roomID: room.id)
+        )
+        let store = makeStore(session: session)
+        let noteID = store.session.planningAnnotations.first!.id
+
+        store.assignRoomPlanNote(noteID, toRoom: nil)
+
+        XCTAssertNil(store.session.planningAnnotations.first?.roomID,
+                     "assignRoomPlanNote(nil) must clear the room association")
+    }
+
+    func test_assignRoomPlanNote_toAnotherRoom_updatesGrouping() {
+        var session = makeSession()
+        let kitchen = ScannedRoom(jobID: session.id, name: "Kitchen")
+        let lounge  = ScannedRoom(jobID: session.id, name: "Lounge")
+        session.addRoom(kitchen)
+        session.addRoom(lounge)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "TRV relocation", kind: .roomPlanNote, roomID: kitchen.id)
+        )
+        let store = makeStore(session: session)
+        let noteID = store.session.planningAnnotations.first!.id
+
+        store.assignRoomPlanNote(noteID, toRoom: lounge.id)
+
+        XCTAssertEqual(store.session.planningAnnotations.first?.roomID, lounge.id,
+                       "assignRoomPlanNote must accept reassignment between rooms")
+    }
+
+    func test_assignRoomPlanNote_doesNotAffectAccessNotes() {
+        var session = makeSession()
+        let room = ScannedRoom(jobID: session.id, name: "Kitchen")
+        session.addRoom(room)
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Hatch tight", kind: .accessNote, roomID: nil)
+        )
+        let accessNoteID = session.planningAnnotations.first!.id
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "Upsize rad", kind: .roomPlanNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        let planNoteID = store.session.planningAnnotations
+            .first(where: { $0.kind == .roomPlanNote })!.id
+
+        store.assignRoomPlanNote(planNoteID, toRoom: room.id)
+
+        // The access note must remain unaffected
+        let accessNote = store.session.planningAnnotations.first(where: { $0.id == accessNoteID })
+        XCTAssertNil(accessNote?.roomID,
+                     "assignRoomPlanNote must not affect access notes with the same ID pattern")
+    }
+
+    func test_assignRoomPlanNote_completionLockBlocked() {
+        var session = makeFullyReadySession()
+        let room = session.rooms.first!
+        session.addPlanningAnnotation(
+            PlanningAnnotation(text: "TRV relocation", kind: .roomPlanNote, roomID: nil)
+        )
+        let store = makeStore(session: session)
+        store.completeVisit()
+        let noteID = store.session.planningAnnotations
+            .first(where: { $0.kind == .roomPlanNote })!.id
+
+        store.assignRoomPlanNote(noteID, toRoom: room.id)
+
+        let note = store.session.planningAnnotations.first(where: { $0.id == noteID })
+        XCTAssertNil(note?.roomID,
+                     "assignRoomPlanNote must be blocked after completion")
+    }
 }
