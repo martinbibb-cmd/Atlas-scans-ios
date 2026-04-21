@@ -145,6 +145,12 @@ struct InstallMarkupObject: Identifiable, Codable {
     /// Optional room association.
     var roomID: UUID?
 
+    /// Optional planning note for this object.
+    var note: String
+
+    /// True when this proposed object is intended to replace an existing one.
+    var replacesExisting: Bool
+
     var createdAt: Date
 
     init(
@@ -158,6 +164,8 @@ struct InstallMarkupObject: Identifiable, Codable {
         source: MarkupObjectSource = .manual,
         layer: MarkupLayer = .proposed,
         roomID: UUID? = nil,
+        note: String = "",
+        replacesExisting: Bool = false,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -170,6 +178,8 @@ struct InstallMarkupObject: Identifiable, Codable {
         self.source = source
         self.layer = layer
         self.roomID = roomID
+        self.note = note
+        self.replacesExisting = replacesExisting
         self.createdAt = createdAt
     }
 
@@ -178,6 +188,32 @@ struct InstallMarkupObject: Identifiable, Codable {
         label.isEmpty
             ? (ServiceObjectCategory(rawValue: categoryRawValue)?.displayName ?? categoryRawValue)
             : label
+    }
+
+    // MARK: Decodable — backward-compatible
+
+    private enum CodingKeys: String, CodingKey {
+        case id, categoryRawValue, label, position
+        case widthM, depthM, rotationRad
+        case source, layer, roomID
+        case note, replacesExisting, createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                = try c.decode(UUID.self,               forKey: .id)
+        categoryRawValue  = try c.decode(String.self,             forKey: .categoryRawValue)
+        label             = try c.decodeIfPresent(String.self,    forKey: .label)            ?? ""
+        position          = try c.decode(NormalizedPoint2D.self,  forKey: .position)
+        widthM            = try c.decodeIfPresent(Double.self,    forKey: .widthM)
+        depthM            = try c.decodeIfPresent(Double.self,    forKey: .depthM)
+        rotationRad       = try c.decodeIfPresent(Double.self,    forKey: .rotationRad)      ?? 0
+        source            = try c.decodeIfPresent(MarkupObjectSource.self, forKey: .source)  ?? .manual
+        layer             = try c.decodeIfPresent(MarkupLayer.self, forKey: .layer)          ?? .proposed
+        roomID            = try c.decodeIfPresent(UUID.self,      forKey: .roomID)
+        note              = try c.decodeIfPresent(String.self,    forKey: .note)             ?? ""
+        replacesExisting  = try c.decodeIfPresent(Bool.self,      forKey: .replacesExisting) ?? false
+        createdAt         = try c.decode(Date.self,               forKey: .createdAt)
     }
 }
 

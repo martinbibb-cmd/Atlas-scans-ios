@@ -31,11 +31,26 @@ public struct ProposedEmitterV1: Codable, Sendable, Equatable {
     /// UUID string of the room this emitter is placed in; nil for unplaced emitters.
     public let roomID: String?
 
-    public init(id: String, type: String, label: String = "", roomID: String? = nil) {
+    /// Optional planning note for this proposed emitter.
+    public let note: String
+
+    /// True when this proposed emitter is intended to replace an existing emitter.
+    public let replacesExisting: Bool
+
+    public init(
+        id: String,
+        type: String,
+        label: String = "",
+        roomID: String? = nil,
+        note: String = "",
+        replacesExisting: Bool = false
+    ) {
         self.id = id
         self.type = type
         self.label = label
         self.roomID = roomID
+        self.note = note
+        self.replacesExisting = replacesExisting
     }
 }
 
