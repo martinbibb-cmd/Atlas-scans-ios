@@ -113,6 +113,18 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
     /// Converted to `InstallRouteModelV1` at handoff time.
     var installMarkupRoutes: [InstallMarkupRoute]
 
+    /// Free-text planning annotations added during the Plan phase.
+    /// Maps to access notes, room-plan notes, and spec notes in the planning overlay.
+    var planningAnnotations: [PlanningAnnotation]
+
+    // MARK: Field visit lifecycle
+
+    /// The current field-workflow phase for this visit.
+    ///
+    /// Set by `FieldVisitStore` as the engineer moves through Capture → Plan.
+    /// Defaults to `.draft` for sessions created before this field was introduced.
+    var visitLifecycle: VisitLifecycleStatus
+
     // MARK: Timestamps
 
     var createdAt: Date
@@ -141,7 +153,9 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         roomScanEvidence: [RoomScanEvidence] = [],
         externalClearanceScenes: [ExternalClearanceScene] = [],
         installMarkupObjects: [InstallMarkupObject] = [],
-        installMarkupRoutes: [InstallMarkupRoute] = []
+        installMarkupRoutes: [InstallMarkupRoute] = [],
+        planningAnnotations: [PlanningAnnotation] = [],
+        visitLifecycle: VisitLifecycleStatus = .draft
     ) {
         self.id = id
         if jobReference.isEmpty {
@@ -169,6 +183,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         self.externalClearanceScenes = externalClearanceScenes
         self.installMarkupObjects = installMarkupObjects
         self.installMarkupRoutes = installMarkupRoutes
+        self.planningAnnotations = planningAnnotations
+        self.visitLifecycle = visitLifecycle
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -182,6 +198,7 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         case taggedObjects, photos, voiceNotes, extractedFacts, issues
         case roomScanEvidence, externalClearanceScenes
         case installMarkupObjects, installMarkupRoutes
+        case planningAnnotations, visitLifecycle
         case createdAt, updatedAt
     }
 
@@ -208,6 +225,8 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
         externalClearanceScenes = try c.decodeIfPresent([ExternalClearanceScene].self,  forKey: .externalClearanceScenes) ?? []
         installMarkupObjects    = try c.decodeIfPresent([InstallMarkupObject].self,     forKey: .installMarkupObjects)    ?? []
         installMarkupRoutes     = try c.decodeIfPresent([InstallMarkupRoute].self,      forKey: .installMarkupRoutes)     ?? []
+        planningAnnotations     = try c.decodeIfPresent([PlanningAnnotation].self,      forKey: .planningAnnotations)     ?? []
+        visitLifecycle          = try c.decodeIfPresent(VisitLifecycleStatus.self,      forKey: .visitLifecycle)          ?? .draft
         createdAt        = try c.decode(Date.self,           forKey: .createdAt)
         updatedAt        = try c.decode(Date.self,           forKey: .updatedAt)
     }
@@ -395,6 +414,22 @@ struct PropertyScanSession: Identifiable, Codable, Hashable {
 
     func roomPlacement(for roomID: UUID) -> RoomPlacementOverride? {
         roomPlacements.first { $0.id == roomID }
+    }
+
+    // MARK: Planning annotation helpers
+
+    mutating func addPlanningAnnotation(_ annotation: PlanningAnnotation) {
+        planningAnnotations.append(annotation)
+        touch()
+    }
+
+    mutating func removePlanningAnnotation(id: UUID) {
+        planningAnnotations.removeAll { $0.id == id }
+        touch()
+    }
+
+    func planningAnnotations(ofKind kind: PlanningAnnotationKind) -> [PlanningAnnotation] {
+        planningAnnotations.filter { $0.kind == kind }
     }
 
     // MARK: Issue helpers

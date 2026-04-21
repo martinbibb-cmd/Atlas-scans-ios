@@ -124,6 +124,14 @@
 		E04F515A23A466EA152F2B0C /* VisitLiDARScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2520D1875A6D77D1240D79CB /* VisitLiDARScreenView.swift */; };
 		E7FC807742F5F9E5DEF1A866 /* VisitCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309512065EC6B651B9F71DA5 /* VisitCaptureTests.swift */; };
 		F7FB499FD46C2DF309B268A4 /* VisitSessionMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F64E4E6D0C919B8E475B11 /* VisitSessionMapper.swift */; };
+		AA0100A1 /* FieldVisitShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A1 /* FieldVisitShellView.swift */; };
+		AA0100A2 /* FieldVisitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A2 /* FieldVisitStore.swift */; };
+		AA0100A3 /* FieldCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A3 /* FieldCaptureView.swift */; };
+		AA0100A4 /* FieldPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A4 /* FieldPlanView.swift */; };
+		AA0100A5 /* FieldReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A5 /* FieldReviewView.swift */; };
+		AA0100A6 /* FieldCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A6 /* FieldCompleteView.swift */; };
+		AA0100A7 /* PlanningAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A7 /* PlanningAnnotation.swift */; };
+		AA0100A8 /* FieldVisitStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200A8 /* FieldVisitStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -255,6 +263,14 @@
 		C3AAA60F78EE6D22240DC1EC /* VisitObjectsScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitObjectsScreenView.swift; sourceTree = "<group>"; };
 		C7C38A3A7E6C8BF6AC39FB1E /* VisitCaptureStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitCaptureStore.swift; sourceTree = "<group>"; };
 		EA48EE6CEA44A6177DC24902 /* VisitCaptureCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisitCaptureCoordinator.swift; sourceTree = "<group>"; };
+		AA0200A1 /* FieldVisitShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldVisitShellView.swift; sourceTree = "<group>"; };
+		AA0200A2 /* FieldVisitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldVisitStore.swift; sourceTree = "<group>"; };
+		AA0200A3 /* FieldCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldCaptureView.swift; sourceTree = "<group>"; };
+		AA0200A4 /* FieldPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldPlanView.swift; sourceTree = "<group>"; };
+		AA0200A5 /* FieldReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldReviewView.swift; sourceTree = "<group>"; };
+		AA0200A6 /* FieldCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldCompleteView.swift; sourceTree = "<group>"; };
+		AA0200A7 /* PlanningAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningAnnotation.swift; sourceTree = "<group>"; };
+		AA0200A8 /* FieldVisitStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldVisitStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -319,6 +335,19 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		AA050026 /* FieldVisit */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200A1 /* FieldVisitShellView.swift */,
+				AA0200A2 /* FieldVisitStore.swift */,
+				AA0200A3 /* FieldCaptureView.swift */,
+				AA0200A4 /* FieldPlanView.swift */,
+				AA0200A5 /* FieldReviewView.swift */,
+				AA0200A6 /* FieldCompleteView.swift */,
+			);
+			path = FieldVisit;
+			sourceTree = "<group>";
+		};
 		AA050003 /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -337,6 +366,7 @@
 				AA050025 /* Markup */,
 				AA05002A /* SpatialAlignment */,
 				30C58AB3CF4CE0B9BEBAFBFF /* VisitCapture */,
+				AA050026 /* FieldVisit */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -360,6 +390,7 @@
 				AA020028 /* ObjectPlacement.swift */,
 				AA020036 /* RoomAdjacency.swift */,
 				AA020051 /* PropertyScanSession.swift */,
+				AA0200A7 /* PlanningAnnotation.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -589,6 +620,7 @@
 				AA02007C /* SessionKnowledgeSummaryTests.swift */,
 				309512065EC6B651B9F71DA5 /* VisitCaptureTests.swift */,
 				AA02008D /* SpatialAlignmentTests.swift */,
+				AA0200A8 /* FieldVisitStoreTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -797,6 +829,13 @@
 				AA01008A /* SpatialAlignmentEngine.swift in Sources */,
 				AA01008B /* SpatialAlignmentSelectors.swift in Sources */,
 				AA01008C /* AlignmentViewPanel.swift in Sources */,
+				AA0100A7 /* PlanningAnnotation.swift in Sources */,
+				AA0100A1 /* FieldVisitShellView.swift in Sources */,
+				AA0100A2 /* FieldVisitStore.swift in Sources */,
+				AA0100A3 /* FieldCaptureView.swift in Sources */,
+				AA0100A4 /* FieldPlanView.swift in Sources */,
+				AA0100A5 /* FieldReviewView.swift in Sources */,
+				AA0100A6 /* FieldCompleteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -823,6 +862,7 @@
 				AA01007C /* SessionKnowledgeSummaryTests.swift in Sources */,
 				E7FC807742F5F9E5DEF1A866 /* VisitCaptureTests.swift in Sources */,
 				AA01008D /* SpatialAlignmentTests.swift in Sources */,
+				AA0100A8 /* FieldVisitStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
