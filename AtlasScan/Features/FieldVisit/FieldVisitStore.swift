@@ -308,6 +308,90 @@ final class FieldVisitStore: ObservableObject {
         scheduleAutosave()
     }
 
+    // MARK: - Capture mutation helpers
+
+    /// Adds a room with the given label and floor.
+    ///
+    /// Trims surrounding whitespace. No-ops if the trimmed label is empty.
+    func addRoom(label: String, floor: Int = 0) {
+        let trimmed = label.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let room = ScannedRoom(propertyID: session.id, name: trimmed, floor: floor)
+        update { $0.addRoom(room) }
+    }
+
+    /// Removes the room with the given ID, cascading to linked objects, photos,
+    /// and adjacencies via the session helper.
+    func removeRoom(id: UUID) {
+        update { $0.removeRoom(id: id) }
+    }
+
+    /// Appends a pre-built photo to the session.
+    ///
+    /// The caller is responsible for persisting image bytes via `PhotoStore`.
+    func addPhoto(_ photo: TaggedPhoto) {
+        update { $0.addPhoto(photo) }
+    }
+
+    /// Removes the photo record with the given ID from the session.
+    ///
+    /// The caller is responsible for deleting image files via `PhotoStore`.
+    func removePhoto(id: UUID) {
+        update { $0.removePhoto(id: id) }
+    }
+
+    /// Adds a session-level key object of the given category.
+    ///
+    /// - Parameters:
+    ///   - category: The service object category (e.g. `.boiler`, `.flue`).
+    ///   - label:    Optional engineer label. Defaults to the category display name when empty.
+    ///   - roomID:   Optional room to associate the object with. Defaults to the session ID.
+    ///   - note:     Optional free-text note.
+    func addKeyObject(
+        category: ServiceObjectCategory,
+        label: String = "",
+        roomID: UUID? = nil,
+        note: String = ""
+    ) {
+        let object = TaggedObject(
+            roomID: roomID ?? session.id,
+            category: category,
+            label: label,
+            notes: note
+        )
+        update { $0.addTaggedObject(object) }
+    }
+
+    /// Removes the session-level tagged object with the given ID.
+    func removeKeyObject(id: UUID) {
+        update { $0.removeTaggedObject(id: id) }
+    }
+
+    /// Adds a text-only note to the session.
+    ///
+    /// The text is stored as a `VoiceNote` with an empty audio filename and the
+    /// text captured in both `caption` and `transcript`.  This satisfies the
+    /// `hasNotes` readiness flag without requiring audio recording.
+    ///
+    /// No-ops if the trimmed text is empty.
+    func addTextNote(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let note = VoiceNote(
+            localFilename: "",
+            caption: trimmed,
+            kind: .observation,
+            transcriptStatus: .completed,
+            transcript: trimmed
+        )
+        update { $0.addVoiceNote(note) }
+    }
+
+    /// Removes the voice/text note with the given ID from the session.
+    func removeTextNote(id: UUID) {
+        update { $0.removeVoiceNote(id: id) }
+    }
+
     // MARK: - Autosave
 
     private static let autosaveDebounceNanoseconds: UInt64 = 800_000_000
