@@ -347,7 +347,7 @@ private struct CoverageChip: View {
 
     var body: some View {
         VStack(spacing: 3) {
-            Image(systemName: present ? "\(symbol)" : "\(symbol)")
+            Image(systemName: symbol)
                 .font(.caption2)
                 .foregroundStyle(present ? Color.green : Color.secondary.opacity(0.4))
             Text(label)
@@ -502,8 +502,8 @@ private struct RoomPickerSheet: View {
     var session = PropertyScanSession(propertyAddress: "47 Baker Street")
     let kitchenID = UUID()
     let loungeID = UUID()
-    session.addRoom(ScannedRoom(id: kitchenID, propertyID: session.id, name: "Kitchen"))
-    session.addRoom(ScannedRoom(id: loungeID,  propertyID: session.id, name: "Lounge"))
+    session.addRoom(ScannedRoom(id: kitchenID, jobID: session.id, name: "Kitchen"))
+    session.addRoom(ScannedRoom(id: loungeID,  jobID: session.id, name: "Lounge"))
     session.addTaggedObject(TaggedObject(roomID: kitchenID, category: .boiler))
     session.addTaggedObject(TaggedObject(roomID: session.id, category: .flue))
     session.installMarkupObjects.append(
