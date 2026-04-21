@@ -355,13 +355,21 @@ final class VisitHandoffPackBuilderTests: XCTestCase {
         XCTAssertNil(pack.engineerSummary.completionMethod)
     }
 
-    func test_buildHandoffPack_emptyAddress_usesJobReference() {
-        var session = PropertyScanSession(jobReference: "JOB-999", propertyAddress: "")
-        // PropertyScanSession replaces empty address with jobReference in init,
-        // but let's force it to be truly empty to test the builder fallback.
+    func test_buildHandoffPack_populatedAddress_usesAddress() {
+        let session = PropertyScanSession(jobReference: "JOB-999", propertyAddress: "1 High Street")
+        let pack = builder.buildHandoffPack(for: session)
+        XCTAssertEqual(pack.customerSummary.title, "1 High Street")
+    }
+
+    func test_buildHandoffPack_titleFallsBackToJobReference_whenAddressIsEmpty() {
+        // PropertyScanSession.init replaces an empty propertyAddress with jobReference,
+        // so create a session and then clear it to test the builder's defensive fallback.
+        var session = PropertyScanSession(jobReference: "JOB-999", propertyAddress: "Temp")
         session.propertyAddress = ""
         let pack = builder.buildHandoffPack(for: session)
-        XCTAssertFalse(pack.customerSummary.title.isEmpty)
+        XCTAssertFalse(pack.customerSummary.title.isEmpty,
+                       "title should fall back to jobReference when address is empty")
+        XCTAssertEqual(pack.customerSummary.title, "JOB-999")
     }
 
     func test_buildHandoffPack_noRooms_producesEmptyRoomList() {

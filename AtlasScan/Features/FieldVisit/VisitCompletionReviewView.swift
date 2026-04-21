@@ -150,7 +150,8 @@ struct VisitCompletionReviewView: View {
             }
             .buttonStyle(.bordered)
             .tint(.accentColor)
-            .disabled(false) // placeholder seam — will enable with real export in a later PR
+            // Export is not yet implemented; tapping shows an informational alert.
+            // A future PR will replace this with real PDF/portal export.
         }
     }
 }
