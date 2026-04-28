@@ -167,6 +167,11 @@
 		AA0100DD /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* VisitPickerView.swift */; };
 		AA0100DE /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DE /* TranscriptView.swift */; };
 		AA0100DF /* CloudflareVisitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DF /* CloudflareVisitClient.swift */; };
+		AA0100E0 /* ArtifactRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E0 /* ArtifactRoundTripTests.swift */; };
+		AA0100E1 /* CaptureSessionExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E1 /* CaptureSessionExporterTests.swift */; };
+		AA0100E2 /* CaptureSessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E2 /* CaptureSessionStoreTests.swift */; };
+		AA0100E3 /* SpatialEvidence3DTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E3 /* SpatialEvidence3DTests.swift */; };
+		AA0100E4 /* VisitHandoffPackBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E4 /* VisitHandoffPackBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -341,6 +346,11 @@
 		AA0200DD /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
 		AA0200DE /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		AA0200DF /* CloudflareVisitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareVisitClient.swift; sourceTree = "<group>"; };
+		AA0200E0 /* ArtifactRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtifactRoundTripTests.swift; sourceTree = "<group>"; };
+		AA0200E1 /* CaptureSessionExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionExporterTests.swift; sourceTree = "<group>"; };
+		AA0200E2 /* CaptureSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStoreTests.swift; sourceTree = "<group>"; };
+		AA0200E3 /* SpatialEvidence3DTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialEvidence3DTests.swift; sourceTree = "<group>"; };
+		AA0200E4 /* VisitHandoffPackBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPackBuilderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -854,6 +864,11 @@
 				AA0200A8 /* FieldVisitStoreTests.swift */,
 				AA0200B0 /* VisitCompletionValidatorTests.swift */,
 				AA0200B3 /* VisitNotesConsolidatorTests.swift */,
+				AA0200E0 /* ArtifactRoundTripTests.swift */,
+				AA0200E1 /* CaptureSessionExporterTests.swift */,
+				AA0200E2 /* CaptureSessionStoreTests.swift */,
+				AA0200E3 /* SpatialEvidence3DTests.swift */,
+				AA0200E4 /* VisitHandoffPackBuilderTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -1131,6 +1146,11 @@
 				AA0100A8 /* FieldVisitStoreTests.swift in Sources */,
 				AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */,
 				AA0100B3 /* VisitNotesConsolidatorTests.swift in Sources */,
+				AA0100E0 /* ArtifactRoundTripTests.swift in Sources */,
+				AA0100E1 /* CaptureSessionExporterTests.swift in Sources */,
+				AA0100E2 /* CaptureSessionStoreTests.swift in Sources */,
+				AA0100E3 /* SpatialEvidence3DTests.swift in Sources */,
+				AA0100E4 /* VisitHandoffPackBuilderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
