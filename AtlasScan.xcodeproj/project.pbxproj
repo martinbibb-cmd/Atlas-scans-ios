@@ -163,6 +163,10 @@
 		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
 		AA0100DA /* AtlasRecommendationsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DA /* AtlasRecommendationsSync.swift */; };
 		AA0100DB /* AtlasRecommendationsWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DB /* AtlasRecommendationsWebView.swift */; };
+		AA0100DC /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DC /* WelcomeView.swift */; };
+		AA0100DD /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* VisitPickerView.swift */; };
+		AA0100DE /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DE /* TranscriptView.swift */; };
+		AA0100DF /* CloudflareVisitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DF /* CloudflareVisitClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -333,6 +337,10 @@
 		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
 		AA0200DA /* AtlasRecommendationsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsSync.swift; sourceTree = "<group>"; };
 		AA0200DB /* AtlasRecommendationsWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsWebView.swift; sourceTree = "<group>"; };
+		AA0200DC /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		AA0200DD /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
+		AA0200DE /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
+		AA0200DF /* CloudflareVisitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareVisitClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -446,6 +454,9 @@
 				AA050033 /* LiveCapture */,
 				AA050034 /* FloorPlanEditor */,
 				AA050035 /* ReviewVisit */,
+				AA050037 /* Welcome */,
+				AA050038 /* VisitPicker */,
+				AA050039 /* Transcripts */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -494,6 +505,7 @@
 				B0F64E4E6D0C919B8E475B11 /* VisitSessionMapper.swift */,
 				AA0200B2 /* VoiceNoteTranscriptionService.swift */,
 				AA050036 /* AtlasRecommendations */,
+				AA05003A /* CloudflareAPI */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -776,6 +788,38 @@
 			path = AtlasRecommendations;
 			sourceTree = "<group>";
 		};
+		AA050037 /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200DC /* WelcomeView.swift */,
+			);
+			path = Welcome;
+			sourceTree = "<group>";
+		};
+		AA050038 /* VisitPicker */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200DD /* VisitPickerView.swift */,
+			);
+			path = VisitPicker;
+			sourceTree = "<group>";
+		};
+		AA050039 /* Transcripts */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200DE /* TranscriptView.swift */,
+			);
+			path = Transcripts;
+			sourceTree = "<group>";
+		};
+		AA05003A /* CloudflareAPI */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200DF /* CloudflareVisitClient.swift */,
+			);
+			path = CloudflareAPI;
+			sourceTree = "<group>";
+		};
 		AA060000 = {
 			isa = PBXGroup;
 			children = (
@@ -1054,6 +1098,10 @@
 				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
 				AA0100DA /* AtlasRecommendationsSync.swift in Sources */,
 				AA0100DB /* AtlasRecommendationsWebView.swift in Sources */,
+				AA0100DC /* WelcomeView.swift in Sources */,
+				AA0100DD /* VisitPickerView.swift in Sources */,
+				AA0100DE /* TranscriptView.swift in Sources */,
+				AA0100DF /* CloudflareVisitClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
