@@ -77,13 +77,13 @@ struct AlignmentInsight {
     let inferenceReason: String?
 }
 
-// MARK: - CameraPose
+// MARK: - ProjectionCameraPose
 
 /// Minimal camera pose required for view-plane projection.
 ///
 /// All values are in the same world-space coordinate system as
 /// `AtlasWorldPositionV1` (metres, ARKit right-handed Y-up).
-struct CameraPose {
+struct ProjectionCameraPose {
 
     /// Camera world-space position.
     let position: SIMD3<Double>
@@ -159,7 +159,7 @@ enum SpatialAlignmentEngine {
     /// - Returns: A `ScreenPosition` in normalised [0,1]×[0,1] coordinates, or `nil`
     ///   when the point is not in front of the camera.
     static func projectToViewPlane(
-        cameraPose: CameraPose,
+        cameraPose: ProjectionCameraPose,
         worldPosition: AtlasWorldPositionV1
     ) -> ScreenPosition? {
         let camPos  = cameraPose.position
