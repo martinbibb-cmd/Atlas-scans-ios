@@ -141,6 +141,22 @@
 		AA0100C3 /* RoomContextList.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C3 /* RoomContextList.swift */; };
 		AA0100C4 /* VisitHandoffPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C4 /* VisitHandoffPack.swift */; };
 		AA0100C5 /* VisitHandoffPackBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C5 /* VisitHandoffPackBuilder.swift */; };
+		AA0100C6 /* CaptureHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C6 /* CaptureHubView.swift */; };
+		AA0100C7 /* CaptureHubSectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C7 /* CaptureHubSectionCard.swift */; };
+		AA0100C8 /* CaptureSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C8 /* CaptureSessionStore.swift */; };
+		AA0100C9 /* CaptureSessionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C9 /* CaptureSessionModels.swift */; };
+		AA0100CA /* CaptureSessionPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CA /* CaptureSessionPersistence.swift */; };
+		AA0100CB /* CaptureSessionExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CB /* CaptureSessionExporter.swift */; };
+		AA0100CC /* StartJobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CC /* StartJobView.swift */; };
+		AA0100CD /* ObjectPinListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CD /* ObjectPinListView.swift */; };
+		AA0100CE /* ObjectPinPlacementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CE /* ObjectPinPlacementView.swift */; };
+		AA0100CF /* PhotoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CF /* PhotoListView.swift */; };
+		AA0100D0 /* PhotoCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D0 /* PhotoCaptureView.swift */; };
+		AA0100D1 /* ReviewExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D1 /* ReviewExportView.swift */; };
+		AA0100D2 /* RoomScanListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D2 /* RoomScanListView.swift */; };
+		AA0100D3 /* RoomScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D3 /* RoomScanCaptureView.swift */; };
+		AA0100D4 /* VoiceNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D4 /* VoiceNotesView.swift */; };
+		AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D5 /* VoiceNoteRecorderViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -289,6 +305,22 @@
 		AA0200C3 /* RoomContextList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomContextList.swift; sourceTree = "<group>"; };
 		AA0200C4 /* VisitHandoffPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPack.swift; sourceTree = "<group>"; };
 		AA0200C5 /* VisitHandoffPackBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPackBuilder.swift; sourceTree = "<group>"; };
+		AA0200C6 /* CaptureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHubView.swift; sourceTree = "<group>"; };
+		AA0200C7 /* CaptureHubSectionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHubSectionCard.swift; sourceTree = "<group>"; };
+		AA0200C8 /* CaptureSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStore.swift; sourceTree = "<group>"; };
+		AA0200C9 /* CaptureSessionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionModels.swift; sourceTree = "<group>"; };
+		AA0200CA /* CaptureSessionPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionPersistence.swift; sourceTree = "<group>"; };
+		AA0200CB /* CaptureSessionExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionExporter.swift; sourceTree = "<group>"; };
+		AA0200CC /* StartJobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartJobView.swift; sourceTree = "<group>"; };
+		AA0200CD /* ObjectPinListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPinListView.swift; sourceTree = "<group>"; };
+		AA0200CE /* ObjectPinPlacementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPinPlacementView.swift; sourceTree = "<group>"; };
+		AA0200CF /* PhotoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoListView.swift; sourceTree = "<group>"; };
+		AA0200D0 /* PhotoCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureView.swift; sourceTree = "<group>"; };
+		AA0200D1 /* ReviewExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewExportView.swift; sourceTree = "<group>"; };
+		AA0200D2 /* RoomScanListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanListView.swift; sourceTree = "<group>"; };
+		AA0200D3 /* RoomScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanCaptureView.swift; sourceTree = "<group>"; };
+		AA0200D4 /* VoiceNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotesView.swift; sourceTree = "<group>"; };
+		AA0200D5 /* VoiceNoteRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -391,6 +423,14 @@
 				AA05002A /* SpatialAlignment */,
 				30C58AB3CF4CE0B9BEBAFBFF /* VisitCapture */,
 				AA050026 /* FieldVisit */,
+				AA05002B /* CaptureHub */,
+				AA05002C /* CaptureSession */,
+				AA05002D /* StartJob */,
+				AA05002E /* ObjectPins */,
+				AA05002F /* Photos */,
+				AA050030 /* ReviewExport */,
+				AA050031 /* RoomScans */,
+				AA050032 /* VoiceNotes */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -612,6 +652,78 @@
 				AA02008C /* AlignmentViewPanel.swift */,
 			);
 			path = SpatialAlignment;
+			sourceTree = "<group>";
+		};
+		AA05002B /* CaptureHub */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200C6 /* CaptureHubView.swift */,
+				AA0200C7 /* CaptureHubSectionCard.swift */,
+			);
+			path = CaptureHub;
+			sourceTree = "<group>";
+		};
+		AA05002C /* CaptureSession */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200C8 /* CaptureSessionStore.swift */,
+				AA0200C9 /* CaptureSessionModels.swift */,
+				AA0200CA /* CaptureSessionPersistence.swift */,
+				AA0200CB /* CaptureSessionExporter.swift */,
+			);
+			path = CaptureSession;
+			sourceTree = "<group>";
+		};
+		AA05002D /* StartJob */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200CC /* StartJobView.swift */,
+			);
+			path = StartJob;
+			sourceTree = "<group>";
+		};
+		AA05002E /* ObjectPins */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200CD /* ObjectPinListView.swift */,
+				AA0200CE /* ObjectPinPlacementView.swift */,
+			);
+			path = ObjectPins;
+			sourceTree = "<group>";
+		};
+		AA05002F /* Photos */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200CF /* PhotoListView.swift */,
+				AA0200D0 /* PhotoCaptureView.swift */,
+			);
+			path = Photos;
+			sourceTree = "<group>";
+		};
+		AA050030 /* ReviewExport */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D1 /* ReviewExportView.swift */,
+			);
+			path = ReviewExport;
+			sourceTree = "<group>";
+		};
+		AA050031 /* RoomScans */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D2 /* RoomScanListView.swift */,
+				AA0200D3 /* RoomScanCaptureView.swift */,
+			);
+			path = RoomScans;
+			sourceTree = "<group>";
+		};
+		AA050032 /* VoiceNotes */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D4 /* VoiceNotesView.swift */,
+				AA0200D5 /* VoiceNoteRecorderViewModel.swift */,
+			);
+			path = VoiceNotes;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -870,6 +982,22 @@
 				AA0100C3 /* RoomContextList.swift in Sources */,
 				AA0100C4 /* VisitHandoffPack.swift in Sources */,
 				AA0100C5 /* VisitHandoffPackBuilder.swift in Sources */,
+				AA0100C6 /* CaptureHubView.swift in Sources */,
+				AA0100C7 /* CaptureHubSectionCard.swift in Sources */,
+				AA0100C8 /* CaptureSessionStore.swift in Sources */,
+				AA0100C9 /* CaptureSessionModels.swift in Sources */,
+				AA0100CA /* CaptureSessionPersistence.swift in Sources */,
+				AA0100CB /* CaptureSessionExporter.swift in Sources */,
+				AA0100CC /* StartJobView.swift in Sources */,
+				AA0100CD /* ObjectPinListView.swift in Sources */,
+				AA0100CE /* ObjectPinPlacementView.swift in Sources */,
+				AA0100CF /* PhotoListView.swift in Sources */,
+				AA0100D0 /* PhotoCaptureView.swift in Sources */,
+				AA0100D1 /* ReviewExportView.swift in Sources */,
+				AA0100D2 /* RoomScanListView.swift in Sources */,
+				AA0100D3 /* RoomScanCaptureView.swift in Sources */,
+				AA0100D4 /* VoiceNotesView.swift in Sources */,
+				AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -54,7 +54,7 @@ struct CaptureAppRootView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Resume last session")
                         .font(.caption.bold())
@@ -65,7 +65,7 @@ struct CaptureAppRootView: View {
                 Spacer()
                 Text("Resume →")
                     .font(.caption.bold())
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
             }
             .padding(12)
             .background(Color(.secondarySystemGroupedBackground))
