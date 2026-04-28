@@ -209,23 +209,27 @@ struct AtlasWebViewRepresentable: UIViewRepresentable {
 
     private func injectAuthCookieIfAvailable(webView: WKWebView) {
         guard let token = AtlasKeychainStore.loadAuthToken() else { return }
-        var props: [HTTPCookiePropertyKey: Any] = [
+        let cookieProps: [HTTPCookiePropertyKey: Any] = [
             .name:    "atlas_token",
             .value:   token,
             .domain:  "next.atlas-phm.uk",
             .path:    "/",
             .secure:  "TRUE"
         ]
-        if let cookie = HTTPCookie(properties: props) {
+        if let cookie = HTTPCookie(properties: cookieProps) {
             webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie)
         }
-        // Also inject via postMessage once the page loads
-        let script = WKUserScript(
-            source: "window.__atlasToken = '\(token.replacingOccurrences(of: "'", with: "\\'"))';",
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true
-        )
-        webView.configuration.userContentController.addUserScript(script)
+        // Use JSON encoding to safely embed the token value in the script —
+        // avoids injection risks from tokens containing backslashes, quotes, etc.
+        if let encoded = try? JSONEncoder().encode(token),
+           let jsonString = String(data: encoded, encoding: .utf8) {
+            let script = WKUserScript(
+                source: "window.__atlasToken = \(jsonString);",
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+            webView.configuration.userContentController.addUserScript(script)
+        }
     }
 
     private func loadInitialURL(webView: WKWebView) {

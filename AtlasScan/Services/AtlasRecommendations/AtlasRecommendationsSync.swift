@@ -134,7 +134,11 @@ enum AtlasRecommendationsSync {
 
         // Photo parts
         for url in photoURLs {
-            guard let photoData = try? Data(contentsOf: url) else { continue }
+            guard let photoData = try? Data(contentsOf: url) else {
+                // Log skipped photo — the upload continues with remaining photos
+                print("[AtlasSync] Warning: could not load photo data for \(url.lastPathComponent), skipping.")
+                continue
+            }
             body.append(multipartField(
                 name: "photos[]",
                 data: photoData,

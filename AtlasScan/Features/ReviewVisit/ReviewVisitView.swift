@@ -331,7 +331,7 @@ struct ReviewVisitView: View {
         }.count
         if untranscribed > 0 { w.append("\(untranscribed) voice note(s) have no transcript.") }
         let unlabelled = store.draft.objectPins.filter {
-            $0.type == .genericNote && ($0.label ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+            $0.type == .genericNote && $0.hasNoLabel
         }.count
         if unlabelled > 0 { w.append("\(unlabelled) note pin(s) have no label.") }
         return w

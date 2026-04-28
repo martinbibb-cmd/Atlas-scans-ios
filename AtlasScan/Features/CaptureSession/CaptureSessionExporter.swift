@@ -216,7 +216,7 @@ enum CaptureSessionExporter {
             ))
         }
 
-        if draft.objectPins.contains(where: { ($0.label ?? "").trimmingCharacters(in: .whitespaces).isEmpty && $0.type == .genericNote }) {
+        if draft.objectPins.contains(where: { $0.hasNoLabel && $0.type == .genericNote }) {
             flags.append(ScanQAFlag(
                 code: "GENERIC_PIN_NO_LABEL",
                 message: "One or more generic note pins have no label.",

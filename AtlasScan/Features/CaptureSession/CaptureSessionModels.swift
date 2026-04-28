@@ -285,6 +285,11 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
 
     /// When the pin was placed.
     var placedAt: Date = Date()
+
+    /// Returns true when the pin has no meaningful user-assigned label.
+    var hasNoLabel: Bool {
+        (label ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }
 
 // MARK: - ObjectPinType
@@ -490,15 +495,6 @@ enum PipeType: String, Codable, CaseIterable, Identifiable {
         case .water:   return "Water"
         case .gas:     return "Gas"
         case .other:   return "Other"
-        }
-    }
-
-    var color: String {
-        switch self {
-        case .heating: return "red"
-        case .water:   return "blue"
-        case .gas:     return "yellow"
-        case .other:   return "gray"
         }
     }
 }

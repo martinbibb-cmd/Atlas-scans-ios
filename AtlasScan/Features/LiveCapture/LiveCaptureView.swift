@@ -266,7 +266,7 @@ struct LiveCaptureView: View {
             }
 
             // Rooms — manage / scan rooms
-            hudButton(symbol: "map", label: "Rooms \(store.draft.roomScans.isEmpty ? "" : "(\(store.draft.roomScans.count))")", color: .white) {
+            hudButton(symbol: "map", label: roomsHUDLabel, color: .white) {
                 showingRoomsSheet = true
             }
         }
@@ -289,6 +289,11 @@ struct LiveCaptureView: View {
         case .paused:    return "Resume"
         case .stopped:   return "Save"
         }
+    }
+
+    private var roomsHUDLabel: String {
+        let count = store.draft.roomScans.count
+        return count == 0 ? "Rooms" : "Rooms (\(count))"
     }
 
     private func hudButton(
