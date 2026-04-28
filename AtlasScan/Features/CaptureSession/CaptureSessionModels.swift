@@ -18,6 +18,12 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Engineer-assigned visit / job reference (required before export).
     var visitReference: String = ""
 
+    /// Optional property address for the visit.
+    var propertyAddress: String = ""
+
+    /// Optional customer name for the visit.
+    var customerName: String = ""
+
     /// When the session was first created.
     var capturedAt: Date = Date()
 
@@ -40,8 +46,37 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Export lifecycle state.
     var exportState: CaptureExportState = .draft
 
+    /// Sync state with the Atlas Recommendations backend.
+    var syncState: CaptureSyncState = .notSynced
+
+    /// Remote visit ID assigned by Atlas Recommendations after a successful import.
+    var remoteVisitId: String?
+
     /// When the session was last updated (set automatically on mutations).
     var updatedAt: Date = Date()
+}
+
+// MARK: - CaptureSyncState
+
+/// Sync lifecycle state with the Atlas Recommendations backend.
+enum CaptureSyncState: String, Codable, CaseIterable {
+    /// Session has not been sent to Atlas Recommendations yet.
+    case notSynced  = "not_synced"
+    /// Upload in progress.
+    case syncing    = "syncing"
+    /// Successfully received by Atlas Recommendations.
+    case synced     = "synced"
+    /// Sync attempt failed — can be retried.
+    case syncFailed = "sync_failed"
+
+    var displayName: String {
+        switch self {
+        case .notSynced:  return "Not Synced"
+        case .syncing:    return "Syncing…"
+        case .synced:     return "Synced"
+        case .syncFailed: return "Sync Failed"
+        }
+    }
 }
 
 // MARK: - CaptureExportState
@@ -112,6 +147,9 @@ struct CapturedRoomScanDraft: Identifiable, Codable {
 
     /// Scan confidence as reported by the capture API.
     var confidence: RoomScanConfidence = .medium
+
+    /// Floor plan annotations added by the engineer after the room scan.
+    var floorPlan: FloorPlanDraft?
 }
 
 // MARK: - RoomScanConfidence
@@ -247,6 +285,11 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
 
     /// When the pin was placed.
     var placedAt: Date = Date()
+
+    /// Returns true when the pin has no meaningful user-assigned label.
+    var hasNoLabel: Bool {
+        (label ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }
 
 // MARK: - ObjectPinType
@@ -371,5 +414,87 @@ extension CaptureSessionDraft {
     /// Marks the session as updated now.
     mutating func touch() {
         updatedAt = Date()
+    }
+}
+
+// MARK: - FloorPlanDraft
+
+/// Engineer-annotated floor plan for one room.
+///
+/// Stores:
+///   - the room outline as a normalised polygon (0…1 coordinate space)
+///   - service-object placements on the plan
+///   - pipework segments drawn by the engineer
+///
+/// Coordinates are normalised (0…1) relative to the bounding box of the
+/// scan, so the model is resolution-independent.
+struct FloorPlanDraft: Codable {
+
+    /// Normalised polygon vertices describing the room outline.
+    var outlinePoints: [NormalisedPoint] = []
+
+    /// Service objects placed by the engineer on the plan.
+    var objectPlacements: [FloorPlanObjectPlacement] = []
+
+    /// Pipework segments drawn by the engineer.
+    var pipeSegments: [PipeSegmentDraft] = []
+}
+
+// MARK: - NormalisedPoint
+
+/// A 2-D point with coordinates normalised to [0, 1].
+struct NormalisedPoint: Codable {
+    var x: Double
+    var y: Double
+
+    init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
+// MARK: - FloorPlanObjectPlacement
+
+/// An object pin placed on the floor plan canvas.
+struct FloorPlanObjectPlacement: Identifiable, Codable {
+    var id: UUID = UUID()
+    /// Type of service object.
+    var type: ObjectPinType
+    /// Optional free-text label.
+    var label: String?
+    /// Normalised canvas position.
+    var position: NormalisedPoint
+}
+
+// MARK: - PipeSegmentDraft
+
+/// A pipework segment drawn on the floor plan by the engineer.
+struct PipeSegmentDraft: Identifiable, Codable {
+    var id: UUID = UUID()
+    /// Normalised start point.
+    var start: NormalisedPoint
+    /// Normalised end point.
+    var end: NormalisedPoint
+    /// Type of pipe service.
+    var pipeType: PipeType = .heating
+}
+
+// MARK: - PipeType
+
+enum PipeType: String, Codable, CaseIterable, Identifiable {
+    case heating = "heating"
+    case water   = "water"
+    case gas     = "gas"
+    case other   = "other"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .heating: return "Heating"
+        case .water:   return "Water"
+        case .gas:     return "Gas"
+        case .other:   return "Other"
+        }
     }
 }

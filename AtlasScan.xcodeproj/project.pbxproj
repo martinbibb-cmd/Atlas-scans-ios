@@ -157,6 +157,12 @@
 		AA0100D3 /* RoomScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D3 /* RoomScanCaptureView.swift */; };
 		AA0100D4 /* VoiceNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D4 /* VoiceNotesView.swift */; };
 		AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D5 /* VoiceNoteRecorderViewModel.swift */; };
+		AA0100D6 /* LiveCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D6 /* LiveCaptureView.swift */; };
+		AA0100D7 /* FloorPlanEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D7 /* FloorPlanEditorView.swift */; };
+		AA0100D8 /* ReviewVisitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D8 /* ReviewVisitView.swift */; };
+		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
+		AA0100DA /* AtlasRecommendationsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DA /* AtlasRecommendationsSync.swift */; };
+		AA0100DB /* AtlasRecommendationsWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DB /* AtlasRecommendationsWebView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -321,6 +327,12 @@
 		AA0200D3 /* RoomScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanCaptureView.swift; sourceTree = "<group>"; };
 		AA0200D4 /* VoiceNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotesView.swift; sourceTree = "<group>"; };
 		AA0200D5 /* VoiceNoteRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderViewModel.swift; sourceTree = "<group>"; };
+		AA0200D6 /* LiveCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureView.swift; sourceTree = "<group>"; };
+		AA0200D7 /* FloorPlanEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanEditorView.swift; sourceTree = "<group>"; };
+		AA0200D8 /* ReviewVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewVisitView.swift; sourceTree = "<group>"; };
+		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
+		AA0200DA /* AtlasRecommendationsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsSync.swift; sourceTree = "<group>"; };
+		AA0200DB /* AtlasRecommendationsWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsWebView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -431,6 +443,9 @@
 				AA050030 /* ReviewExport */,
 				AA050031 /* RoomScans */,
 				AA050032 /* VoiceNotes */,
+				AA050033 /* LiveCapture */,
+				AA050034 /* FloorPlanEditor */,
+				AA050035 /* ReviewVisit */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -478,6 +493,7 @@
 				AA020053 /* AtlasSync.swift */,
 				B0F64E4E6D0C919B8E475B11 /* VisitSessionMapper.swift */,
 				AA0200B2 /* VoiceNoteTranscriptionService.swift */,
+				AA050036 /* AtlasRecommendations */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -724,6 +740,40 @@
 				AA0200D5 /* VoiceNoteRecorderViewModel.swift */,
 			);
 			path = VoiceNotes;
+			sourceTree = "<group>";
+		};
+		AA050033 /* LiveCapture */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D6 /* LiveCaptureView.swift */,
+			);
+			path = LiveCapture;
+			sourceTree = "<group>";
+		};
+		AA050034 /* FloorPlanEditor */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D7 /* FloorPlanEditorView.swift */,
+			);
+			path = FloorPlanEditor;
+			sourceTree = "<group>";
+		};
+		AA050035 /* ReviewVisit */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D8 /* ReviewVisitView.swift */,
+			);
+			path = ReviewVisit;
+			sourceTree = "<group>";
+		};
+		AA050036 /* AtlasRecommendations */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200D9 /* AtlasKeychainStore.swift */,
+				AA0200DA /* AtlasRecommendationsSync.swift */,
+				AA0200DB /* AtlasRecommendationsWebView.swift */,
+			);
+			path = AtlasRecommendations;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -998,6 +1048,12 @@
 				AA0100D3 /* RoomScanCaptureView.swift in Sources */,
 				AA0100D4 /* VoiceNotesView.swift in Sources */,
 				AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */,
+				AA0100D6 /* LiveCaptureView.swift in Sources */,
+				AA0100D7 /* FloorPlanEditorView.swift in Sources */,
+				AA0100D8 /* ReviewVisitView.swift in Sources */,
+				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
+				AA0100DA /* AtlasRecommendationsSync.swift in Sources */,
+				AA0100DB /* AtlasRecommendationsWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

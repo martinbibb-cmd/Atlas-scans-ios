@@ -93,6 +93,8 @@ enum CaptureSessionExporter {
             schemaVersion: currentSessionCaptureVersion,
             sessionId: draft.id.uuidString,
             visitReference: draft.visitReference,
+            propertyAddress: draft.propertyAddress.isEmpty ? nil : draft.propertyAddress,
+            customerName: draft.customerName.isEmpty ? nil : draft.customerName,
             capturedAt: iso8601.string(from: draft.capturedAt),
             exportedAt: now,
             deviceModel: deviceModel(),
@@ -112,6 +114,12 @@ enum CaptureSessionExporter {
             ScanQAFlag(code: code, message: code, severity: "warning", entityId: scan.id.uuidString)
         }
 
+        let floorPlanData: String? = scan.floorPlan.flatMap { plan in
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return try? encoder.encode(plan).base64EncodedString()
+        }
+
         return CapturedRoomScanV2(
             id: scan.id.uuidString,
             roomLabel: scan.roomLabel,
@@ -123,7 +131,8 @@ enum CaptureSessionExporter {
             rawHeightM: scan.rawHeightM,
             localTransformOrigin: nil,
             warnings: warnings,
-            confidence: mapConfidence(scan.confidence)
+            confidence: mapConfidence(scan.confidence),
+            floorPlanData: floorPlanData
         )
     }
 
@@ -207,7 +216,7 @@ enum CaptureSessionExporter {
             ))
         }
 
-        if draft.objectPins.contains(where: { ($0.label ?? "").trimmingCharacters(in: .whitespaces).isEmpty && $0.type == .genericNote }) {
+        if draft.objectPins.contains(where: { $0.hasNoLabel && $0.type == .genericNote }) {
             flags.append(ScanQAFlag(
                 code: "GENERIC_PIN_NO_LABEL",
                 message: "One or more generic note pins have no label.",

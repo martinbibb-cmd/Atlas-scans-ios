@@ -2,46 +2,94 @@ import SwiftUI
 
 // MARK: - CaptureAppRootView
 //
-// The new capture-only app root.
+// Atlas Scan V2 root: the single-session visit capture flow.
 //
 // Flow:
-//   • If there is an active (non-exported) draft session → go to CaptureHubView
-//   • Otherwise → show StartJobView to enter a visit reference
+//   • On launch: if a non-exported draft exists → go straight to LiveCaptureView
+//   • Otherwise: show StartJobView to start a new visit
+//   • "Finish Capture" → ReviewVisitView
+//   • Export from review → session marked exported
+//   • "New Visit" from review → resets to StartJobView
 //
 // "One visit, one session, one home screen."
-//
-// The existing PropertySessionListView remains accessible under a secondary tab
-// for reading back completed sessions and legacy continuity.
+
+enum CaptureFlowState {
+    case start
+    case capturing
+    case reviewing
+}
 
 struct CaptureAppRootView: View {
 
     @State private var activeStore: CaptureSessionStore?
-    @State private var showingHub = false
+    @State private var flowState: CaptureFlowState = .start
 
     var body: some View {
         Group {
-            if let store = activeStore, showingHub {
-                CaptureHubView(store: store)
-                    .transition(.opacity)
-            } else {
-                StartJobView { draft in
-                    let store = CaptureSessionStore(
-                        draft: draft,
-                        persistence: .shared
-                    )
-                    store.saveNow()
-                    activeStore = store
-                    withAnimation { showingHub = true }
-                }
-                .overlay(alignment: .bottom) {
-                    if let draft = CaptureSessionPersistence.shared.lastIncompleteDraft() {
-                        resumeBanner(draft: draft)
-                    }
-                }
-                .transition(.opacity)
+            switch flowState {
+            case .start:
+                startScreen
+            case .capturing:
+                capturingScreen
+            case .reviewing:
+                reviewingScreen
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: flowState)
         .onAppear { checkForExistingDraft() }
+    }
+
+    // MARK: - Start
+
+    private var startScreen: some View {
+        StartJobView { draft in
+            let store = CaptureSessionStore(draft: draft, persistence: .shared)
+            store.saveNow()
+            activeStore = store
+            flowState = .capturing
+        }
+        .overlay(alignment: .bottom) {
+            if let draft = CaptureSessionPersistence.shared.lastIncompleteDraft() {
+                resumeBanner(draft: draft)
+            }
+        }
+    }
+
+    // MARK: - Capturing
+
+    @ViewBuilder
+    private var capturingScreen: some View {
+        if let store = activeStore {
+            LiveCaptureView(store: store) {
+                flowState = .reviewing
+            }
+        } else {
+            Color.black.onAppear { flowState = .start }
+        }
+    }
+
+    // MARK: - Reviewing
+
+    @ViewBuilder
+    private var reviewingScreen: some View {
+        if let store = activeStore {
+            NavigationStack {
+                ReviewVisitView(store: store)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("← Capture") { flowState = .capturing }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            if store.draft.exportState == .exported {
+                                Button("New Visit") { startNewVisit() }
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
+            }
+        } else {
+            Color.black.onAppear { flowState = .start }
+        }
     }
 
     // MARK: - Resume banner
@@ -50,7 +98,7 @@ struct CaptureAppRootView: View {
         Button {
             let store = CaptureSessionStore(draft: draft, persistence: .shared)
             activeStore = store
-            withAnimation { showingHub = true }
+            flowState = .capturing
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -59,8 +107,11 @@ struct CaptureAppRootView: View {
                     Text("Resume last session")
                         .font(.caption.bold())
                     Text(draft.visitReference.isEmpty ? "No reference" : draft.visitReference)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2).foregroundStyle(.secondary)
+                    if !draft.propertyAddress.isEmpty {
+                        Text(draft.propertyAddress)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
                 }
                 Spacer()
                 Text("Resume →")
@@ -76,15 +127,19 @@ struct CaptureAppRootView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Check for existing draft on launch
+    // MARK: - Helpers
 
     private func checkForExistingDraft() {
         guard activeStore == nil else { return }
         if let draft = CaptureSessionPersistence.shared.lastIncompleteDraft() {
-            let store = CaptureSessionStore(draft: draft, persistence: .shared)
-            activeStore = store
-            showingHub = true
+            activeStore = CaptureSessionStore(draft: draft, persistence: .shared)
+            flowState = .capturing
         }
+    }
+
+    private func startNewVisit() {
+        activeStore = nil
+        flowState = .start
     }
 }
 
@@ -95,3 +150,4 @@ struct CaptureAppRootView: View {
     CaptureAppRootView()
 }
 #endif
+
