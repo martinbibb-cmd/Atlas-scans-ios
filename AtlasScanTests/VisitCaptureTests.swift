@@ -16,6 +16,7 @@ import AtlasContracts
 //   - AtlasPropertyV1 export shape
 //   - Autosave / restore round-trip
 
+@MainActor
 final class VisitCaptureTests: XCTestCase {
 
     // MARK: - Helpers
