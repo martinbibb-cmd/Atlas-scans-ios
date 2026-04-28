@@ -858,7 +858,7 @@ extension PropertyScanSession {
                 roomID: photo.roomID,
                 taggedObjectID: photo.taggedObjectID,
                 position: allObjects.first(where: { $0.id == photo.taggedObjectID })?.worldAnchor,
-                timestamp: photo.createdAt
+                timestamp: photo.capturedAt
             )
         }
 
