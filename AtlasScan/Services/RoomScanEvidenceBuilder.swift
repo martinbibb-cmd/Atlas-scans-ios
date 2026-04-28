@@ -65,7 +65,7 @@ final class RoomScanEvidenceBuilder {
         // Generate preview thumbnail
         let previewURL = await renderPreviewThumbnail(for: fileURL, captureSessionID: captureSessionID)
 
-        let device = await UIDevice.current.model
+        let device = UIDevice.current.model
         let meta = RoomScanEvidence.CaptureMeta(
             device: device,
             timestamp: Date()
