@@ -45,6 +45,13 @@ public struct SessionCaptureV2: Codable, Sendable {
     /// Engineer-assigned visit / job reference (e.g. "JOB-1712345678").
     public let visitReference: String
 
+    /// Cross-system appointment key from Atlas Recommendations.
+    ///
+    /// Maps to ``AppointmentV1/appointmentId``.  Atlas Recommendations uses this
+    /// field to associate the submitted capture with the appointment that triggered
+    /// the visit.  May be nil for sessions started manually without an appointment.
+    public let appointmentId: String?
+
     /// Optional property address for the visit.
     public let propertyAddress: String?
 
@@ -91,6 +98,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         schemaVersion: String,
         sessionId: String,
         visitReference: String,
+        appointmentId: String? = nil,
         propertyAddress: String? = nil,
         customerName: String? = nil,
         capturedAt: String,
@@ -106,6 +114,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         self.schemaVersion = schemaVersion
         self.sessionId = sessionId
         self.visitReference = visitReference
+        self.appointmentId = appointmentId
         self.propertyAddress = propertyAddress
         self.customerName = customerName
         self.capturedAt = capturedAt

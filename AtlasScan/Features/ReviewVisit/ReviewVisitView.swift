@@ -62,6 +62,13 @@ struct ReviewVisitView: View {
                 Text(store.draft.visitReference.isEmpty ? "—" : store.draft.visitReference)
                     .foregroundStyle(store.draft.visitReference.isEmpty ? .red : .primary)
             }
+            if let apptId = store.draft.appointmentId {
+                LabeledContent("Appointment ID") {
+                    Text(apptId)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            }
             if !store.draft.propertyAddress.isEmpty {
                 LabeledContent("Address", value: store.draft.propertyAddress)
             }
@@ -235,39 +242,21 @@ struct ReviewVisitView: View {
                 Text("No voice notes recorded")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
-                let grouped = groupedVoiceNotes
-                ForEach(grouped, id: \.0) { roomLabel, notes in
-                    transcriptGroup(label: roomLabel, notes: notes)
+                // Summary of latest 2 notes
+                let recent = Array(store.draft.voiceNotes.suffix(2))
+                ForEach(recent) { note in
+                    transcriptNoteRow(note)
+                }
+                // Navigation link to full transcript view
+                NavigationLink {
+                    TranscriptView(draft: store.draft)
+                } label: {
+                    Label("View All Transcripts (\(store.draft.voiceNotes.count))", systemImage: "text.bubble")
+                        .font(.caption.bold())
+                        .foregroundStyle(Color.accentColor)
                 }
             }
         }
-    }
-
-    private var groupedVoiceNotes: [(String, [CapturedVoiceNoteDraft])] {
-        var groups: [(String, [CapturedVoiceNoteDraft])] = []
-        let sessionNotes = store.draft.voiceNotes.filter { $0.roomId == nil }
-        if !sessionNotes.isEmpty {
-            groups.append(("Session", sessionNotes))
-        }
-        for scan in store.draft.roomScans {
-            let roomNotes = store.draft.voiceNotes.filter { $0.roomId == scan.id }
-            if !roomNotes.isEmpty {
-                groups.append((scan.roomLabel ?? "Unnamed Room", roomNotes))
-            }
-        }
-        return groups
-    }
-
-    private func transcriptGroup(label: String, notes: [CapturedVoiceNoteDraft]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-            ForEach(notes) { note in
-                transcriptNoteRow(note)
-            }
-        }
-        .padding(.vertical, 4)
     }
 
     private func transcriptNoteRow(_ note: CapturedVoiceNoteDraft) -> some View {

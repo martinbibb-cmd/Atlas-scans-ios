@@ -2,11 +2,17 @@ import SwiftUI
 
 // MARK: - StartJobView
 //
-// Entry point for the capture-only visit workflow.
+// Entry point for creating a new visit session manually.
 //
-// The engineer enters a visit/job reference (required), with optional
-// address and customer name, then taps Start.
-// This creates a new CaptureSessionDraft and navigates to LiveCaptureView.
+// The engineer enters a visit/job reference (required) and, optionally, the
+// Atlas appointment ID.  When present, the appointment ID is carried through
+// into the exported SessionCaptureV2 payload (as appointmentId) so Atlas
+// Recommendations can match the capture to the appointment that triggered
+// the visit.  It is optional here because engineers can also start ad-hoc
+// visits that were not pre-booked in Atlas Recommendations.
+//
+// For pre-booked visits, the appointment ID is filled automatically by
+// VisitPickerView when the engineer selects a scheduled appointment.
 //
 // "One visit, one session, one home screen."
 
@@ -14,6 +20,7 @@ struct StartJobView: View {
 
     let onStart: (CaptureSessionDraft) -> Void
 
+    @State private var appointmentId = ""
     @State private var visitReference = ""
     @State private var propertyAddress = ""
     @State private var customerName = ""
@@ -44,10 +51,10 @@ struct StartJobView: View {
                 .font(.system(size: 56, weight: .thin))
                 .foregroundStyle(.tint)
 
-            Text("Start Visit")
+            Text("New Visit")
                 .font(.largeTitle.bold())
 
-            Text("Enter the visit reference to begin capturing.")
+            Text("Enter the visit details to begin capturing.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -68,6 +75,14 @@ struct StartJobView: View {
                     .onSubmit {
                         if isValid { startJob() }
                     }
+            }
+
+            fieldGroup {
+                fieldLabel("Appointment ID (optional — links this visit to Atlas Recommendations)")
+                TextField("Atlas appointment UUID", text: $appointmentId)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.subheadline.monospaced())
             }
 
             fieldGroup {
@@ -122,8 +137,10 @@ struct StartJobView: View {
 
     private func startJob() {
         guard isValid else { return }
+        let apptId = appointmentId.trimmingCharacters(in: .whitespaces)
         var draft = CaptureSessionStore.newSession(
-            visitReference: visitReference.trimmingCharacters(in: .whitespaces)
+            visitReference: visitReference.trimmingCharacters(in: .whitespaces),
+            appointmentId: apptId.isEmpty ? nil : apptId
         )
         let addr = propertyAddress.trimmingCharacters(in: .whitespaces)
         if !addr.isEmpty { draft.propertyAddress = addr }

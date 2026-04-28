@@ -93,6 +93,7 @@ enum CaptureSessionExporter {
             schemaVersion: currentSessionCaptureVersion,
             sessionId: draft.id.uuidString,
             visitReference: draft.visitReference,
+            appointmentId: draft.appointmentId,
             propertyAddress: draft.propertyAddress.isEmpty ? nil : draft.propertyAddress,
             customerName: draft.customerName.isEmpty ? nil : draft.customerName,
             capturedAt: iso8601.string(from: draft.capturedAt),
