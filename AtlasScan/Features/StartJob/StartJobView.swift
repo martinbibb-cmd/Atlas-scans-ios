@@ -2,15 +2,17 @@ import SwiftUI
 
 // MARK: - StartJobView
 //
-// Entry point for the capture-only visit workflow.
+// Entry point for creating a new visit session manually.
 //
-// The engineer enters a visit/job reference (required) and the Atlas appointment
-// ID (required for contract alignment), with optional address and customer name,
-// then taps Start.  This creates a new CaptureSessionDraft and navigates to
-// LiveCaptureView.
+// The engineer enters a visit/job reference (required) and, optionally, the
+// Atlas appointment ID.  When present, the appointment ID is carried through
+// into the exported SessionCaptureV2 payload (as appointmentId) so Atlas
+// Recommendations can match the capture to the appointment that triggered
+// the visit.  It is optional here because engineers can also start ad-hoc
+// visits that were not pre-booked in Atlas Recommendations.
 //
-// The appointmentId maps to AppointmentV1.appointmentId from Atlas-contracts,
-// which is the cross-system key embedded in every SessionCaptureV1 export.
+// For pre-booked visits, the appointment ID is filled automatically by
+// VisitPickerView when the engineer selects a scheduled appointment.
 //
 // "One visit, one session, one home screen."
 
@@ -76,7 +78,7 @@ struct StartJobView: View {
             }
 
             fieldGroup {
-                fieldLabel("Appointment ID (optional)")
+                fieldLabel("Appointment ID (optional — links this visit to Atlas Recommendations)")
                 TextField("Atlas appointment UUID", text: $appointmentId)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
