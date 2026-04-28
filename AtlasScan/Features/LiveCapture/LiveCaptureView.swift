@@ -1,5 +1,52 @@
 import SwiftUI
 
+// MARK: - CaptureMode
+//
+// The swipeable capture modes available during a live session.
+// The engineer swipes left/right between modes; the active mode
+// changes the bottom HUD tools and AR overlay hints.
+
+enum CaptureMode: Int, CaseIterable, Identifiable {
+    case roomScan      = 0
+    case tagObject     = 1
+    case photo         = 2
+    case pointCloud    = 3
+    case measure       = 4
+    case floorPlan     = 5
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .roomScan:   return "Room Scan"
+        case .tagObject:  return "Tag Object"
+        case .photo:      return "Photo"
+        case .pointCloud: return "3D Scan"
+        case .measure:    return "Measure"
+        case .floorPlan:  return "Floor Plan"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .roomScan:   return "lidar.scanner"
+        case .tagObject:  return "mappin.and.ellipse"
+        case .photo:      return "camera"
+        case .pointCloud: return "cube.transparent"
+        case .measure:    return "ruler"
+        case .floorPlan:  return "map"
+        }
+    }
+
+    /// True for modes that are available now; false for stubs pending hardware / API integration.
+    var isAvailable: Bool {
+        switch self {
+        case .roomScan, .tagObject, .photo, .floorPlan: return true
+        case .pointCloud, .measure: return false
+        }
+    }
+}
+
 // MARK: - LiveCaptureView
 //
 // The unified full-screen capture surface for one visit session.
@@ -7,11 +54,11 @@ import SwiftUI
 // Layout:
 //   • Full-screen LiDAR / camera background (or placeholder when no scans yet)
 //   • Top HUD   — visit reference + recording indicator + "Finish" button
-//   • Bottom HUD — Voice / Photo / Object / Rooms action buttons
+//   • Bottom HUD — swipeable CaptureMode selector + mode-specific action bar
 //   • AR overlay — placed object pin labels floating over the live feed
 //
-// All capture actions (voice, photo, object, room) are accessible as overlay
-// sheets without leaving this screen.  "One screen, one visit."
+// Voice recording starts automatically when this view appears.
+// All capture actions are accessible without leaving this screen.
 
 struct LiveCaptureView: View {
 
@@ -27,18 +74,21 @@ struct LiveCaptureView: View {
     @State private var showingRoomCapture    = false
     @State private var showingFloorPlanEditor: CapturedRoomScanDraft? = nil
     @State private var showingFinishConfirm  = false
+    @State private var showingTranscripts    = false
+
+    // MARK: - Swipe mode state
+
+    @State private var activeMode: CaptureMode = .roomScan
 
     // MARK: - Pin placement state
 
-    /// When non-nil, the next tap on the canvas places a pin of this type.
     @State private var pendingPinType: ObjectPinType? = nil
 
     // MARK: - Active room context
 
-    /// The room currently in focus; voice notes and photos auto-attach here.
     @State private var activeRoomId: UUID? = nil
 
-    // MARK: - Voice recorder (inline, not a sheet ViewModel)
+    // MARK: - Voice recorder (continuous, auto-started)
 
     @StateObject private var voiceRecorder = VoiceNoteRecorderViewModel()
 
@@ -49,6 +99,7 @@ struct LiveCaptureView: View {
             VStack(spacing: 0) {
                 topHUD
                 Spacer()
+                captureModeStrip
                 bottomHUD
             }
         }
@@ -57,6 +108,7 @@ struct LiveCaptureView: View {
         .sheet(isPresented: $showingPhotoSheet) { photoSheet }
         .sheet(isPresented: $showingObjectSheet) { objectSheet }
         .sheet(isPresented: $showingRoomsSheet) { roomsSheet }
+        .sheet(isPresented: $showingTranscripts) { transcriptsSheet }
         .fullScreenCover(isPresented: $showingRoomCapture) { roomCaptureModal }
         .sheet(item: $showingFloorPlanEditor) { scan in
             FloorPlanEditorView(scan: scan) { updatedScan in
@@ -68,12 +120,33 @@ struct LiveCaptureView: View {
             isPresented: $showingFinishConfirm,
             titleVisibility: .visible
         ) {
-            Button("Finish & Review") { onFinish() }
+            Button("Finish & Review") { finishAndSave() }
             Button("Keep Capturing", role: .cancel) {}
         } message: {
-            Text("You can review and export the session on the next screen.")
+            Text("Voice recording will be saved. You can review and export on the next screen.")
         }
+        .onAppear { autoStartVoice() }
         .onDisappear { voiceRecorder.discard() }
+    }
+
+    // MARK: - Auto-start voice
+
+    private func autoStartVoice() {
+        guard voiceRecorder.state == .idle else { return }
+        voiceRecorder.start(roomId: activeRoomId)
+    }
+
+    // MARK: - Finish and save
+
+    private func finishAndSave() {
+        // Stop continuous voice recording and save whatever was captured.
+        if voiceRecorder.canStop {
+            voiceRecorder.stop()
+        }
+        if voiceRecorder.canCommit, let note = voiceRecorder.commit() {
+            store.addVoiceNote(note)
+        }
+        onFinish()
     }
 
     // MARK: - Camera background
@@ -175,6 +248,17 @@ struct LiveCaptureView: View {
 
             Spacer()
 
+            // Transcript shortcut (only when voice notes exist)
+            if !store.draft.voiceNotes.isEmpty {
+                Button {
+                    showingTranscripts = true
+                } label: {
+                    Image(systemName: "text.bubble.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+            }
+
             if voiceRecorder.state == .recording || voiceRecorder.state == .paused {
                 recordingIndicator
             }
@@ -236,38 +320,67 @@ struct LiveCaptureView: View {
         }
     }
 
-    // MARK: - Bottom HUD
+    // MARK: - Capture mode strip (swipeable)
+    //
+    // A horizontally-scrolling selector that lets the engineer swipe between
+    // the six capture modes.  The active mode controls which tools appear
+    // in the bottom action bar below.
 
-    private var bottomHUD: some View {
-        HStack(spacing: 0) {
-            // Voice — tap to start/stop; opens sheet to save/discard after stop
-            hudButton(
-                symbol: voiceRecorder.state == .recording ? "mic.fill" : "mic",
-                label: hudVoiceLabel,
-                color: voiceRecorder.state == .recording ? .red : .white
-            ) { handleVoiceTap() }
-
-            // Photo — opens system camera sheet
-            hudButton(symbol: "camera", label: "Photo", color: .white) {
-                showingPhotoSheet = true
-            }
-
-            // Object — tap to pick type (then tap canvas to place), or cancel
-            hudButton(
-                symbol: pendingPinType != nil ? "mappin.circle.fill" : "mappin.and.ellipse",
-                label: pendingPinType != nil ? "Cancel" : "Object",
-                color: pendingPinType != nil ? .yellow : .white
-            ) {
-                if pendingPinType != nil {
-                    pendingPinType = nil
-                } else {
-                    showingObjectSheet = true
+    private var captureModeStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(CaptureMode.allCases) { mode in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            activeMode = mode
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: mode.symbolName)
+                                .font(.system(size: 18, weight: .semibold))
+                            Text(mode.title)
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .foregroundStyle(activeMode == mode ? .white : .white.opacity(0.45))
+                        .frame(minWidth: 72)
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .bottom) {
+                            if activeMode == mode {
+                                Capsule()
+                                    .fill(Color.accentColor)
+                                    .frame(height: 3)
+                                    .padding(.horizontal, 12)
+                                    .transition(.opacity)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!mode.isAvailable)
+                    .opacity(mode.isAvailable ? 1 : 0.35)
                 }
             }
+            .padding(.horizontal, 8)
+        }
+        .background(Color.black.opacity(0.55))
+    }
 
-            // Rooms — manage / scan rooms
-            hudButton(symbol: "map", label: roomsHUDLabel, color: .white) {
-                showingRoomsSheet = true
+    // MARK: - Bottom HUD (mode-specific action bar)
+
+    private var bottomHUD: some View {
+        Group {
+            switch activeMode {
+            case .roomScan:
+                roomScanActions
+            case .tagObject:
+                tagObjectActions
+            case .photo:
+                photoActions
+            case .pointCloud:
+                stubModeActions(title: "3D Point Cloud coming soon", symbol: "cube.transparent")
+            case .measure:
+                stubModeActions(title: "Measurement overlay coming soon", symbol: "ruler")
+            case .floorPlan:
+                floorPlanActions
             }
         }
         .padding(.horizontal, 8)
@@ -280,6 +393,97 @@ struct LiveCaptureView: View {
                 endPoint: .bottom
             )
         )
+    }
+
+    // Room Scan mode actions
+    private var roomScanActions: some View {
+        HStack(spacing: 0) {
+            hudButton(
+                symbol: voiceRecorder.state == .recording ? "mic.fill" : "mic",
+                label: hudVoiceLabel,
+                color: voiceRecorder.state == .recording ? .red : .white
+            ) { handleVoiceTap() }
+
+            hudButton(symbol: "lidar.scanner", label: "Scan Room", color: .white) {
+                showingRoomCapture = true
+            }
+
+            hudButton(symbol: "map", label: roomsHUDLabel, color: .white) {
+                showingRoomsSheet = true
+            }
+        }
+    }
+
+    // Tag Object mode actions
+    private var tagObjectActions: some View {
+        HStack(spacing: 0) {
+            hudButton(
+                symbol: pendingPinType != nil ? "mappin.circle.fill" : "mappin.and.ellipse",
+                label: pendingPinType != nil ? "Cancel" : "Place Pin",
+                color: pendingPinType != nil ? .yellow : .white
+            ) {
+                if pendingPinType != nil {
+                    pendingPinType = nil
+                } else {
+                    showingObjectSheet = true
+                }
+            }
+
+            hudButton(symbol: "camera", label: "Photo", color: .white) {
+                showingPhotoSheet = true
+            }
+
+            hudButton(
+                symbol: voiceRecorder.state == .recording ? "mic.fill" : "mic",
+                label: hudVoiceLabel,
+                color: voiceRecorder.state == .recording ? .red : .white
+            ) { handleVoiceTap() }
+        }
+    }
+
+    // Photo mode actions
+    private var photoActions: some View {
+        HStack(spacing: 0) {
+            hudButton(symbol: "camera.fill", label: "Take Photo", color: .white) {
+                showingPhotoSheet = true
+            }
+
+            hudButton(
+                symbol: voiceRecorder.state == .recording ? "mic.fill" : "mic",
+                label: hudVoiceLabel,
+                color: voiceRecorder.state == .recording ? .red : .white
+            ) { handleVoiceTap() }
+        }
+    }
+
+    // Floor Plan mode actions
+    private var floorPlanActions: some View {
+        HStack(spacing: 0) {
+            if let latestScan = store.draft.roomScans.last {
+                hudButton(symbol: "pencil.and.ruler", label: "Edit Floor Plan", color: .white) {
+                    showingFloorPlanEditor = latestScan
+                }
+            }
+
+            hudButton(symbol: "lidar.scanner", label: "Scan Room", color: .white) {
+                showingRoomCapture = true
+            }
+        }
+    }
+
+    // Stub placeholder for modes not yet fully implemented
+    private func stubModeActions(title: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 22, weight: .thin))
+                .foregroundStyle(.white.opacity(0.5))
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.5))
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
     }
 
     private var hudVoiceLabel: String {
@@ -320,6 +524,9 @@ struct LiveCaptureView: View {
     }
 
     // MARK: - Voice tap logic
+    //
+    // Tap to pause/resume or create a manual note marker.
+    // The continuous session-level recording starts automatically on view appear.
 
     private func handleVoiceTap() {
         switch voiceRecorder.state {
@@ -341,9 +548,24 @@ struct LiveCaptureView: View {
         InlineVoiceCommitSheet(recorder: voiceRecorder, roomScans: store.draft.roomScans) { note in
             store.addVoiceNote(note)
             showingVoiceSheet = false
+            // Restart continuous recording for the rest of the session.
+            voiceRecorder.start(roomId: activeRoomId)
         } onDiscard: {
             voiceRecorder.discard()
             showingVoiceSheet = false
+            // Restart continuous recording even after discard.
+            voiceRecorder.start(roomId: activeRoomId)
+        }
+    }
+
+    private var transcriptsSheet: some View {
+        NavigationStack {
+            TranscriptView(draft: store.draft)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { showingTranscripts = false }
+                    }
+                }
         }
     }
 

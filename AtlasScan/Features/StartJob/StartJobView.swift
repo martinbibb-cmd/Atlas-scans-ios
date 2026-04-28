@@ -4,9 +4,13 @@ import SwiftUI
 //
 // Entry point for the capture-only visit workflow.
 //
-// The engineer enters a visit/job reference (required), with optional
-// address and customer name, then taps Start.
-// This creates a new CaptureSessionDraft and navigates to LiveCaptureView.
+// The engineer enters a visit/job reference (required) and the Atlas appointment
+// ID (required for contract alignment), with optional address and customer name,
+// then taps Start.  This creates a new CaptureSessionDraft and navigates to
+// LiveCaptureView.
+//
+// The appointmentId maps to AppointmentV1.appointmentId from Atlas-contracts,
+// which is the cross-system key embedded in every SessionCaptureV1 export.
 //
 // "One visit, one session, one home screen."
 
@@ -14,6 +18,7 @@ struct StartJobView: View {
 
     let onStart: (CaptureSessionDraft) -> Void
 
+    @State private var appointmentId = ""
     @State private var visitReference = ""
     @State private var propertyAddress = ""
     @State private var customerName = ""
@@ -44,10 +49,10 @@ struct StartJobView: View {
                 .font(.system(size: 56, weight: .thin))
                 .foregroundStyle(.tint)
 
-            Text("Start Visit")
+            Text("New Visit")
                 .font(.largeTitle.bold())
 
-            Text("Enter the visit reference to begin capturing.")
+            Text("Enter the visit details to begin capturing.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -68,6 +73,14 @@ struct StartJobView: View {
                     .onSubmit {
                         if isValid { startJob() }
                     }
+            }
+
+            fieldGroup {
+                fieldLabel("Appointment ID (optional)")
+                TextField("Atlas appointment UUID", text: $appointmentId)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.subheadline.monospaced())
             }
 
             fieldGroup {
@@ -122,8 +135,10 @@ struct StartJobView: View {
 
     private func startJob() {
         guard isValid else { return }
+        let apptId = appointmentId.trimmingCharacters(in: .whitespaces)
         var draft = CaptureSessionStore.newSession(
-            visitReference: visitReference.trimmingCharacters(in: .whitespaces)
+            visitReference: visitReference.trimmingCharacters(in: .whitespaces),
+            appointmentId: apptId.isEmpty ? nil : apptId
         )
         let addr = propertyAddress.trimmingCharacters(in: .whitespaces)
         if !addr.isEmpty { draft.propertyAddress = addr }

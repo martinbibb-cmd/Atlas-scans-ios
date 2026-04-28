@@ -46,10 +46,21 @@ final class CaptureSessionStore: ObservableObject {
 
     // MARK: - Session creation helpers
 
-    /// Creates a new draft session with the given visit reference.
-    static func newSession(visitReference: String) -> CaptureSessionDraft {
+    /// Creates a new draft session with the given visit reference and optional appointment ID.
+    ///
+    /// - Parameters:
+    ///   - visitReference: Human-readable job reference (e.g. "JOB-2025-001").
+    ///   - appointmentId:  Cross-system appointment key from Atlas Recommendations
+    ///                     (``AppointmentV1/appointmentId``).  Must be present in the
+    ///                     exported ``SessionCaptureV1`` payload so Atlas can match the
+    ///                     capture back to the appointment that triggered the visit.
+    static func newSession(
+        visitReference: String,
+        appointmentId: String? = nil
+    ) -> CaptureSessionDraft {
         var d = CaptureSessionDraft()
         d.visitReference = visitReference
+        d.appointmentId = appointmentId
         return d
     }
 
@@ -147,6 +158,13 @@ final class CaptureSessionStore: ObservableObject {
 
     func setVisitReference(_ reference: String) {
         update { $0.visitReference = reference }
+    }
+
+    // MARK: - Appointment ID
+
+    /// Sets the cross-system appointment key (``AppointmentV1/appointmentId``).
+    func setAppointmentId(_ id: String?) {
+        update { $0.appointmentId = id }
     }
 
     // MARK: - Export state
