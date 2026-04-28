@@ -719,7 +719,7 @@ struct LiveTagEditSheet: View {
 
     @State private var label: String
     @State private var category: ServiceObjectCategory
-    @State private var confidence: ConfidenceLevel
+    @State private var confidence: TaggedObjectConfidenceLevel
     @State private var notes: String
 
     init(object: TaggedObject, onSave: @escaping (TaggedObject) -> Void) {
@@ -750,7 +750,7 @@ struct LiveTagEditSheet: View {
 
                 Section("Confidence") {
                     Picker("Confidence", selection: $confidence) {
-                        ForEach(ConfidenceLevel.allCases, id: \.self) { level in
+                        ForEach(TaggedObjectConfidenceLevel.allCases, id: \.self) { level in
                             Text(level.displayName).tag(level)
                         }
                     }
