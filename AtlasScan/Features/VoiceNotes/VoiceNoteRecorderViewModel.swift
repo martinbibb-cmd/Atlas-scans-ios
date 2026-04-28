@@ -65,7 +65,11 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         guard state == .recording else { return }
         state = .paused
         elapsedTimer?.invalidate()
-        // AVAudioRecorder does not support pause; stop recording and keep state as paused.
+        // AVAudioRecorder does not support pause/resume; stopping here ends the current
+        // audio segment.  If resume() is called, a new recording session begins.
+        // The earlier audio segment is preserved on disk but only the latest recording
+        // is submitted for transcription.  This limitation is acceptable for the
+        // short, single-take voice notes used in Atlas Scan.
         audioRecorder.stopRecording()
     }
 
@@ -95,7 +99,7 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         state = .idle
         elapsedSeconds = 0
         transcript = ""
-        // Discard the raw audio file — the transcript is the only persistent artefact.
+        // Discard the raw audio file — the transcript is the only persistent artifact.
         audioRecorder.reset()
         return draft
     }

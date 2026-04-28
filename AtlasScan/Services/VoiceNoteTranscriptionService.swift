@@ -32,7 +32,7 @@ final class VoiceNoteTranscriptionService {
     /// SFSpeechRecognizer.  Returns `.failed` gracefully when recognition is
     /// unavailable or the request fails so callers can still save the voice note.
     func transcribe(fileURL: URL) async -> TranscriptionResult {
-        // Request authorisation if needed.
+        // Request authorization if needed.
         let authStatus = SFSpeechRecognizer.authorizationStatus()
         if authStatus != .authorized {
             let granted = await requestSpeechAuthorization()
