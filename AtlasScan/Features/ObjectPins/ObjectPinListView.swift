@@ -117,7 +117,7 @@ struct ObjectPinListView: View {
                 .frame(width: 36, height: 36)
             Image(systemName: type.symbolName)
                 .font(.caption.bold())
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
         }
     }
 

@@ -108,7 +108,7 @@ struct RoomScanListView: View {
             .frame(width: 44, height: 44)
             .overlay {
                 Image(systemName: "cube.fill")
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
             }
     }
 

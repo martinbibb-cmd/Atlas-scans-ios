@@ -161,7 +161,7 @@ struct ReviewVisitView: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: pin.type.symbolName)
                     .font(.caption.bold())
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(pin.label ?? pin.type.displayName)
