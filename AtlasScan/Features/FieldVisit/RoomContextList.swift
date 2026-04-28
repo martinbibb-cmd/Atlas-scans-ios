@@ -455,7 +455,7 @@ private struct RoomPickerSheet: View {
                             Spacer()
                             if currentRoomName == nil {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.accentColor)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
                     }
@@ -474,7 +474,7 @@ private struct RoomPickerSheet: View {
                                 Spacer()
                                 if currentRoomName == room.name {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(.accentColor)
+                                        .foregroundStyle(Color.accentColor)
                                 }
                             }
                         }

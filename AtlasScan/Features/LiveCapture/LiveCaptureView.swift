@@ -574,7 +574,7 @@ struct LiveCaptureRoomsSheet: View {
                 HStack(spacing: 6) {
                     if activeRoomId == scan.id {
                         Image(systemName: "scope")
-                            .foregroundStyle(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                             .font(.caption.bold())
                     }
                     Text(scan.roomLabel ?? "Unnamed Room")
