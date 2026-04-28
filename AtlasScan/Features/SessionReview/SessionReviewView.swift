@@ -896,7 +896,7 @@ struct ReviewVoiceNoteRow: View {
 #if DEBUG
 #Preview("Session Review — full session") {
     let session: PropertyScanSession = {
-        var s = PropertyScanSession(
+        let s = PropertyScanSession(
             propertyAddress: "14 Maple Street, Anytown, AN1 2BT",
             engineerName: "Sam Taylor",
             scanState: .completed,
