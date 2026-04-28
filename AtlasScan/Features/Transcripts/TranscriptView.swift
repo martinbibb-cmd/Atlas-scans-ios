@@ -158,7 +158,7 @@ private struct TranscriptRow: View {
                         systemImage: isCopied ? "checkmark" : "doc.on.doc"
                     )
                     .font(.caption)
-                    .foregroundStyle(isCopied ? .green : .accentColor)
+                    .foregroundStyle(isCopied ? .green : Color.accentColor)
                 }
                 .buttonStyle(.plain)
             }
@@ -180,7 +180,7 @@ private struct TranscriptRow: View {
                         withAnimation { expanded = true }
                     }
                     .font(.caption)
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 }
             }
         }
