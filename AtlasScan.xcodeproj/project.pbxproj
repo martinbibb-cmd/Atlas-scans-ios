@@ -152,6 +152,7 @@
 		AA0100CE /* ObjectPinPlacementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CE /* ObjectPinPlacementView.swift */; };
 		AA0100CF /* PhotoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200CF /* PhotoListView.swift */; };
 		AA0100D0 /* PhotoCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D0 /* PhotoCaptureView.swift */; };
+		AA0100D0A /* CameraPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D0A /* CameraPickerView.swift */; };
 		AA0100D1 /* ReviewExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D1 /* ReviewExportView.swift */; };
 		AA0100D2 /* RoomScanListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D2 /* RoomScanListView.swift */; };
 		AA0100D3 /* RoomScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D3 /* RoomScanCaptureView.swift */; };
@@ -331,6 +332,7 @@
 		AA0200CE /* ObjectPinPlacementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPinPlacementView.swift; sourceTree = "<group>"; };
 		AA0200CF /* PhotoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoListView.swift; sourceTree = "<group>"; };
 		AA0200D0 /* PhotoCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureView.swift; sourceTree = "<group>"; };
+		AA0200D0A /* CameraPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPickerView.swift; sourceTree = "<group>"; };
 		AA0200D1 /* ReviewExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewExportView.swift; sourceTree = "<group>"; };
 		AA0200D2 /* RoomScanListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanListView.swift; sourceTree = "<group>"; };
 		AA0200D3 /* RoomScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScanCaptureView.swift; sourceTree = "<group>"; };
@@ -734,6 +736,7 @@
 			children = (
 				AA0200CF /* PhotoListView.swift */,
 				AA0200D0 /* PhotoCaptureView.swift */,
+				AA0200D0A /* CameraPickerView.swift */,
 			);
 			path = Photos;
 			sourceTree = "<group>";
@@ -1102,6 +1105,7 @@
 				AA0100CE /* ObjectPinPlacementView.swift in Sources */,
 				AA0100CF /* PhotoListView.swift in Sources */,
 				AA0100D0 /* PhotoCaptureView.swift in Sources */,
+				AA0100D0A /* CameraPickerView.swift in Sources */,
 				AA0100D1 /* ReviewExportView.swift in Sources */,
 				AA0100D2 /* RoomScanListView.swift in Sources */,
 				AA0100D3 /* RoomScanCaptureView.swift in Sources */,

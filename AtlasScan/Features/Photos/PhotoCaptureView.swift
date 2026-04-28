@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 
 // MARK: - PhotoCaptureView
 //
 // Sheet for capturing an evidence photo and assigning it to a room or object.
-// In production this would launch the camera. Here it creates a draft record.
+// Opens the device camera (or photo library on simulator) to take a real photo,
+// saves it to PhotoStore, then creates a CapturedPhotoDraft.
 
 struct PhotoCaptureView: View {
 
@@ -17,6 +19,7 @@ struct PhotoCaptureView: View {
     @State private var selectedRoomId: UUID?
     @State private var selectedObjectId: UUID?
     @State private var showingImagePicker = false
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -54,7 +57,7 @@ struct PhotoCaptureView: View {
 
                 Section {
                     Button {
-                        capturePhoto()
+                        showingImagePicker = true
                     } label: {
                         Label("Use Camera", systemImage: "camera.fill")
                             .frame(maxWidth: .infinity)
@@ -63,8 +66,14 @@ struct PhotoCaptureView: View {
                     .buttonStyle(.borderedProminent)
                     .listRowBackground(Color.clear)
                 } footer: {
-                    Text("In the capture app, this opens the device camera. The photo is stored locally as a capture artefact.")
-                        .font(.caption2)
+                    if let error = saveError {
+                        Text(error)
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("Opens the device camera to capture an evidence photo. The photo is stored locally.")
+                            .font(.caption2)
+                    }
                 }
             }
             .navigationTitle("Capture Photo")
@@ -74,17 +83,32 @@ struct PhotoCaptureView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .fullScreenCover(isPresented: $showingImagePicker) {
+                CameraPickerView { image in
+                    savePhoto(image)
+                } onCancel: {
+                    showingImagePicker = false
+                }
+                .ignoresSafeArea()
+            }
         }
     }
 
     // MARK: - Actions
 
-    private func capturePhoto() {
-        var photo = CapturedPhotoDraft(localFilename: "photo_\(UUID().uuidString).jpg")
-        photo.kind = kind
-        photo.roomId = selectedRoomId
-        photo.linkedObjectId = selectedObjectId
-        onCapture(photo)
+    private func savePhoto(_ image: UIImage) {
+        showingImagePicker = false
+        saveError = nil
+        do {
+            let (filename, _) = try PhotoStore.shared.save(image)
+            var photo = CapturedPhotoDraft(localFilename: filename)
+            photo.kind = kind
+            photo.roomId = selectedRoomId
+            photo.linkedObjectId = selectedObjectId
+            onCapture(photo)
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 }
 

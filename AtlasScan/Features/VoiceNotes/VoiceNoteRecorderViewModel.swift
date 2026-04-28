@@ -7,14 +7,15 @@ import Combine
 //
 // States:
 //   .idle          — no recording in progress
-//   .recording     — actively recording
+//   .recording     — actively recording (audio captured by VoiceNoteRecorder)
 //   .paused        — recording paused
-//   .stopped       — recording finished; transcript may be pending
+//   .stopped       — recording finished; transcript may be pending or transcribing
 //
 // Design:
-//   • Raw audio is ephemeral — it is used only to produce a transcript.
-//   • The draft model (CapturedVoiceNoteDraft) never contains audio paths.
-//   • Transcript text is the only evidence that persists.
+//   • Audio is captured via VoiceNoteRecorder (AVFoundation).
+//   • After stopping, VoiceNoteTranscriptionService auto-transcribes on-device.
+//   • The transcript is offered for review/edit in InlineVoiceCommitSheet.
+//   • Raw audio is discarded when the note is committed or discarded.
 
 @MainActor
 final class VoiceNoteRecorderViewModel: ObservableObject {
@@ -31,12 +32,17 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
     @Published private(set) var state: RecordingState = .idle
     @Published var transcript: String = ""
     @Published private(set) var elapsedSeconds: Int = 0
+    @Published private(set) var isTranscribing: Bool = false
 
     // MARK: Current draft
 
     private var activeDraft: CapturedVoiceNoteDraft?
     private var elapsedTimer: Timer?
     private var sessionStart: Date?
+
+    // MARK: Audio recorder
+
+    private let audioRecorder = VoiceNoteRecorder()
 
     // MARK: - Actions
 
@@ -49,20 +55,25 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         activeDraft = draft
         sessionStart = Date()
         elapsedSeconds = 0
+        transcript = ""
         state = .recording
         startElapsedTimer()
+        Task { await audioRecorder.startRecording() }
     }
 
     func pause() {
         guard state == .recording else { return }
         state = .paused
         elapsedTimer?.invalidate()
+        // AVAudioRecorder does not support pause; stop recording and keep state as paused.
+        audioRecorder.stopRecording()
     }
 
     func resume() {
         guard state == .paused else { return }
         state = .recording
         startElapsedTimer()
+        Task { await audioRecorder.startRecording() }
     }
 
     func stop() {
@@ -70,8 +81,9 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         state = .stopped
         elapsedTimer?.invalidate()
         activeDraft?.endedAt = Date()
-        // In production, raw audio file path is resolved here and then discarded
-        // after transcription is complete. It must NOT be stored in the draft.
+        audioRecorder.stopRecording()
+        // Kick off auto-transcription so the engineer sees text in the commit sheet.
+        transcribeIfPossible()
     }
 
     /// Commits the current note with the current transcript text.
@@ -83,6 +95,8 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         state = .idle
         elapsedSeconds = 0
         transcript = ""
+        // Discard the raw audio file — the transcript is the only persistent artefact.
+        audioRecorder.reset()
         return draft
     }
 
@@ -93,6 +107,22 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
         elapsedSeconds = 0
         transcript = ""
         elapsedTimer?.invalidate()
+        audioRecorder.reset()
+    }
+
+    // MARK: - Transcription
+
+    private func transcribeIfPossible() {
+        guard let fileURL = audioRecorder.recordedFileURL else { return }
+        isTranscribing = true
+        Task {
+            let result = await VoiceNoteTranscriptionService.shared.transcribe(fileURL: fileURL)
+            // Only set the transcript when we are still in the stopped state (not discarded).
+            if state == .stopped, let text = result.transcript, !text.isEmpty {
+                transcript = text
+            }
+            isTranscribing = false
+        }
     }
 
     // MARK: - Elapsed timer
@@ -118,5 +148,5 @@ final class VoiceNoteRecorderViewModel: ObservableObject {
     var canPause: Bool { state == .recording }
     var canResume: Bool { state == .paused }
     var canStop: Bool  { state == .recording || state == .paused }
-    var canCommit: Bool { state == .stopped }
+    var canCommit: Bool { state == .stopped && !isTranscribing }
 }

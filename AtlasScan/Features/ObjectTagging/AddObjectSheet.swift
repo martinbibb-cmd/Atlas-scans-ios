@@ -118,7 +118,8 @@ struct AddObjectSheet: View {
                     CategoryTile(category: category) {
                         selectedCategory = category
                         label = category.displayName
-                        step = .placement
+                        // Skip placement when there is no room geometry (placeholder room).
+                        step = room.walls.isEmpty ? .details : .placement
                     }
                 }
             }
