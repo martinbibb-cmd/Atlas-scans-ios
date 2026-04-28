@@ -23,7 +23,7 @@ struct AddObjectSheet: View {
     @State private var selectedCategory: ServiceObjectCategory?
     @State private var label = ""
     @State private var notes = ""
-    @State private var confidence: ConfidenceLevel = .medium
+    @State private var confidence: TaggedObjectConfidenceLevel = .medium
     @State private var quickValues: [String: String] = [:]
     @State private var searchText = ""
 
@@ -195,7 +195,7 @@ struct AddObjectSheet: View {
 
             Section("Confidence") {
                 Picker("Confidence", selection: $confidence) {
-                    ForEach(ConfidenceLevel.allCases, id: \.self) { level in
+                    ForEach(TaggedObjectConfidenceLevel.allCases, id: \.self) { level in
                         Text(level.displayName).tag(level)
                     }
                 }

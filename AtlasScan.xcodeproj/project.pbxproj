@@ -136,6 +136,11 @@
 		AA0100B1 /* VisitNotesConsolidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B1 /* VisitNotesConsolidator.swift */; };
 		AA0100B2 /* VoiceNoteTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B2 /* VoiceNoteTranscriptionService.swift */; };
 		AA0100B3 /* VisitNotesConsolidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B3 /* VisitNotesConsolidatorTests.swift */; };
+		AA0100C1 /* CaptureAppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C1 /* CaptureAppRootView.swift */; };
+		AA0100C2 /* VisitCompletionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C2 /* VisitCompletionReviewView.swift */; };
+		AA0100C3 /* RoomContextList.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C3 /* RoomContextList.swift */; };
+		AA0100C4 /* VisitHandoffPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C4 /* VisitHandoffPack.swift */; };
+		AA0100C5 /* VisitHandoffPackBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200C5 /* VisitHandoffPackBuilder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -279,6 +284,11 @@
 		AA0200B1 /* VisitNotesConsolidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitNotesConsolidator.swift; sourceTree = "<group>"; };
 		AA0200B2 /* VoiceNoteTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTranscriptionService.swift; sourceTree = "<group>"; };
 		AA0200B3 /* VisitNotesConsolidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitNotesConsolidatorTests.swift; sourceTree = "<group>"; };
+		AA0200C1 /* CaptureAppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureAppRootView.swift; sourceTree = "<group>"; };
+		AA0200C2 /* VisitCompletionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitCompletionReviewView.swift; sourceTree = "<group>"; };
+		AA0200C3 /* RoomContextList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomContextList.swift; sourceTree = "<group>"; };
+		AA0200C4 /* VisitHandoffPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPack.swift; sourceTree = "<group>"; };
+		AA0200C5 /* VisitHandoffPackBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPackBuilder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -339,6 +349,7 @@
 			isa = PBXGroup;
 			children = (
 				AA020001 /* AtlasScanApp.swift */,
+				AA0200C1 /* CaptureAppRootView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -353,6 +364,10 @@
 				AA0200A5 /* FieldReviewView.swift */,
 				AA0200A6 /* FieldCompleteView.swift */,
 				AA0200B1 /* VisitNotesConsolidator.swift */,
+				AA0200C2 /* VisitCompletionReviewView.swift */,
+				AA0200C3 /* RoomContextList.swift */,
+				AA0200C4 /* VisitHandoffPack.swift */,
+				AA0200C5 /* VisitHandoffPackBuilder.swift */,
 			);
 			path = FieldVisit;
 			sourceTree = "<group>";
@@ -850,6 +865,11 @@
 				AA0100A6 /* FieldCompleteView.swift in Sources */,
 				AA0100B1 /* VisitNotesConsolidator.swift in Sources */,
 				AA0100B2 /* VoiceNoteTranscriptionService.swift in Sources */,
+				AA0100C1 /* CaptureAppRootView.swift in Sources */,
+				AA0100C2 /* VisitCompletionReviewView.swift in Sources */,
+				AA0100C3 /* RoomContextList.swift in Sources */,
+				AA0100C4 /* VisitHandoffPack.swift in Sources */,
+				AA0100C5 /* VisitHandoffPackBuilder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
