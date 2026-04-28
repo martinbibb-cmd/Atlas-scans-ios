@@ -101,7 +101,7 @@ struct EditObjectSheet: View {
 
                 Section("Confidence") {
                     Picker("Confidence", selection: $object.confidence) {
-                        ForEach(ConfidenceLevel.allCases, id: \.self) { level in
+                        ForEach(TaggedObjectConfidenceLevel.allCases, id: \.self) { level in
                             Text(level.displayName).tag(level)
                         }
                     }

@@ -494,7 +494,7 @@ private struct KeyObjectRow: View {
                 Spacer()
                 Text(count == 0 ? "None" : "\(count)")
                     .font(.caption.bold())
-                    .foregroundStyle(count > 0 ? tint : .tertiary)
+                    .foregroundStyle(count > 0 ? AnyShapeStyle(tint) : AnyShapeStyle(.tertiary))
                 if !isCompleted {
                     Button(action: onAdd) {
                         Image(systemName: "plus.circle.fill")
