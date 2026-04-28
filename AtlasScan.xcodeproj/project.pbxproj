@@ -1166,7 +1166,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = AtlasContracts;
+			relativePath = "Atlas-contracts";
 		};
 /* End XCLocalSwiftPackageReference section */
 
