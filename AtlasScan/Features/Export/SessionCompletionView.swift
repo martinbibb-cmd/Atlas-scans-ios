@@ -130,7 +130,7 @@ struct SessionCompletionView: View {
     }
 
     private var knowledgeReadinessSection: some View {
-        Section(header: Text("Captured Knowledge")) {
+        Section {
             KnowledgeReadinessRow(
                 label: "Household",
                 symbol: "person.3.fill",
@@ -161,6 +161,8 @@ struct SessionCompletionView: View {
                 isKnown: session.knowledgeSummary.constraintsKnown,
                 hasFacts: session.extractedFacts.contains { $0.category.group == .constraints }
             )
+        } header: {
+            Text("Captured Knowledge")
         } footer: {
             Text("Captured knowledge is not required for handoff but improves recommendation quality in Atlas Mind.")
                 .font(.caption2)
