@@ -45,6 +45,12 @@ public struct SessionCaptureV2: Codable, Sendable {
     /// Engineer-assigned visit / job reference (e.g. "JOB-1712345678").
     public let visitReference: String
 
+    /// Optional property address for the visit.
+    public let propertyAddress: String?
+
+    /// Optional customer name for the visit.
+    public let customerName: String?
+
     // MARK: Provenance
 
     /// ISO-8601 timestamp of when the session was first created.
@@ -85,6 +91,8 @@ public struct SessionCaptureV2: Codable, Sendable {
         schemaVersion: String,
         sessionId: String,
         visitReference: String,
+        propertyAddress: String? = nil,
+        customerName: String? = nil,
         capturedAt: String,
         exportedAt: String,
         deviceModel: String,
@@ -98,6 +106,8 @@ public struct SessionCaptureV2: Codable, Sendable {
         self.schemaVersion = schemaVersion
         self.sessionId = sessionId
         self.visitReference = visitReference
+        self.propertyAddress = propertyAddress
+        self.customerName = customerName
         self.capturedAt = capturedAt
         self.exportedAt = exportedAt
         self.deviceModel = deviceModel
@@ -151,6 +161,10 @@ public struct CapturedRoomScanV2: Codable, Sendable {
     /// Overall scan confidence band as reported by the capture API.
     public let confidence: ScanConfidenceBand
 
+    /// Engineer-annotated floor plan data (JSON-encoded `FloorPlanDraft`).
+    /// Nil when no annotations were made.
+    public let floorPlanData: String?
+
     public init(
         id: String,
         roomLabel: String?,
@@ -162,7 +176,8 @@ public struct CapturedRoomScanV2: Codable, Sendable {
         rawHeightM: Double?,
         localTransformOrigin: ScanPoint3D?,
         warnings: [ScanQAFlag],
-        confidence: ScanConfidenceBand
+        confidence: ScanConfidenceBand,
+        floorPlanData: String? = nil
     ) {
         self.id = id
         self.roomLabel = roomLabel
@@ -175,6 +190,7 @@ public struct CapturedRoomScanV2: Codable, Sendable {
         self.localTransformOrigin = localTransformOrigin
         self.warnings = warnings
         self.confidence = confidence
+        self.floorPlanData = floorPlanData
     }
 }
 

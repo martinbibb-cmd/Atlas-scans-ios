@@ -4,8 +4,9 @@ import SwiftUI
 //
 // Entry point for the capture-only visit workflow.
 //
-// The engineer enters a visit/job reference and taps Start.
-// This creates a new CaptureSessionDraft and navigates to CaptureHubView.
+// The engineer enters a visit/job reference (required), with optional
+// address and customer name, then taps Start.
+// This creates a new CaptureSessionDraft and navigates to LiveCaptureView.
 //
 // "One visit, one session, one home screen."
 
@@ -14,6 +15,8 @@ struct StartJobView: View {
     let onStart: (CaptureSessionDraft) -> Void
 
     @State private var visitReference = ""
+    @State private var propertyAddress = ""
+    @State private var customerName = ""
 
     private var isValid: Bool {
         !visitReference.trimmingCharacters(in: .whitespaces).isEmpty
@@ -41,7 +44,7 @@ struct StartJobView: View {
                 .font(.system(size: 56, weight: .thin))
                 .foregroundStyle(.tint)
 
-            Text("Start Job")
+            Text("Start Visit")
                 .font(.largeTitle.bold())
 
             Text("Enter the visit reference to begin capturing.")
@@ -55,24 +58,46 @@ struct StartJobView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Visit Reference")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 24)
+        VStack(alignment: .leading, spacing: 16) {
+            fieldGroup {
+                fieldLabel("Visit Reference *")
+                TextField("e.g. JOB-2025-0001", text: $visitReference)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .font(.title3)
+                    .onSubmit {
+                        if isValid { startJob() }
+                    }
+            }
 
-            TextField("e.g. JOB-2025-0001", text: $visitReference)
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-                .font(.title3)
-                .padding()
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 24)
-                .onSubmit {
-                    if isValid { startJob() }
-                }
+            fieldGroup {
+                fieldLabel("Property Address (optional)")
+                TextField("e.g. 12 Coronation Street, M1 1AA", text: $propertyAddress)
+                    .textInputAutocapitalization(.words)
+            }
+
+            fieldGroup {
+                fieldLabel("Customer Name (optional)")
+                TextField("e.g. John Smith", text: $customerName)
+                    .textInputAutocapitalization(.words)
+            }
         }
+        .padding(.horizontal, 24)
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.bold())
+            .foregroundStyle(.secondary)
+    }
+
+    private func fieldGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            content()
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Start button
@@ -97,9 +122,13 @@ struct StartJobView: View {
 
     private func startJob() {
         guard isValid else { return }
-        let draft = CaptureSessionStore.newSession(
+        var draft = CaptureSessionStore.newSession(
             visitReference: visitReference.trimmingCharacters(in: .whitespaces)
         )
+        let addr = propertyAddress.trimmingCharacters(in: .whitespaces)
+        if !addr.isEmpty { draft.propertyAddress = addr }
+        let cust = customerName.trimmingCharacters(in: .whitespaces)
+        if !cust.isEmpty { draft.customerName = cust }
         onStart(draft)
     }
 }
