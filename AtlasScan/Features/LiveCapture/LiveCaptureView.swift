@@ -146,6 +146,8 @@ struct LiveCaptureView: View {
         if voiceRecorder.canCommit, let note = voiceRecorder.commit() {
             store.addVoiceNote(note)
         }
+        // Flush any pending debounced autosave so no data is lost when the view transitions.
+        store.saveNow()
         onFinish()
     }
 
@@ -653,9 +655,24 @@ struct InlineVoiceCommitSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Transcript") {
+                Section {
+                    if recorder.isTranscribing {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Transcribing…")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     TextEditor(text: $recorder.transcript)
                         .frame(minHeight: 100)
+                } header: {
+                    Text("Transcript")
+                } footer: {
+                    if recorder.isTranscribing {
+                        Text("Auto-transcribing your recording. You can edit the text when it appears.")
+                            .font(.caption2)
+                    }
                 }
                 if !roomScans.isEmpty {
                     Section("Room") {
@@ -854,6 +871,15 @@ extension CapturedRoomScanDraft {
         }
         self.rawHeightM = room.ceilingHeightMetres
         self.confidence = room.geometryCaptured ? .high : .medium
+
+        // Derive the floor-plan outline from the room's wall geometry so the
+        // FloorPlanEditorView shows the scanned perimeter instead of a blank canvas.
+        let polygon = PlacementService.layoutPolygon(for: room)
+        if polygon.count >= 2 {
+            var plan = FloorPlanDraft()
+            plan.outlinePoints = polygon.map { NormalisedPoint(x: $0.x, y: $0.y) }
+            self.floorPlan = plan
+        }
     }
 }
 

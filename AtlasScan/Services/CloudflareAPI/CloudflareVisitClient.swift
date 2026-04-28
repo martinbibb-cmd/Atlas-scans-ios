@@ -99,16 +99,30 @@ final class CloudflareVisitClient: ObservableObject {
     /// STUB — returns synthetic fixture data simulating a network response.
     /// Replace with a real URLSession data task when the API is available.
     func fetchUpcomingVisits() async throws -> [RemoteVisit] {
-        guard isConfigured else {
-            // Return empty list gracefully when API is not yet configured.
-            return []
+        guard isConfigured, let baseURL else {
+            // No API URL configured — return fixture visits so the engineer
+            // can see the scheduled-visit flow.  Replace with a real URLSession
+            // call once the Cloudflare Workers endpoint is available.
+            try await Task.sleep(nanoseconds: 300_000_000)  // 0.3 s simulated delay
+            return stubFixtureVisits()
         }
 
-        // Transport stub — simulate a network round trip.
-        try await Task.sleep(nanoseconds: 300_000_000)  // 0.3 s
-
-        // Placeholder: return fixture visits.
-        return stubFixtureVisits()
+        // Real network call against the configured endpoint.
+        let url = baseURL.appendingPathComponent("visits/upcoming")
+        do {
+            let (data, response) = try await session.data(from: url)
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                throw CloudflareVisitClientError.serverError(http.statusCode)
+            }
+            let decoder = JSONDecoder()
+            return try decoder.decode([RemoteVisit].self, from: data)
+        } catch let error as CloudflareVisitClientError {
+            throw error
+        } catch let error as DecodingError {
+            throw CloudflareVisitClientError.decodingError(error)
+        } catch {
+            throw CloudflareVisitClientError.networkError(error)
+        }
     }
 
     /// Creates a new visit record in Cloudflare D1, derived from a local capture draft.

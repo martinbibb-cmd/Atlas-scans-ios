@@ -85,14 +85,20 @@ final class MockScannerAdapter: ScannerAdapterProtocol {
     // MARK: Mock room geometry
 
     private static func makeMockRoom(jobID: UUID, name: String) -> ScannedRoom {
+        // Assign compass bearings (0°=North, 90°=East, 180°=South, 270°=West) so
+        // PlacementService.layoutPolygon produces a proper rectangle rather than a
+        // unit-square fallback.
+        let lengths: [Double] = [3.8, 4.2, 3.8, 4.2]
+        let bearings: [Double] = [0, 90, 180, 270]
         let walls = (0..<4).map { i in
             ScannedWall(
                 index: i,
-                lengthMetres: [3.8, 4.2, 3.8, 4.2][i],
+                lengthMetres: lengths[i],
                 heightMetres: 2.4,
                 isExternalWall: i == 0 || i == 1,
                 hasWindow: i == 0,
-                hasDoor: i == 2
+                hasDoor: i == 2,
+                bearingDegrees: bearings[i]
             )
         }
 
