@@ -1,5 +1,104 @@
 import Foundation
 
+// MARK: - SessionCaptureV2 validation
+
+/// Result of validating raw JSON data against the `SessionCaptureV2` contract.
+public enum SessionCaptureV2ValidationResult: Sendable {
+    /// The payload is structurally valid and has been decoded.
+    case success(SessionCaptureV2)
+    /// The payload is invalid; `errors` describes each problem found.
+    case failure([String])
+
+    /// `true` when the payload passed validation.
+    public var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+
+    /// The list of error messages when validation failed; empty on success.
+    public var errors: [String] {
+        if case .failure(let e) = self { return e }
+        return []
+    }
+
+    /// The decoded payload when validation succeeded; `nil` on failure.
+    public var capture: SessionCaptureV2? {
+        if case .success(let c) = self { return c }
+        return nil
+    }
+}
+
+/// Validates raw JSON `data` against the `SessionCaptureV2` contract.
+///
+/// 1. Confirms the input is a non-null JSON object.
+/// 2. Checks `schemaVersion` is present and supported.
+/// 3. Validates all required structural fields.
+/// 4. Decodes the payload if all checks pass.
+///
+/// - Parameter data: Raw UTF-8 JSON data.
+/// - Returns: `.success(capture)` if valid, `.failure([errors])` otherwise.
+public func validateSessionCaptureV2(_ data: Data) -> SessionCaptureV2ValidationResult {
+    guard let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        return .failure(["Input is not a valid JSON object."])
+    }
+
+    guard let schemaVersion = raw["schemaVersion"] as? String, !schemaVersion.isEmpty else {
+        return .failure(["schemaVersion: missing, empty, or not a string."])
+    }
+
+    guard supportedSessionCaptureVersions.contains(schemaVersion) else {
+        let supported = supportedSessionCaptureVersions.joined(separator: ", ")
+        return .failure(["schemaVersion: '\(schemaVersion)' is not supported. Supported versions: \(supported)."])
+    }
+
+    var errors: [String] = []
+
+    if (raw["sessionId"] as? String)?.isEmpty != false {
+        errors.append("sessionId: must be a non-empty string.")
+    }
+    if (raw["visitReference"] as? String)?.isEmpty != false {
+        errors.append("visitReference: must be a non-empty string.")
+    }
+    if (raw["capturedAt"] as? String) == nil {
+        errors.append("capturedAt: must be a string.")
+    }
+    if (raw["exportedAt"] as? String) == nil {
+        errors.append("exportedAt: must be a string.")
+    }
+    if (raw["deviceModel"] as? String) == nil {
+        errors.append("deviceModel: must be a string.")
+    }
+    if (raw["roomScans"] as? [[String: Any]]) == nil {
+        errors.append("roomScans: must be an array.")
+    }
+    if (raw["photos"] as? [[String: Any]]) == nil {
+        errors.append("photos: must be an array.")
+    }
+    if (raw["voiceNotes"] as? [[String: Any]]) == nil {
+        errors.append("voiceNotes: must be an array.")
+    }
+    if (raw["objectPins"] as? [[String: Any]]) == nil {
+        errors.append("objectPins: must be an array.")
+    }
+    if (raw["floorPlanSnapshots"] as? [[String: Any]]) == nil {
+        errors.append("floorPlanSnapshots: must be an array.")
+    }
+    if (raw["qaFlags"] as? [[String: Any]]) == nil {
+        errors.append("qaFlags: must be an array.")
+    }
+
+    guard errors.isEmpty else {
+        return .failure(errors)
+    }
+
+    do {
+        let capture = try JSONDecoder().decode(SessionCaptureV2.self, from: data)
+        return .success(capture)
+    } catch {
+        return .failure(["Failed to decode SessionCaptureV2: \(error.localizedDescription)"])
+    }
+}
+
 // MARK: - Validation result types
 
 /// Result of validating a scan bundle against the contract.
