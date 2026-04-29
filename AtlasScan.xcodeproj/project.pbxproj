@@ -173,6 +173,7 @@
 		AA0100E2 /* CaptureSessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E2 /* CaptureSessionStoreTests.swift */; };
 		AA0100E3 /* SpatialEvidence3DTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E3 /* SpatialEvidence3DTests.swift */; };
 		AA0100E4 /* VisitHandoffPackBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E4 /* VisitHandoffPackBuilderTests.swift */; };
+		AA0100E5 /* AtlasMindClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E5 /* AtlasMindClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -353,6 +354,7 @@
 		AA0200E2 /* CaptureSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStoreTests.swift; sourceTree = "<group>"; };
 		AA0200E3 /* SpatialEvidence3DTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialEvidence3DTests.swift; sourceTree = "<group>"; };
 		AA0200E4 /* VisitHandoffPackBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPackBuilderTests.swift; sourceTree = "<group>"; };
+		AA0200E5 /* AtlasMindClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasMindClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -515,6 +517,7 @@
 				AA020052 /* ScanSessionStore.swift */,
 				AA020053 /* AtlasSync.swift */,
 				B0F64E4E6D0C919B8E475B11 /* VisitSessionMapper.swift */,
+				AA0200E5 /* AtlasMindClient.swift */,
 				AA0200B2 /* VoiceNoteTranscriptionService.swift */,
 				AA050036 /* AtlasRecommendations */,
 				AA05003A /* CloudflareAPI */,
@@ -1059,6 +1062,7 @@
 				AA010081 /* ExternalClearanceScene.swift in Sources */,
 				AA010082 /* InstallMarkup.swift in Sources */,
 				AA010083 /* RoomScanEvidenceBuilder.swift in Sources */,
+				AA0100E5 /* AtlasMindClient.swift in Sources */,
 				AA010084 /* ExternalFlueCaptureSession.swift in Sources */,
 				AA010085 /* ExternalFlueCaptureView.swift in Sources */,
 				AA010086 /* FlueClearanceSceneCard.swift in Sources */,
