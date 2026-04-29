@@ -70,7 +70,7 @@ struct FieldCaptureView: View {
                     savePhoto(image)
                     showingCamera = false
                 },
-                onDismiss: { showingCamera = false }
+                onCancel: { showingCamera = false }
             )
             .ignoresSafeArea()
         }
@@ -686,53 +686,6 @@ private struct AddNoteSheet: View {
             }
         }
         .presentationDetents([.medium])
-    }
-}
-
-// MARK: - CameraPickerView
-
-/// A `UIViewControllerRepresentable` wrapper around `UIImagePickerController`
-/// for camera capture.
-private struct CameraPickerView: UIViewControllerRepresentable {
-    let onImage: (UIImage) -> Void
-    let onDismiss: () -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onImage: onImage, onDismiss: onDismiss)
-    }
-
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let onImage: (UIImage) -> Void
-        let onDismiss: () -> Void
-
-        init(onImage: @escaping (UIImage) -> Void, onDismiss: @escaping () -> Void) {
-            self.onImage = onImage
-            self.onDismiss = onDismiss
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                onImage(image)
-            } else {
-                onDismiss()
-            }
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onDismiss()
-        }
     }
 }
 
