@@ -4,104 +4,28 @@ import SwiftUI
 //
 // Root entry point.
 //
-// Navigation stack:
-//   WelcomeView
-//     ├── Scan → VisitPickerView → CaptureAppRootView (visit-owned)
-//     └── Mind → AtlasRecommendationsWebView
+// Navigation:
+//   HomeView
+//     ├── Open Atlas Mind    → MindRootView (full-screen WebView)
+//     ├── Start Local Visit  → StartVisitView sheet → VisitDetailView
+//     └── Saved Visits       → SavedVisitsView → VisitDetailView
 
 @main
 struct AtlasScanApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AtlasRootView()
-        }
-    }
-}
-
-// MARK: - AtlasRootView
-
-/// Manages top-level navigation between Welcome, Scan, and Mind modes.
-struct AtlasRootView: View {
-
-    @State private var activeMode: AtlasMode?
-
-    var body: some View {
-        Group {
-            if let mode = activeMode {
-                switch mode {
-                case .scan:
-                    ScanRootView {
-                        // "Back to Welcome" from within the scan flow
-                        activeMode = nil
-                    }
-                    .transition(.move(edge: .trailing))
-                case .mind:
-                    MindRootView {
-                        activeMode = nil
-                    }
-                    .transition(.move(edge: .trailing))
-                }
-            } else {
-                WelcomeView { selected in
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        activeMode = selected
-                    }
-                }
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: activeMode != nil)
-    }
-}
-
-// MARK: - ScanRootView
-
-/// Top-level container for the Scan mode.
-///
-/// Stack: VisitPickerView → CaptureAppRootView (per visit)
-struct ScanRootView: View {
-
-    let onBackToWelcome: () -> Void
-
-    @State private var activeDraft: CaptureSessionDraft?
-
-    var body: some View {
-        Group {
-            if activeDraft != nil {
-                CaptureAppRootView(initialDraft: activeDraft!) {
-                    // Returned from capture flow (e.g. after export)
-                    activeDraft = nil
-                }
-            } else {
-                NavigationStack {
-                    VisitPickerView { draft in
-                        activeDraft = draft
-                    }
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button {
-                                onBackToWelcome()
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "chevron.left")
-                                    Text("Atlas")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            HomeView()
         }
     }
 }
 
 // MARK: - MindRootView
 
-/// Top-level container for the Mind mode (Atlas Recommendations PWA).
+/// Full-screen container for the Atlas Recommendations PWA.
 struct MindRootView: View {
 
-    let onBackToWelcome: () -> Void
+    let onClose: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -109,11 +33,11 @@ struct MindRootView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
-                            onBackToWelcome()
+                            onClose()
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "chevron.left")
-                                Text("Atlas")
+                                Text("Home")
                             }
                         }
                     }

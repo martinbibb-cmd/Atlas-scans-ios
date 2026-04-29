@@ -174,6 +174,13 @@
 		AA0100E3 /* SpatialEvidence3DTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E3 /* SpatialEvidence3DTests.swift */; };
 		AA0100E4 /* VisitHandoffPackBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E4 /* VisitHandoffPackBuilderTests.swift */; };
 		AA0100E5 /* AtlasMindClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E5 /* AtlasMindClient.swift */; };
+		AA0100E6 /* StartVisitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E6 /* StartVisitView.swift */; };
+		AA0100E7 /* SavedVisitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E7 /* SavedVisitsView.swift */; };
+		AA0100E8 /* VisitDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E8 /* VisitDetailView.swift */; };
+		AA0100E9 /* PhotoCaptureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E9 /* PhotoCaptureSheet.swift */; };
+		AA0100EA /* TextNoteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200EA /* TextNoteSheet.swift */; };
+		AA0100EB /* VisitReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200EB /* VisitReviewView.swift */; };
+		AA0100EC /* VisitContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200EC /* VisitContainerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -355,6 +362,13 @@
 		AA0200E3 /* SpatialEvidence3DTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialEvidence3DTests.swift; sourceTree = "<group>"; };
 		AA0200E4 /* VisitHandoffPackBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHandoffPackBuilderTests.swift; sourceTree = "<group>"; };
 		AA0200E5 /* AtlasMindClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasMindClient.swift; sourceTree = "<group>"; };
+		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
+		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
+		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
+		AA0200E9 /* PhotoCaptureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureSheet.swift; sourceTree = "<group>"; };
+		AA0200EA /* TextNoteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextNoteSheet.swift; sourceTree = "<group>"; };
+		AA0200EB /* VisitReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitReviewView.swift; sourceTree = "<group>"; };
+		AA0200EC /* VisitContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitContainerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -471,6 +485,7 @@
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
+				AA05003B /* Visit */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -875,6 +890,7 @@
 				AA0200E2 /* CaptureSessionStoreTests.swift */,
 				AA0200E3 /* SpatialEvidence3DTests.swift */,
 				AA0200E4 /* VisitHandoffPackBuilderTests.swift */,
+				AA0200EC /* VisitContainerTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -886,6 +902,19 @@
 				AA030002 /* AtlasScanTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AA05003B /* Visit */ = {
+			isa = PBXGroup;
+			children = (
+				AA0200E6 /* StartVisitView.swift */,
+				AA0200E7 /* SavedVisitsView.swift */,
+				AA0200E8 /* VisitDetailView.swift */,
+				AA0200E9 /* PhotoCaptureSheet.swift */,
+				AA0200EA /* TextNoteSheet.swift */,
+				AA0200EB /* VisitReviewView.swift */,
+			);
+			path = Visit;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1125,6 +1154,12 @@
 				AA0100DD /* VisitPickerView.swift in Sources */,
 				AA0100DE /* TranscriptView.swift in Sources */,
 				AA0100DF /* CloudflareVisitClient.swift in Sources */,
+				AA0100E6 /* StartVisitView.swift in Sources */,
+				AA0100E7 /* SavedVisitsView.swift in Sources */,
+				AA0100E8 /* VisitDetailView.swift in Sources */,
+				AA0100E9 /* PhotoCaptureSheet.swift in Sources */,
+				AA0100EA /* TextNoteSheet.swift in Sources */,
+				AA0100EB /* VisitReviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1159,6 +1194,7 @@
 				AA0100E2 /* CaptureSessionStoreTests.swift in Sources */,
 				AA0100E3 /* SpatialEvidence3DTests.swift in Sources */,
 				AA0100E4 /* VisitHandoffPackBuilderTests.swift in Sources */,
+				AA0100EC /* VisitContainerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
