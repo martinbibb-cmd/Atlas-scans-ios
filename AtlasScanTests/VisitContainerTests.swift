@@ -135,13 +135,13 @@ final class VisitContainerTests: XCTestCase {
 
     // MARK: - Exit (data integrity)
 
-    func test_exit_dataSurvivestoreClose() {
+    func test_exit_dataSurvivesStoreClose() {
         let store = makeStore(visitReference: "JOB-EXIT")
         let photo = CapturedPhotoDraft(localFilename: "evidence.jpg")
         store.addPhoto(photo)
         store.saveNow()
 
-        // Simulate close + reopen by loading from disk
+        // Simulate close and reopen by loading from disk
         let reloaded = persistence.load(id: store.draft.id)
         XCTAssertNotNil(reloaded)
         XCTAssertEqual(reloaded?.photos.count, 1)
