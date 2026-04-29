@@ -16,7 +16,7 @@ struct CaptureSessionDraft: Identifiable, Codable {
     var id: UUID = UUID()
 
     /// Cross-system appointment key from Atlas Recommendations (AppointmentV1.appointmentId).
-    /// Required for the SessionCaptureV1 contract; nil until the engineer selects or
+    /// Required for the SessionCaptureV2 contract; nil until the engineer selects or
     /// enters the appointment reference at session-start time.
     var appointmentId: String?
 

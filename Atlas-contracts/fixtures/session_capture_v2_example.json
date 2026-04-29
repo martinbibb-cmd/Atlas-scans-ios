@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "2.0",
+  "sessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "visitReference": "JOB-2025-001",
+  "appointmentId": "appt-9876",
+  "propertyAddress": "12 Elm Street, Springfield, SP1 2AB",
+  "customerName": "Jane Smith",
+  "capturedAt": "2025-04-01T09:00:00Z",
+  "exportedAt": "2025-04-01T10:30:00Z",
+  "deviceModel": "iPhone 15 Pro",
+  "roomScans": [
+    {
+      "id": "scan-room-0001",
+      "roomLabel": "Living Room",
+      "captureTimestamp": "2025-04-01T09:05:00Z",
+      "previewImageRef": "previews/living_room_thumb.jpg",
+      "rawScanAssetRef": "scans/living_room.usdz",
+      "rawWidthM": 4.8,
+      "rawDepthM": 6.2,
+      "rawHeightM": 2.4,
+      "localTransformOrigin": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "warnings": [],
+      "confidence": "high",
+      "floorPlanData": null
+    }
+  ],
+  "photos": [
+    {
+      "id": "photo-0001",
+      "localFilename": "photos/boiler_front.jpg",
+      "captureTimestamp": "2025-04-01T09:20:00Z",
+      "roomId": null,
+      "linkedObjectId": "pin-0001",
+      "kind": "plant"
+    },
+    {
+      "id": "photo-0002",
+      "localFilename": "photos/living_room_overview.jpg",
+      "captureTimestamp": "2025-04-01T09:22:00Z",
+      "roomId": "scan-room-0001",
+      "linkedObjectId": null,
+      "kind": "overview"
+    }
+  ],
+  "voiceNotes": [
+    {
+      "id": "voice-0001",
+      "transcript": "Boiler is a Worcester Bosch Greenstar 30i, installed approx 2018. Flue exits east wall.",
+      "startedAt": "2025-04-01T09:25:00Z",
+      "endedAt": "2025-04-01T09:25:42Z",
+      "roomId": null,
+      "linkedObjectId": "pin-0001"
+    }
+  ],
+  "objectPins": [
+    {
+      "id": "pin-0001",
+      "type": "boiler",
+      "label": "Worcester Bosch Greenstar 30i",
+      "roomId": null,
+      "linkedPhotoId": "photo-0001",
+      "approximatePositionRef": { "x": 1.2, "y": 0.0, "z": 0.9 }
+    },
+    {
+      "id": "pin-0002",
+      "type": "radiator",
+      "label": null,
+      "roomId": "scan-room-0001",
+      "linkedPhotoId": null,
+      "approximatePositionRef": null
+    }
+  ],
+  "floorPlanSnapshots": [
+    {
+      "id": "fp-0001",
+      "imageRef": "floorplans/living_room_annotated.png",
+      "captureTimestamp": "2025-04-01T09:45:00Z",
+      "roomId": "scan-room-0001"
+    }
+  ],
+  "qaFlags": [
+    {
+      "code": "SCAN_PARTIAL_COVERAGE",
+      "message": "Room scan coverage was below 80% — some wall segments may be estimated.",
+      "severity": "warning",
+      "entityId": "scan-room-0001"
+    }
+  ]
+}

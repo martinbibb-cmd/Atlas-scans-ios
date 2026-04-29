@@ -52,7 +52,7 @@ final class CaptureSessionStore: ObservableObject {
     ///   - visitReference: Human-readable job reference (e.g. "JOB-2025-001").
     ///   - appointmentId:  Cross-system appointment key from Atlas Recommendations
     ///                     (``AppointmentV1/appointmentId``).  Must be present in the
-    ///                     exported ``SessionCaptureV1`` payload so Atlas can match the
+    ///                     exported ``SessionCaptureV2`` payload so Atlas can match the
     ///                     capture back to the appointment that triggered the visit.
     static func newSession(
         visitReference: String,
