@@ -198,7 +198,7 @@ struct SessionCompletionView: View {
             }
             .buttonStyle(.plain)
         } footer: {
-            Text("Builds and shares the ScanBundle export package for Atlas ingestion.")
+            Text("Submits the session directly to the Atlas Mind database.")
                 .font(.caption2)
         }
     }
@@ -211,12 +211,12 @@ struct SessionCompletionView: View {
         switch session.handoffState {
         case .notSent:
             return readiness.isReady
-                ? "Export and share the ScanBundle package"
+                ? "Send directly to Atlas Mind"
                 : "Session has gaps — you can still send it"
         case .sent:
             return "Send again to Atlas Mind"
         case .exported:
-            return "Send via share sheet"
+            return "Send to Atlas Mind"
         }
     }
 
