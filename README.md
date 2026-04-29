@@ -13,7 +13,7 @@ It does not contain recommendation logic, heat-loss calculation, or survey truth
 1. **Scan rooms** — walk the room, see geometry captured live (RoomPlan; mock adapter available for simulator)
 2. **Tag service objects** — tap-to-add boiler, radiator, cylinder, manifold, flue, controls, meters, and more
 3. **Review each room** — mark reviewed, add notes, confirm object placements
-4. **Export to Atlas** — produce a versioned `ScanBundleV1` JSON bundle ready for Atlas ingestion
+4. **Send to Atlas Mind** — submit the completed session directly to the Atlas Mind database (invisible to the engineer)
 
 The UX philosophy:  
 > *automatic geometry, manual service tagging*
@@ -73,6 +73,9 @@ AtlasScan/
 - **Atlas transport** — `AtlasSync` contains a real upload queue, retry logic, and delegate
   callbacks, but `performPhotoUpload` and `performSessionMetadataUpload` are stubs.
   They will be wired to the real Atlas API endpoint when it is available.
+- **AtlasMindClient** — `submitHandoff(session:)` is wired to the real
+  `https://next.atlas-phm.uk/api/property/import` endpoint. Requires a valid auth token
+  stored in the Keychain via `AtlasKeychainStore`.
 - **End-to-end UX polish** — the session model and persistence foundation are in place;
   the final engineer workflow (whole-house single-pass capture flow) is not yet fully complete.
 
@@ -120,7 +123,7 @@ whole-house, single-pass surveying as one unit of work.
 | **1 — Geometry** | rooms, walls, openings, approximate dimensions |
 | **2 — Service tags** | boiler, cylinder, radiator, UFH manifold, flue, controls, meter, plant space, emitters |
 | **3 — Evidence** | photos, notes, confidence flags, confirmed placements |
-| **4 — Export** | versioned `ScanBundleV1` bundle to Atlas |
+| **4 — Handoff** | direct submission to Atlas Mind via `AtlasPropertyV1` |
 
 ---
 
@@ -159,30 +162,23 @@ In the simulator, `MockScannerAdapter` simulates a 4-second room capture so the 
 
 ---
 
-## Export Bundle Shape
+## Atlas Mind Handoff
 
-The export produces a `ScanBundleV1` JSON bundle (unchanged by the session model introduction):
+When the engineer taps **Send to Atlas Mind**, the app:
 
-```json
-{
-  "schemaVersion": "1.0.0",
-  "bundleID": "...",
-  "exportedAt": "2024-01-01T10:00:00.000Z",
-  "job": { "id": "...", "propertyAddress": "...", ... },
-  "rooms": [
-    {
-      "id": "...",
-      "name": "Living Room",
-      "taggedObjects": [
-        { "category": "radiator", "label": "Radiator", ... }
-      ],
-      ...
-    }
-  ]
-}
-```
+1. Maps the completed `PropertyScanSession` to a canonical `AtlasPropertyV1` payload via
+   `VisitSessionMapper`.
+2. POSTs the JSON payload directly to `https://next.atlas-phm.uk/api/property/import`
+   using `AtlasMindClient`.
+3. Shows a spinner while submitting, a confirmation tick on success, or a retryable
+   error screen on failure.
 
-Atlas decides what the scan data means. This app exports draft spatial evidence only.
+The engineer never sees raw JSON. The handoff is invisible — data flows directly into
+the Atlas Mind database.
+
+`ScanBundleV1` is retained as a compatibility export but is no longer the primary
+handoff path. `AtlasPropertyV1` supersedes it as the canonical contract between
+Atlas Scan and Atlas Mind.
 
 ---
 
