@@ -1,27 +1,24 @@
 import SwiftUI
 
-// MARK: - WelcomeView
+// MARK: - HomeView
 //
-// Atlas landing screen.
+// Atlas Scan home screen.
 //
-// The engineer chooses between:
-//   • Scan  — the native capture flow (RoomPlan + AR + voice)
-//   • Mind  — the Atlas Recommendations PWA (WKWebView)
-//
-// Design intent: "Choose your tool before you begin."
+// Three navigation paths:
+//   • Open Atlas Mind          → full-screen Atlas Recommendations WebView
+//   • Start Local Capture Visit → sheet to enter visit number, then VisitDetailView
+//   • Saved Visits              → full-screen list of persisted local visits
 
-enum AtlasMode {
-    case scan
-    case mind
-}
+struct HomeView: View {
 
-struct WelcomeView: View {
-
-    let onSelect: (AtlasMode) -> Void
+    @State private var showingMind        = false
+    @State private var showingNewVisit    = false
+    @State private var showingSavedVisits = false
+    @State private var openVisit: CaptureSessionDraft?
 
     var body: some View {
         ZStack {
-            // Subtle gradient background
+            // Background
             LinearGradient(
                 colors: [Color(.systemBackground), Color(.secondarySystemBackground)],
                 startPoint: .topLeading,
@@ -47,21 +44,28 @@ struct WelcomeView: View {
                 }
                 .padding(.bottom, 48)
 
-                // MARK: Mode tiles
-                VStack(spacing: 20) {
-                    ModeCard(
-                        title: "Scan",
-                        subtitle: "Capture rooms, objects & voice notes on site.",
-                        symbolName: "camera.viewfinder",
-                        accentColor: .blue
-                    ) { onSelect(.scan) }
-
-                    ModeCard(
-                        title: "Mind",
-                        subtitle: "View recommendations, reports & visit history.",
+                // MARK: Action tiles
+                VStack(spacing: 16) {
+                    HomeCard(
+                        title: "Open Atlas Mind",
+                        subtitle: "View recommendations, reports and visit history.",
                         symbolName: "brain.head.profile",
                         accentColor: .purple
-                    ) { onSelect(.mind) }
+                    ) { showingMind = true }
+
+                    HomeCard(
+                        title: "Start Local Capture Visit",
+                        subtitle: "Begin a new on-site evidence capture visit.",
+                        symbolName: "camera.viewfinder",
+                        accentColor: .blue
+                    ) { showingNewVisit = true }
+
+                    HomeCard(
+                        title: "Saved Visits",
+                        subtitle: "Reopen, review or export a previous visit.",
+                        symbolName: "tray.2",
+                        accentColor: .green
+                    ) { showingSavedVisits = true }
                 }
                 .padding(.horizontal, 24)
 
@@ -74,12 +78,39 @@ struct WelcomeView: View {
                     .padding(.bottom, 20)
             }
         }
+        // Atlas Mind — full-screen WebView
+        .fullScreenCover(isPresented: $showingMind) {
+            MindRootView { showingMind = false }
+        }
+        // New visit flow — sheet to enter reference, then full-screen detail
+        .sheet(isPresented: $showingNewVisit) {
+            StartVisitView { draft in
+                showingNewVisit = false
+                openVisit = draft
+            }
+        }
+        // Open a specific visit (from new-visit or from saved-visits)
+        .fullScreenCover(item: $openVisit) { draft in
+            VisitDetailView(initialDraft: draft) {
+                openVisit = nil
+            }
+        }
+        // Saved visits list
+        .fullScreenCover(isPresented: $showingSavedVisits) {
+            SavedVisitsView(
+                onOpen: { draft in
+                    showingSavedVisits = false
+                    openVisit = draft
+                },
+                onClose: { showingSavedVisits = false }
+            )
+        }
     }
 }
 
-// MARK: - ModeCard
+// MARK: - HomeCard
 
-private struct ModeCard: View {
+private struct HomeCard: View {
 
     let title: String
     let subtitle: String
@@ -105,7 +136,7 @@ private struct ModeCard: View {
                 // Text
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.title2.bold())
+                        .font(.title3.bold())
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -138,6 +169,6 @@ private struct ModeCard: View {
 
 #if DEBUG
 #Preview {
-    WelcomeView { _ in }
+    HomeView()
 }
 #endif

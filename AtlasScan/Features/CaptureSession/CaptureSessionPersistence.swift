@@ -16,15 +16,33 @@ final class CaptureSessionPersistence {
 
     static let shared = CaptureSessionPersistence()
 
+    // MARK: Test factory
+
+    /// Creates an isolated instance backed by a temporary directory.
+    /// Use only in test targets — never in production code.
+    static func makeTestInstance() -> CaptureSessionPersistence {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AtlasScanTest-\(UUID().uuidString)", isDirectory: true)
+        return CaptureSessionPersistence(customDirectory: dir)
+    }
+
     // MARK: Private
 
     private let fileManager = FileManager.default
 
+    /// When non-nil, overrides the default Documents-based directory.
+    private let customDirectory: URL?
+
     private var storeDirectory: URL {
-        let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let dir = docs.appendingPathComponent("CaptureSessions", isDirectory: true)
-        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
+        let base: URL
+        if let custom = customDirectory {
+            base = custom
+        } else {
+            base = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("CaptureSessions", isDirectory: true)
+        }
+        try? fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        return base
     }
 
     private let encoder: JSONEncoder = {
@@ -40,7 +58,9 @@ final class CaptureSessionPersistence {
         return d
     }()
 
-    private init() {}
+    private init(customDirectory: URL? = nil) {
+        self.customDirectory = customDirectory
+    }
 
     // MARK: - Public API
 
@@ -90,6 +110,12 @@ final class CaptureSessionPersistence {
     func delete(id: UUID) {
         let url = fileURL(for: id)
         try? fileManager.removeItem(at: url)
+    }
+
+    /// Deletes all persisted drafts under the store directory.
+    /// Intended for use in test teardown — not for production use.
+    func deleteAll() {
+        try? fileManager.removeItem(at: storeDirectory)
     }
 
     // MARK: - Private helpers
