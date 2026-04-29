@@ -5,9 +5,7 @@ import Foundation
 // Manages voice note audio files in the app's local documents directory.
 // Audio files: Documents/VoiceNotes/<id>.m4a
 //
-// VoiceNoteStore is the single owner of audio bytes on disk; it is not
-// responsible for the VoiceNote metadata records — those live in
-// PropertyScanSession / ScannedRoom.
+// VoiceNoteStore is the single owner of audio bytes on disk.
 
 final class VoiceNoteStore {
 

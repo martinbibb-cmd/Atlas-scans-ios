@@ -24,9 +24,28 @@ struct RoomScanListView: View {
         .navigationTitle("Room Scans")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingCapture) {
-            RoomScanCaptureView { scan in
-                store.addRoomScan(scan)
-                showingCapture = false
+            NavigationStack {
+                VStack(spacing: 20) {
+                    Image(systemName: "lidar.scanner")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("LiDAR Capture Unavailable")
+                        .font(.headline)
+                    Text("Room scanning requires the RoomPlan capture module.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Dismiss") { showingCapture = false }
+                        .buttonStyle(.bordered)
+                }
+                .padding()
+                .navigationTitle("Room Scan")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingCapture = false }
+                    }
+                }
             }
         }
         .sheet(item: $editingScan) { scan in
