@@ -607,15 +607,20 @@ struct LiveCaptureView: View {
 
     private var roomCaptureModal: some View {
         NavigationStack {
-            RoomCaptureContainerView(
-                jobID: store.draft.id,
-                roomName: "New Room",
-                floor: 0
-            ) { scannedRoom in
-                let draft = CapturedRoomScanDraft(from: scannedRoom)
-                store.addRoomScan(draft)
-                showingRoomCapture = false
+            VStack(spacing: 20) {
+                Image(systemName: "lidar.scanner")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text("LiDAR Capture Unavailable")
+                    .font(.headline)
+                Text("Room scanning requires the RoomPlan capture module.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("Dismiss") { showingRoomCapture = false }
+                    .buttonStyle(.bordered)
             }
+            .padding()
             .navigationTitle("Room Scan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -854,31 +859,6 @@ struct LiveCaptureRoomsSheet: View {
         .contentShape(Rectangle())
         .onTapGesture {
             activeRoomId = (activeRoomId == scan.id) ? nil : scan.id
-        }
-    }
-}
-
-// MARK: - CapturedRoomScanDraft convenience init from ScannedRoom
-
-extension CapturedRoomScanDraft {
-    init(from room: ScannedRoom) {
-        self.init()
-        self.roomLabel = room.name.isEmpty ? nil : room.name
-        if let area = room.areaSquareMetres {
-            let side = area.squareRoot()
-            self.rawWidthM = side
-            self.rawDepthM = side
-        }
-        self.rawHeightM = room.ceilingHeightMetres
-        self.confidence = room.geometryCaptured ? .high : .medium
-
-        // Derive the floor-plan outline from the room's wall geometry so the
-        // FloorPlanEditorView shows the scanned perimeter instead of a blank canvas.
-        let polygon = PlacementService.layoutPolygon(for: room)
-        if polygon.count >= 2 {
-            var plan = FloorPlanDraft()
-            plan.outlinePoints = polygon.map { NormalisedPoint(x: $0.x, y: $0.y) }
-            self.floorPlan = plan
         }
     }
 }

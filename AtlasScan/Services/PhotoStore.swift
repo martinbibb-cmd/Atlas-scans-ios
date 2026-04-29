@@ -7,8 +7,7 @@ import UIKit
 // Photos:     Documents/Photos/<id>.jpg
 // Thumbnails: Documents/Thumbnails/<id>_thumb.jpg
 //
-// PhotoStore is the single owner of image bytes on disk; it is not responsible
-// for the TaggedPhoto metadata records — those live in ScanJob/ScannedRoom.
+// PhotoStore is the single owner of image bytes on disk.
 
 final class PhotoStore {
 
@@ -49,8 +48,8 @@ final class PhotoStore {
     /// - Parameters:
     ///   - image: The UIImage to persist.
     ///   - id: A unique identifier used to name both files. Defaults to a new UUID.
-    /// - Returns: A tuple of `(filename, thumbnailPath)` that should be stored
-    ///   in the corresponding `TaggedPhoto` record.
+    /// - Returns: A tuple of `(filename, thumbnailPath)` that should be persisted
+    ///   alongside the photo record.
     @discardableResult
     func save(_ image: UIImage, id: UUID = UUID()) throws -> (filename: String, thumbnailPath: String?) {
         let filename = "\(id.uuidString).jpg"
@@ -92,12 +91,6 @@ final class PhotoStore {
         guard let path else { return }
         let url = thumbnailsDirectory.appendingPathComponent(path)
         try? fileManager.removeItem(at: url)
-    }
-
-    /// Deletes both the full-resolution image and the thumbnail for a TaggedPhoto.
-    func deleteFiles(for photo: TaggedPhoto) {
-        delete(filename: photo.filename)
-        deleteThumbnail(path: photo.thumbnailPath)
     }
 
     // MARK: - Private helpers

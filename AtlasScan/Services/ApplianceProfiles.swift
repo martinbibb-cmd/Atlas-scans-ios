@@ -9,7 +9,7 @@ import Foundation
 /// They are not full manufacturer records — dimensions are approximate guidance only.
 struct ApplianceProfile: Identifiable {
 
-    /// Stable identifier stored in TaggedObject.applianceProfileID.
+    /// Stable identifier stored in a capture session's appliance profile ID field.
     let id: String
 
     /// Category this profile belongs to.
