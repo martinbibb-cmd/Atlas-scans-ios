@@ -9,7 +9,7 @@ import SwiftUI
 //   • Start a new visit (leads to StartJobView).
 //   • Pick a scheduled visit fetched from the Cloudflare database — which
 //     pre-fills the appointmentId and visit reference so the resulting
-//     SessionCaptureV1 export can be matched back by Atlas Recommendations.
+//     SessionCaptureV2 export can be matched back by Atlas Recommendations.
 //
 // Local sessions are always shown first; remote appointments are loaded
 // asynchronously and merged below.

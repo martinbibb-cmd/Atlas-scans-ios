@@ -2,6 +2,32 @@ import Foundation
 
 // MARK: - Validation result types
 
+/// Result of validating a SessionCaptureV2 payload against the contract.
+public enum SessionCaptureValidationResult: Sendable {
+    /// The payload is structurally valid and has been decoded.
+    case success(SessionCaptureV2)
+    /// The payload is invalid; `errors` describes each problem found.
+    case failure([String])
+
+    /// `true` when the payload passed validation.
+    public var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+
+    /// The list of error messages when validation failed; empty on success.
+    public var errors: [String] {
+        if case .failure(let e) = self { return e }
+        return []
+    }
+
+    /// The decoded session when validation succeeded; `nil` on failure.
+    public var session: SessionCaptureV2? {
+        if case .success(let s) = self { return s }
+        return nil
+    }
+}
+
 /// Result of validating a scan bundle against the contract.
 public enum ScanValidationResult: Sendable {
     /// The bundle is structurally valid and has been decoded.
@@ -28,7 +54,81 @@ public enum ScanValidationResult: Sendable {
     }
 }
 
-// MARK: - Public entry point
+// MARK: - SessionCaptureV2 entry point
+
+/// Validates raw JSON `data` against the SessionCaptureV2 contract.
+///
+/// 1. Confirms the input is a non-null JSON object.
+/// 2. Checks `schemaVersion` is present and supported.
+/// 3. Validates required structural fields.
+/// 4. Decodes the session if all checks pass.
+///
+/// - Parameter data: Raw UTF-8 JSON data.
+/// - Returns: `.success(session)` if valid, `.failure([errors])` otherwise.
+public func validateSessionCaptureV2(_ data: Data) -> SessionCaptureValidationResult {
+    guard let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        return .failure(["Input is not a valid JSON object."])
+    }
+
+    guard let schemaVersion = raw["schemaVersion"] as? String, !schemaVersion.isEmpty else {
+        return .failure(["schemaVersion: missing, empty, or not a string."])
+    }
+
+    guard supportedSessionCaptureVersions.contains(schemaVersion) else {
+        let supported = supportedSessionCaptureVersions.joined(separator: ", ")
+        return .failure(["schemaVersion: '\(schemaVersion)' is not supported. Supported versions: \(supported)."])
+    }
+
+    var errors: [String] = []
+
+    if (raw["sessionId"] as? String)?.isEmpty != false {
+        errors.append("sessionId: must be a non-empty string.")
+    }
+    if (raw["visitReference"] as? String)?.isEmpty != false {
+        errors.append("visitReference: must be a non-empty string.")
+    }
+    if (raw["capturedAt"] as? String)?.isEmpty != false {
+        errors.append("capturedAt: must be a non-empty string.")
+    }
+    if (raw["exportedAt"] as? String)?.isEmpty != false {
+        errors.append("exportedAt: must be a non-empty string.")
+    }
+    if (raw["deviceModel"] as? String)?.isEmpty != false {
+        errors.append("deviceModel: must be a non-empty string.")
+    }
+    if (raw["roomScans"] as? [[String: Any]]) == nil {
+        errors.append("roomScans: must be an array.")
+    }
+    if (raw["photos"] as? [[String: Any]]) == nil {
+        errors.append("photos: must be an array.")
+    }
+    if (raw["voiceNotes"] as? [[String: Any]]) == nil {
+        errors.append("voiceNotes: must be an array.")
+    }
+    if (raw["objectPins"] as? [[String: Any]]) == nil {
+        errors.append("objectPins: must be an array.")
+    }
+    if (raw["floorPlanSnapshots"] as? [[String: Any]]) == nil {
+        errors.append("floorPlanSnapshots: must be an array.")
+    }
+    if (raw["qaFlags"] as? [[String: Any]]) == nil {
+        errors.append("qaFlags: must be an array.")
+    }
+
+    guard errors.isEmpty else {
+        return .failure(errors)
+    }
+
+    do {
+        let decoder = JSONDecoder()
+        let session = try decoder.decode(SessionCaptureV2.self, from: data)
+        return .success(session)
+    } catch {
+        return .failure(["Failed to decode session: \(error.localizedDescription)"])
+    }
+}
+
+// MARK: - ScanBundleV1 entry point
 
 /// Validates raw JSON `data` against the ScanBundleV1 contract.
 ///
