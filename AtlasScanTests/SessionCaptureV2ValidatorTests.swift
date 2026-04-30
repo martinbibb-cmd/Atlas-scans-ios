@@ -50,6 +50,11 @@ final class SessionCaptureV2ValidatorTests: XCTestCase {
         pin.roomId = scan.id
         draft.objectPins.append(pin)
 
+        // Floor plan snapshot
+        var snapshot = CapturedFloorPlanSnapshotDraft(imageRef: "floorplan_boilerroom.png")
+        snapshot.roomId = scan.id
+        draft.floorPlanSnapshots.append(snapshot)
+
         return draft
     }
 
@@ -93,6 +98,72 @@ final class SessionCaptureV2ValidatorTests: XCTestCase {
         let reEncoded = try CaptureSessionExporter.encode(capture)
         let reValidated = validateSessionCaptureV2(reEncoded)
         XCTAssertTrue(reValidated.isSuccess, "Re-encoded fixture must still pass validation")
+    }
+
+    // MARK: - Mixed capture
+
+    /// Full mixed-capture test: one of every artefact type, all arrays populated, validator passes.
+    func test_mixedCapture_allArtefactTypes_allArraysPopulated_passesValidator() throws {
+        // Arrange: one of each artefact type
+        var draft = CaptureSessionStore.newSession(visitReference: "JOB-MIXED-CAPTURE")
+
+        // One manual room scan
+        var roomScan = CapturedRoomScanDraft()
+        roomScan.roomLabel = "Living Room"
+        roomScan.rawWidthM = 5.0
+        roomScan.rawDepthM = 4.0
+        roomScan.rawHeightM = 2.4
+        roomScan.confidence = .high
+        draft.roomScans.append(roomScan)
+
+        // One photo — linked to the room
+        var photo = CapturedPhotoDraft(localFilename: "radiator_north_wall.jpg")
+        photo.roomId = roomScan.id
+        photo.kind = .emitter
+        draft.photos.append(photo)
+
+        // One text/voice note — linked to the room
+        var note = CapturedVoiceNoteDraft()
+        note.transcript = "Large radiator on north wall. TRV fitted. No visible leaks."
+        note.roomId = roomScan.id
+        draft.voiceNotes.append(note)
+
+        // One object pin — linked to both room and photo
+        var pin = CapturedObjectPinDraft(type: .radiator)
+        pin.label = "North wall radiator"
+        pin.roomId = roomScan.id
+        pin.linkedPhotoId = photo.id
+        draft.objectPins.append(pin)
+
+        // One floor plan snapshot — linked to the room
+        var snapshot = CapturedFloorPlanSnapshotDraft(imageRef: "floorplan_livingroom.png")
+        snapshot.roomId = roomScan.id
+        draft.floorPlanSnapshots.append(snapshot)
+
+        // Act: export
+        let exportResult = try CaptureSessionExporter.export(draft)
+        let payload = exportResult.payload
+
+        // Assert: all five arrays are populated
+        XCTAssertEqual(payload.roomScans.count, 1,          "roomScans must contain one entry")
+        XCTAssertEqual(payload.photos.count, 1,             "photos must contain one entry")
+        XCTAssertEqual(payload.voiceNotes.count, 1,         "voiceNotes must contain one entry")
+        XCTAssertEqual(payload.objectPins.count, 1,         "objectPins must contain one entry")
+        XCTAssertEqual(payload.floorPlanSnapshots.count, 1, "floorPlanSnapshots must contain one entry")
+
+        // Assert: cross-references are preserved
+        XCTAssertEqual(payload.photos.first?.roomId,           roomScan.id.uuidString)
+        XCTAssertEqual(payload.voiceNotes.first?.roomId,       roomScan.id.uuidString)
+        XCTAssertEqual(payload.objectPins.first?.roomId,       roomScan.id.uuidString)
+        XCTAssertEqual(payload.objectPins.first?.linkedPhotoId, photo.id.uuidString)
+        XCTAssertEqual(payload.floorPlanSnapshots.first?.roomId, roomScan.id.uuidString)
+
+        // Assert: validateSessionCaptureV2() passes on the exported JSON
+        let validationResult = validateSessionCaptureV2(exportResult.jsonData)
+        XCTAssertTrue(
+            validationResult.isSuccess,
+            "Mixed capture must pass validateSessionCaptureV2(). Errors: \(validationResult.errors)"
+        )
     }
 
     // MARK: - Wrong schemaVersion
