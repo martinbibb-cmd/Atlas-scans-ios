@@ -115,7 +115,7 @@ enum ServiceObjectCategory: String, Codable, CaseIterable, Identifiable {
     /// The most appropriate EvidenceKind for a direct-capture photo of this object.
     /// Used when the engineer takes an inline live-view photo so that the photo
     /// is automatically filed under the right category without extra form steps.
-    var defaultEvidenceKind: EvidenceKind {
+    var defaultEvidenceKind: CapturePhotoKind {
         switch self {
         case .boiler, .heatPump, .cylinder, .thermalStore, .bufferVessel,
              .pump, .lowLossHeader, .expansionVessel, .manifold, .zoneValve:
