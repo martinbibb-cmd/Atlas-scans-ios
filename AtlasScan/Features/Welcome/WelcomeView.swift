@@ -1,4 +1,5 @@
 import SwiftUI
+import AtlasContracts
 
 // MARK: - HomeView
 //
@@ -8,13 +9,29 @@ import SwiftUI
 //   • Open Atlas Mind          → full-screen Atlas Recommendations WebView
 //   • Start Local Capture Visit → sheet to enter visit number, then VisitDetailView
 //   • Saved Visits              → full-screen list of persisted local visits
+//
+// Developer mode:
+//   Tap the "Atlas Scan" version label seven times to toggle developer mode.
+//   A subtle banner confirms the toggle.
+//
+// URL scheme:
+//   atlasscan://?visitId=<ref>         → open / create a visit by reference
+//   atlasscan://?handoff=<base64-pack> → receive VisitHandoffPackV1 from Mind
 
 struct HomeView: View {
 
+    @StateObject private var developerMode = DeveloperModeStore.shared
+
     @State private var showingMind        = false
+    @State private var mindVisitId: String?
+
     @State private var showingNewVisit    = false
     @State private var showingSavedVisits = false
     @State private var openVisit: CaptureSessionDraft?
+
+    // Dev-mode unlock tap counter
+    @State private var devTapCount  = 0
+    @State private var showDevToast = false
 
     var body: some View {
         ZStack {
@@ -71,16 +88,28 @@ struct HomeView: View {
 
                 Spacer()
 
-                // MARK: Version tag
-                Text("Atlas Scan")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.bottom, 20)
+                // MARK: Version tag (tap 7× to toggle developer mode)
+                VStack(spacing: 4) {
+                    Text("Atlas Scan")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .onTapGesture { handleDevTap() }
+
+                    if developerMode.isEnabled {
+                        Label("Developer Mode", systemImage: "wrench.and.screwdriver")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .padding(.bottom, 20)
             }
         }
         // Atlas Mind — full-screen WebView
         .fullScreenCover(isPresented: $showingMind) {
-            MindRootView { showingMind = false }
+            MindRootView(visitId: mindVisitId) {
+                showingMind = false
+                mindVisitId = nil
+            }
         }
         // New visit flow — sheet to enter reference, then full-screen detail
         .sheet(isPresented: $showingNewVisit) {
@@ -89,7 +118,7 @@ struct HomeView: View {
                 openVisit = draft
             }
         }
-        // Open a specific visit (from new-visit or from saved-visits)
+        // Open a specific visit (from new-visit or from saved-visits or URL)
         .fullScreenCover(item: $openVisit) { draft in
             VisitDetailView(initialDraft: draft) {
                 openVisit = nil
@@ -105,6 +134,86 @@ struct HomeView: View {
                 onClose: { showingSavedVisits = false }
             )
         }
+        // Developer mode toast overlay
+        .overlay(alignment: .bottom) {
+            if showDevToast {
+                Text(developerMode.isEnabled ? "Developer mode on" : "Developer mode off")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 60)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: showDevToast)
+        // URL scheme handler: atlasscan://?visitId=<ref>&handoff=<base64>
+        .onOpenURL { url in
+            handleIncomingURL(url)
+        }
+    }
+
+    // MARK: - Developer mode tap counter
+
+    private func handleDevTap() {
+        devTapCount += 1
+        if devTapCount >= 7 {
+            devTapCount = 0
+            developerMode.toggle()
+            showDevToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showDevToast = false
+            }
+        }
+    }
+
+    // MARK: - URL scheme handling
+
+    private func handleIncomingURL(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        let params = Dictionary(
+            uniqueKeysWithValues: (components.queryItems ?? []).compactMap { item -> (String, String)? in
+                guard let value = item.value else { return nil }
+                return (item.name, value)
+            }
+        )
+
+        // Handle ?handoff=<base64-encoded-VisitHandoffPackV1>
+        if let encoded = params["handoff"],
+           let pack = decodeHandoffPack(encoded) {
+            openOrCreateVisit(
+                visitReference: pack.visitReference,
+                propertyAddress: pack.propertyAddress,
+                customerName: pack.customerName
+            )
+            return
+        }
+
+        // Handle ?visitId=<visitReference>
+        if let visitId = params["visitId"], !visitId.isEmpty {
+            openOrCreateVisit(visitReference: visitId, propertyAddress: nil, customerName: nil)
+        }
+    }
+
+    private func openOrCreateVisit(
+        visitReference: String,
+        propertyAddress: String?,
+        customerName: String?
+    ) {
+        // Try to find an existing local draft with this reference.
+        let all = CaptureSessionPersistence.shared.loadAll()
+        if let existing = all.first(where: { $0.visitReference == visitReference }) {
+            openVisit = existing
+            return
+        }
+
+        // No existing draft — create a new session stub.
+        var draft = CaptureSessionStore.newSession(visitReference: visitReference)
+        if let addr = propertyAddress, !addr.isEmpty { draft.propertyAddress = addr }
+        if let name = customerName, !name.isEmpty { draft.customerName = name }
+        let store = CaptureSessionStore(draft: draft, persistence: .shared)
+        store.saveNow()
+        openVisit = store.draft
     }
 }
 
