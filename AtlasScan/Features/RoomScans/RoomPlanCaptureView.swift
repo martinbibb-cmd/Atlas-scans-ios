@@ -91,10 +91,13 @@ struct RoomPlanCaptureView: View {
     }
 
     private var cancelButton: some View {
-        Button("Cancel") {
+        Button {
             service.cancelScan()
             onCancel()
             dismiss()
+        } label: {
+            Label("Cancel", systemImage: "xmark")
+                .labelStyle(.titleOnly)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 16)
