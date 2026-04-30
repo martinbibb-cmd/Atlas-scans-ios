@@ -20,6 +20,7 @@ struct FloorPlanEditorView: View {
     // MARK: - State
 
     @State private var scan: CapturedRoomScanDraft
+    let onSnapshot: ((CapturedFloorPlanSnapshotDraft) -> Void)?
     let onSave: (CapturedRoomScanDraft) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -56,8 +57,13 @@ struct FloorPlanEditorView: View {
 
     // MARK: - Init
 
-    init(scan: CapturedRoomScanDraft, onSave: @escaping (CapturedRoomScanDraft) -> Void) {
+    init(
+        scan: CapturedRoomScanDraft,
+        onSnapshot: ((CapturedFloorPlanSnapshotDraft) -> Void)? = nil,
+        onSave: @escaping (CapturedRoomScanDraft) -> Void
+    ) {
         _scan = State(initialValue: scan)
+        self.onSnapshot = onSnapshot
         self.onSave = onSave
     }
 
@@ -419,12 +425,11 @@ struct FloorPlanEditorView: View {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let url = docs.appendingPathComponent(filename)
         try? image.pngData()?.write(to: url)
-        // Store snapshot reference back to the session via the callback
-        var s = scan
+        // Build the snapshot draft and propagate to the session via the callback
         var snapshot = CapturedFloorPlanSnapshotDraft(imageRef: filename)
         snapshot.roomId = scan.id
-        // The snapshot is saved with the room so the session can pick it up
-        // via onSave — callers should add it to the session's floorPlanSnapshots.
+        onSnapshot?(snapshot)
+        var s = scan
         s.floorPlan = plan
         scan = s
         showingSnapshotAlert = true
