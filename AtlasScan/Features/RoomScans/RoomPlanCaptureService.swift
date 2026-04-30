@@ -115,20 +115,28 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
             Task { @MainActor in self.sessionState = .failed(message) }
             return
         }
-        // Build the plain-struct result from CapturedRoomData.
-        let result = RoomPlanCaptureService.buildResult(from: data)
-        Task { @MainActor in
-            // Ignore completion if the user cancelled while processing.
-            guard self.sessionState == .processing else { return }
-            self.capturedResult = result
-            self.sessionState = .completed
+        // Build the plain-struct result asynchronously via RoomBuilder.
+        Task {
+            do {
+                let result = try await RoomPlanCaptureService.buildResult(from: data)
+                await MainActor.run {
+                    // Ignore completion if the user cancelled while processing.
+                    guard self.sessionState == .processing else { return }
+                    self.capturedResult = result
+                    self.sessionState = .completed
+                }
+            } catch {
+                let message = error.localizedDescription
+                await MainActor.run { self.sessionState = .failed(message) }
+            }
         }
     }
 
     // MARK: - Private: build RoomPlanScanResult
 
-    private static func buildResult(from data: CapturedRoomData) -> RoomPlanScanResult {
-        let room = data.capturedRoom
+    private nonisolated static func buildResult(from data: CapturedRoomData) async throws -> RoomPlanScanResult {
+        let roomBuilder = RoomBuilder(options: [])
+        let room = try await roomBuilder.capturedRoom(from: data)
 
         // Compute axis-aligned bounding box from wall surface transforms + dimensions.
         var minX: Float = .greatestFiniteMagnitude
