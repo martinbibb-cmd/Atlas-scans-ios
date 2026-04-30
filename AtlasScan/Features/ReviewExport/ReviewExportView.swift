@@ -6,7 +6,16 @@ import AtlasContracts
 // Visit summary and export screen.
 //
 // Shows capture completeness, capture-only warnings, and provides
-// the export button that produces a SessionCaptureV2 payload.
+// handoff actions to continue work in Atlas Mind.
+//
+// Primary actions (always visible):
+//   • Continue in Atlas Mind  — opens Mind WebView pre-loaded to this visit
+//   • Save to Files / Cloud Drive — saves the .atlasvisit package to Files.app
+//   • Share Capture Package   — builds .atlasvisit and opens the iOS share sheet
+//
+// Developer-only actions (require Developer Mode):
+//   • Inspect JSON — opens the raw SessionCaptureV2 JSON inspector
+//   • Copy JSON to Clipboard
 //
 // Rules:
 //   • No recommendation language.
@@ -16,55 +25,67 @@ import AtlasContracts
 struct ReviewExportView: View {
 
     @ObservedObject var store: CaptureSessionStore
+    @ObservedObject private var developerMode = DeveloperModeStore.shared
 
-    @State private var showingExport = false
-    @State private var exportResult: CaptureExportResult?
-    @State private var exportError: String?
-    @State private var showingExportConfirm = false
+    // MARK: - State: Mind handoff
 
-    @State private var showingWorkspaceExport = false
+    @State private var showingMindHandoff         = false
+    @State private var mindHandoffVisitId: String?
+
+    // MARK: - State: workspace package
+
     @State private var atlasVisitURL: URL?
-    @State private var showingWorkspaceExportConfirm = false
+    @State private var workspacePackageError: String?
+    @State private var isBuildingPackage          = false
+    @State private var showingWorkspaceShare      = false
+    @State private var showingDocumentPicker      = false
+
+    // MARK: - State: JSON inspector (dev only)
+
+    @State private var showingJSONInspector       = false
+    @State private var exportResult: CaptureExportResult?
+    @State private var jsonExportError: String?
+    @State private var copiedToClipboard          = false
 
     var body: some View {
         List {
             visitSummarySection
             captureCountsSection
             warningsSection
-            exportSection
+            handoffSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Review & Export")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingExport) {
-            if let result = exportResult {
-                exportPreviewSheet(result: result)
+        // Mind WebView
+        .fullScreenCover(isPresented: $showingMindHandoff) {
+            MindRootView(visitId: mindHandoffVisitId) {
+                showingMindHandoff = false
+                mindHandoffVisitId = nil
             }
         }
-        .sheet(isPresented: $showingWorkspaceExport) {
+        // .atlasvisit share sheet
+        .sheet(isPresented: $showingWorkspaceShare) {
             if let url = atlasVisitURL {
                 ShareSheet(items: [url])
             }
         }
-        .confirmationDialog(
-            "Export to Atlas Mind?",
-            isPresented: $showingExportConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Export Now") { performExport() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will package the session capture and mark it as exported.")
+        // Save to Files document picker
+        .sheet(isPresented: $showingDocumentPicker) {
+            if let url = atlasVisitURL {
+                DocumentPickerSheet(urls: [url]) {
+                    showingDocumentPicker = false
+                }
+            }
         }
-        .confirmationDialog(
-            "Open in Atlas Mind?",
-            isPresented: $showingWorkspaceExportConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Build & Share Package") { performWorkspaceExport() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans, then open the iOS share sheet.")
+        // JSON inspector (dev only)
+        .sheet(isPresented: $showingJSONInspector) {
+            if let result = exportResult {
+                JSONInspectorView(
+                    json: String(data: result.jsonData, encoding: .utf8)
+                        ?? "Error: unable to decode JSON data as UTF-8."
+                )
+            }
         }
     }
 
@@ -125,7 +146,7 @@ struct ReviewExportView: View {
 
         return Section("Readiness") {
             if errors.isEmpty && captureWarnings.isEmpty {
-                Label("Ready for export", systemImage: "checkmark.seal.fill")
+                Label("Ready for handoff", systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green)
                     .fontWeight(.semibold)
             } else {
@@ -179,43 +200,103 @@ struct ReviewExportView: View {
             .foregroundStyle(isBlocking ? .red : .orange)
     }
 
-    // MARK: - Export
+    // MARK: - Handoff section
 
-    private var exportSection: some View {
+    private var handoffSection: some View {
         let errors = CaptureSessionExporter.validate(store.draft)
         let isReady = errors.isEmpty
 
-        return Section("Export") {
+        return Section {
             if store.draft.exportState == .exported {
                 exportedBanner
             }
 
+            // PRIMARY — Continue in Atlas Mind
             Button {
-                showingExportConfirm = true
+                performMindHandoff()
             } label: {
-                Label("Export to Atlas Mind", systemImage: "arrow.up.circle.fill")
-                    .font(.body.bold())
-                    .frame(maxWidth: .infinity)
+                HStack {
+                    if isBuildingPackage {
+                        ProgressView()
+                            .padding(.trailing, 6)
+                    } else {
+                        Image(systemName: "brain.head.profile")
+                    }
+                    Text("Continue in Atlas Mind")
+                        .fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!isReady || store.draft.exportState == .exported)
+            .disabled(!isReady || isBuildingPackage)
             .listRowBackground(Color.clear)
 
+            // Save to Files / Cloud Drive
             Button {
-                showingWorkspaceExportConfirm = true
+                buildPackageIfNeeded { showingDocumentPicker = true }
             } label: {
-                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up.on.square")
-                    .font(.body.bold())
+                Label("Save to Files / Cloud Drive", systemImage: "folder.badge.plus")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(!isReady)
+            .disabled(!isReady || isBuildingPackage)
             .listRowBackground(Color.clear)
 
-            if let errorMessage = exportError {
+            // Share Capture Package
+            Button {
+                buildPackageIfNeeded { showingWorkspaceShare = true }
+            } label: {
+                Label("Share Capture Package", systemImage: "square.and.arrow.up")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!isReady || isBuildingPackage)
+            .listRowBackground(Color.clear)
+
+            if let errorMessage = workspacePackageError {
                 Label(errorMessage, systemImage: "xmark.circle")
                     .font(.caption)
                     .foregroundStyle(.red)
+            }
+
+            // Developer-only actions
+            if developerMode.isEnabled {
+                Divider()
+                    .listRowBackground(Color.clear)
+
+                Button {
+                    buildJSONIfNeeded { showingJSONInspector = true }
+                } label: {
+                    Label("Inspect JSON", systemImage: "chevron.left.forwardslash.chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    buildJSONIfNeeded { copyJSONToClipboard() }
+                } label: {
+                    HStack {
+                        Label(
+                            copiedToClipboard ? "Copied!" : "Copy JSON to Clipboard",
+                            systemImage: copiedToClipboard ? "checkmark" : "doc.on.clipboard"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let errorMessage = jsonExportError {
+                    Label(errorMessage, systemImage: "xmark.circle")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                }
+            }
+        } header: {
+            Text("Handoff")
+        } footer: {
+            if developerMode.isEnabled {
+                Text("Developer mode is active. JSON actions are visible.")
+                    .foregroundStyle(.orange)
             }
         }
     }
@@ -230,63 +311,68 @@ struct ReviewExportView: View {
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Actions: Mind handoff
 
-    private func performExport() {
-        exportError = nil
-        do {
-            let result = try CaptureSessionExporter.export(store.draft)
-            exportResult = result
-            store.markExported()
-            showingExport = true
-        } catch {
-            exportError = "Export failed: \(error.localizedDescription)"
-            store.markExportFailed()
+    /// Builds the workspace package and opens Atlas Mind with the visitId.
+    private func performMindHandoff() {
+        workspacePackageError = nil
+        isBuildingPackage = true
+
+        buildPackageIfNeeded {
+            isBuildingPackage = false
+            mindHandoffVisitId = store.draft.visitReference
+            showingMindHandoff = true
         }
     }
 
-    private func performWorkspaceExport() {
-        exportError = nil
+    // MARK: - Actions: workspace package
+
+    /// Builds the workspace package if not already built, then calls `completion`.
+    private func buildPackageIfNeeded(completion: @escaping () -> Void) {
+        workspacePackageError = nil
+        isBuildingPackage = true
         do {
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
             atlasVisitURL = package.atlasVisitURL
             store.markExported()
-            showingWorkspaceExport = true
+            isBuildingPackage = false
+            completion()
         } catch {
-            exportError = "Workspace export failed: \(error.localizedDescription)"
+            workspacePackageError = "Package build failed: \(error.localizedDescription)"
             store.markExportFailed()
+            isBuildingPackage = false
         }
     }
 
-    // MARK: - Export preview sheet
+    // MARK: - Actions: JSON (dev only)
 
-    @ViewBuilder
-    private func exportPreviewSheet(result: CaptureExportResult) -> some View {
-        NavigationStack {
-            ScrollView {
-                Text(String(data: result.jsonData, encoding: .utf8) ?? "(empty)")
-                    .font(.system(.caption, design: .monospaced))
-                    .padding()
-            }
-            .navigationTitle("Export Preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        showingExport = false
-                        exportResult = nil
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    let jsonString = String(data: result.jsonData, encoding: .utf8) ?? ""
-                    ShareLink(
-                        item: jsonString,
-                        subject: Text("Atlas Capture Export"),
-                        message: Text("atlas_capture_\(store.draft.visitReference).json")
-                    )
-                }
-            }
+    // Note: JSON is cached because the SessionCaptureV2 payload is deterministic from the
+    // draft and re-encoding on every tap is wasteful. Workspace packages are always rebuilt
+    // fresh because they embed timestamps and copy media files from disk at build time.
+    private func buildJSONIfNeeded(completion: @escaping () -> Void) {
+        jsonExportError = nil
+        if exportResult != nil {
+            completion()
+            return
+        }
+        do {
+            let result = try CaptureSessionExporter.export(store.draft)
+            exportResult = result
+            completion()
+        } catch {
+            jsonExportError = "JSON export failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func copyJSONToClipboard() {
+        guard let result = exportResult else { return }
+        #if canImport(UIKit)
+        UIPasteboard.general.string = String(data: result.jsonData, encoding: .utf8)
+        #endif
+        copiedToClipboard = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            copiedToClipboard = false
         }
     }
 }
