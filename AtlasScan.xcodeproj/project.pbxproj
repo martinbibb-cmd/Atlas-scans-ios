@@ -207,15 +207,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		30C58AB3CF4CE0B9BEBAFBFF /* VisitCapture */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			name = VisitCapture;
-			path = VisitCapture;
-			sourceTree = "<group>";
-		};
 		AA050001 /* AtlasScan */ = {
 			isa = PBXGroup;
 			children = (
@@ -223,8 +214,6 @@
 				AA050003 /* Features */,
 				AA050004 /* Models */,
 				AA050005 /* Services */,
-				AA050006 /* Contracts */,
-				AA050007 /* DevFixtures */,
 				AA050008 /* Resources */,
 			);
 			path = AtlasScan;
@@ -239,33 +228,12 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		AA050026 /* FieldVisit */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = FieldVisit;
-			sourceTree = "<group>";
-		};
 		AA050003 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				AA050010 /* ScanSession */,
-				AA050011 /* RoomCapture */,
-				AA050012 /* RoomReview */,
-				AA050013 /* ObjectTagging */,
 				AA050014 /* Export */,
-				AA050015 /* PropertyPlan */,
 				AA050016 /* Evidence */,
 				AA050017 /* LiDARClearance */,
-				AA050018 /* SessionCapture */,
-				AA050019 /* LiveTagging */,
-				AA050023 /* SessionReview */,
-				AA050024 /* FlueClearance */,
-				AA050025 /* Markup */,
-				AA05002A /* SpatialAlignment */,
-				30C58AB3CF4CE0B9BEBAFBFF /* VisitCapture */,
-				AA050026 /* FieldVisit */,
 				AA05002B /* CaptureHub */,
 				AA05002C /* CaptureSession */,
 				AA05002D /* StartJob */,
@@ -316,22 +284,6 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		AA050006 /* Contracts */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = Contracts;
-			sourceTree = "<group>";
-		};
-		AA050007 /* DevFixtures */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = DevFixtures;
-			sourceTree = "<group>";
-		};
 		AA050008 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -339,38 +291,6 @@
 				AA020089 /* Assets.xcassets */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		AA050010 /* ScanSession */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = ScanSession;
-			sourceTree = "<group>";
-		};
-		AA050011 /* RoomCapture */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = RoomCapture;
-			sourceTree = "<group>";
-		};
-		AA050012 /* RoomReview */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = RoomReview;
-			sourceTree = "<group>";
-		};
-		AA050013 /* ObjectTagging */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = ObjectTagging;
 			sourceTree = "<group>";
 		};
 		AA050014 /* Export */ = {
@@ -382,14 +302,6 @@
 
 			);
 			path = Export;
-			sourceTree = "<group>";
-		};
-		AA050015 /* PropertyPlan */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = PropertyPlan;
 			sourceTree = "<group>";
 		};
 		AA050016 /* Evidence */ = {
@@ -412,54 +324,6 @@
 				AA020049 /* LiDARClearanceView.swift */,
 			);
 			path = LiDARClearance;
-			sourceTree = "<group>";
-		};
-		AA050018 /* SessionCapture */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = SessionCapture;
-			sourceTree = "<group>";
-		};
-		AA050019 /* LiveTagging */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = LiveTagging;
-			sourceTree = "<group>";
-		};
-		AA050023 /* SessionReview */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = SessionReview;
-			sourceTree = "<group>";
-		};
-		AA050024 /* FlueClearance */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = FlueClearance;
-			sourceTree = "<group>";
-		};
-		AA050025 /* Markup */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = Markup;
-			sourceTree = "<group>";
-		};
-		AA05002A /* SpatialAlignment */ = {
-			isa = PBXGroup;
-			children = (
-
-			);
-			path = SpatialAlignment;
 			sourceTree = "<group>";
 		};
 		AA05002B /* CaptureHub */ = {
@@ -978,7 +842,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AtlasScan/DevFixtures\"";
 				DEVELOPMENT_TEAM = 34Y4H49QMY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1011,7 +874,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AtlasScan/DevFixtures\"";
 				DEVELOPMENT_TEAM = 34Y4H49QMY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
