@@ -77,6 +77,7 @@ enum RoomPlanObjectCategory: String, CaseIterable {
     case toilet       = "toilet"
     case washerDryer  = "washer_dryer"
     case storage      = "storage"
+    case table        = "table"
     case unknown      = "unknown"
 
     /// Maps this detected object category to the closest `ObjectPinType`.
@@ -107,6 +108,7 @@ enum RoomPlanObjectCategory: String, CaseIterable {
         case .toilet:      return "Toilet"
         case .washerDryer: return "Washer / Dryer"
         case .storage:     return "Storage"
+        case .table:       return "Table"
         case .unknown:     return "Detected Object"
         }
     }

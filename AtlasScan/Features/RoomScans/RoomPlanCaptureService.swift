@@ -218,6 +218,7 @@ extension RoomPlanObjectCategory {
         case .toilet:       self = .toilet
         case .washerDryer:  self = .washerDryer
         case .storage:      self = .storage
+        case .table:        self = .table
         @unknown default:   self = .unknown
         }
     }
