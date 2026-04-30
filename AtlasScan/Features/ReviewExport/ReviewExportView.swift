@@ -22,6 +22,10 @@ struct ReviewExportView: View {
     @State private var exportError: String?
     @State private var showingExportConfirm = false
 
+    @State private var showingWorkspaceExport = false
+    @State private var workspacePackageURL: URL?
+    @State private var showingWorkspaceExportConfirm = false
+
     var body: some View {
         List {
             visitSummarySection
@@ -37,6 +41,11 @@ struct ReviewExportView: View {
                 exportPreviewSheet(result: result)
             }
         }
+        .sheet(isPresented: $showingWorkspaceExport) {
+            if let url = workspacePackageURL {
+                ShareSheet(items: [url])
+            }
+        }
         .confirmationDialog(
             "Export to Atlas Mind?",
             isPresented: $showingExportConfirm,
@@ -46,6 +55,16 @@ struct ReviewExportView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will package the session capture and mark it as exported.")
+        }
+        .confirmationDialog(
+            "Export Workspace Package?",
+            isPresented: $showingWorkspaceExportConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Export Package") { performWorkspaceExport() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will assemble a workspace folder with the session capture, photos, and floor plans.")
         }
     }
 
@@ -182,6 +201,17 @@ struct ReviewExportView: View {
             .disabled(!isReady || store.draft.exportState == .exported)
             .listRowBackground(Color.clear)
 
+            Button {
+                showingWorkspaceExportConfirm = true
+            } label: {
+                Label("Export Workspace Package", systemImage: "folder.badge.plus")
+                    .font(.body.bold())
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!isReady)
+            .listRowBackground(Color.clear)
+
             if let errorMessage = exportError {
                 Label(errorMessage, systemImage: "xmark.circle")
                     .font(.caption)
@@ -211,6 +241,20 @@ struct ReviewExportView: View {
             showingExport = true
         } catch {
             exportError = "Export failed: \(error.localizedDescription)"
+            store.markExportFailed()
+        }
+    }
+
+    private func performWorkspaceExport() {
+        exportError = nil
+        do {
+            let result = try CaptureSessionExporter.export(store.draft)
+            let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
+            workspacePackageURL = package.packageURL
+            store.markExported()
+            showingWorkspaceExport = true
+        } catch {
+            exportError = "Workspace export failed: \(error.localizedDescription)"
             store.markExportFailed()
         }
     }

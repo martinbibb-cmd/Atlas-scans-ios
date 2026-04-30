@@ -34,6 +34,8 @@
 
 		AA010070 /* JSONInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020070 /* JSONInspectorView.swift */; };
 		AA010071 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020071 /* ShareSheet.swift */; };
+		AA010072 /* WorkspaceExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020072 /* WorkspaceExporter.swift */; };
+		AA010073 /* WorkspaceExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020073 /* WorkspaceExporterTests.swift */; };
 
 		AA010076 /* ExtractedSessionFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020076 /* ExtractedSessionFact.swift */; };
 
@@ -136,6 +138,8 @@
 
 		AA020070 /* JSONInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONInspectorView.swift; sourceTree = "<group>"; };
 		AA020071 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		AA020072 /* WorkspaceExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceExporter.swift; sourceTree = "<group>"; };
+		AA020073 /* WorkspaceExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceExporterTests.swift; sourceTree = "<group>"; };
 
 		AA020076 /* ExtractedSessionFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedSessionFact.swift; sourceTree = "<group>"; };
 
@@ -314,6 +318,7 @@
 
 				AA020070 /* JSONInspectorView.swift */,
 				AA020071 /* ShareSheet.swift */,
+				AA020072 /* WorkspaceExporter.swift */,
 
 			);
 			path = Export;
@@ -520,6 +525,8 @@
 
 				AA0200F0 /* SessionCaptureV2ValidatorTests.swift */,
 				AA0200F4 /* RoomPlanMapperTests.swift */,
+
+				AA020073 /* WorkspaceExporterTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -668,6 +675,7 @@
 
 				AA010070 /* JSONInspectorView.swift in Sources */,
 				AA010071 /* ShareSheet.swift in Sources */,
+				AA010072 /* WorkspaceExporter.swift in Sources */,
 
 				AA010076 /* ExtractedSessionFact.swift in Sources */,
 
@@ -739,6 +747,8 @@
 
 				AA0100F0 /* SessionCaptureV2ValidatorTests.swift in Sources */,
 				AA0100F4 /* RoomPlanMapperTests.swift in Sources */,
+
+				AA010073 /* WorkspaceExporterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
