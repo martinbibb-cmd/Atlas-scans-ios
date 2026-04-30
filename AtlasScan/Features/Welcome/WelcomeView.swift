@@ -158,11 +158,11 @@ struct HomeView: View {
     private func handleDevTap() {
         devTapCount += 1
         if devTapCount >= 7 {
-            devTapCount = 0
             developerMode.toggle()
             showDevToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 showDevToast = false
+                devTapCount = 0  // Reset only after toast clears so mid-toast taps don't count
             }
         }
     }

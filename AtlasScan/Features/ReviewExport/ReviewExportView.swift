@@ -81,7 +81,10 @@ struct ReviewExportView: View {
         // JSON inspector (dev only)
         .sheet(isPresented: $showingJSONInspector) {
             if let result = exportResult {
-                JSONInspectorView(json: String(data: result.jsonData, encoding: .utf8) ?? "")
+                JSONInspectorView(
+                    json: String(data: result.jsonData, encoding: .utf8)
+                        ?? "Error: unable to decode JSON data as UTF-8."
+                )
             }
         }
     }
@@ -327,14 +330,6 @@ struct ReviewExportView: View {
     /// Builds the workspace package if not already built, then calls `completion`.
     private func buildPackageIfNeeded(completion: @escaping () -> Void) {
         workspacePackageError = nil
-
-        // Re-use an already-built package if the session has not changed.
-        if atlasVisitURL != nil {
-            isBuildingPackage = false
-            completion()
-            return
-        }
-
         isBuildingPackage = true
         do {
             let result = try CaptureSessionExporter.export(store.draft)
