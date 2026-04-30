@@ -347,6 +347,9 @@ struct ReviewExportView: View {
 
     // MARK: - Actions: JSON (dev only)
 
+    // Note: JSON is cached because the SessionCaptureV2 payload is deterministic from the
+    // draft and re-encoding on every tap is wasteful. Workspace packages are always rebuilt
+    // fresh because they embed timestamps and copy media files from disk at build time.
     private func buildJSONIfNeeded(completion: @escaping () -> Void) {
         jsonExportError = nil
         if exportResult != nil {
