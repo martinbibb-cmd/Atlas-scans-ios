@@ -10,6 +10,8 @@ import AtlasContracts
 //   - Package directory is created in the temp directory
 //   - session_capture_v2.json is written and contains the expected JSON
 //   - workspace.json scaffold is written with correct fields
+//   - review_decisions.json scaffold is written with correct fields
+//   - .atlasvisit zip archive is produced alongside the folder
 //   - photos/ directory is created when photos are present
 //   - floorplans/ directory is created when floor plan snapshots are present
 //   - Missing source files are skipped without error
@@ -79,6 +81,35 @@ final class WorkspaceExporterTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: second.packageURL
             .appendingPathComponent("sentinel.txt").path),
                        "Re-export must clear the previous package")
+    }
+
+    // MARK: - .atlasvisit archive
+
+    func test_exportPackage_createsAtlasVisitZip() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: result.atlasVisitURL.path),
+                      ".atlasvisit zip archive must exist")
+    }
+
+    func test_exportPackage_atlasVisitURLHasCorrectExtension() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        XCTAssertEqual(result.atlasVisitURL.pathExtension, "atlasvisit")
+    }
+
+    func test_exportPackage_atlasVisitURLContainsVisitReference() throws {
+        let draft = draftWithRoomScan(visitReference: "JOB-AV-TEST")
+        let result = try exportPackage(draft)
+        XCTAssertTrue(result.atlasVisitURL.lastPathComponent.contains("JOB-AV-TEST"))
+    }
+
+    func test_exportPackage_atlasVisitIsNotADirectory() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        var isDir: ObjCBool = false
+        FileManager.default.fileExists(atPath: result.atlasVisitURL.path, isDirectory: &isDir)
+        XCTAssertFalse(isDir.boolValue, ".atlasvisit URL must point to a file, not a directory")
     }
 
     // MARK: - session_capture_v2.json
@@ -247,6 +278,44 @@ final class WorkspaceExporterTests: XCTestCase {
 
         // Clean up.
         try? FileManager.default.removeItem(at: sourceDir)
+    }
+
+    // MARK: - review_decisions.json scaffold
+
+    func test_exportPackage_writesReviewDecisionsJSON() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        let decisionsURL = result.packageURL.appendingPathComponent("review_decisions.json")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: decisionsURL.path),
+                      "review_decisions.json must be written to the package")
+    }
+
+    func test_exportPackage_reviewDecisionsContainsVisitReference() throws {
+        let draft = draftWithRoomScan(visitReference: "JOB-RD-CHECK")
+        let result = try exportPackage(draft)
+        let decisionsURL = result.packageURL.appendingPathComponent("review_decisions.json")
+        let data = try Data(contentsOf: decisionsURL)
+        let decoded = try JSONDecoder().decode(ReviewDecisionsScaffold.self, from: data)
+        XCTAssertEqual(decoded.visitReference, "JOB-RD-CHECK")
+    }
+
+    func test_exportPackage_reviewDecisionsHasEmptyDecisionsArray() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        let decisionsURL = result.packageURL.appendingPathComponent("review_decisions.json")
+        let data = try Data(contentsOf: decisionsURL)
+        let decoded = try JSONDecoder().decode(ReviewDecisionsScaffold.self, from: data)
+        XCTAssertTrue(decoded.decisions.isEmpty,
+                      "Decisions array must be empty on initial export from Scan")
+    }
+
+    func test_exportPackage_reviewDecisionsSchemaVersionIsSet() throws {
+        let draft = draftWithRoomScan()
+        let result = try exportPackage(draft)
+        let decisionsURL = result.packageURL.appendingPathComponent("review_decisions.json")
+        let data = try Data(contentsOf: decisionsURL)
+        let decoded = try JSONDecoder().decode(ReviewDecisionsScaffold.self, from: data)
+        XCTAssertFalse(decoded.schemaVersion.isEmpty)
     }
 
     // MARK: - Visit reference sanitisation

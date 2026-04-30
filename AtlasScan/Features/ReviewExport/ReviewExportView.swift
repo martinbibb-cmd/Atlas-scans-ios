@@ -23,7 +23,7 @@ struct ReviewExportView: View {
     @State private var showingExportConfirm = false
 
     @State private var showingWorkspaceExport = false
-    @State private var workspacePackageURL: URL?
+    @State private var atlasVisitURL: URL?
     @State private var showingWorkspaceExportConfirm = false
 
     var body: some View {
@@ -42,7 +42,7 @@ struct ReviewExportView: View {
             }
         }
         .sheet(isPresented: $showingWorkspaceExport) {
-            if let url = workspacePackageURL {
+            if let url = atlasVisitURL {
                 ShareSheet(items: [url])
             }
         }
@@ -61,10 +61,10 @@ struct ReviewExportView: View {
             isPresented: $showingWorkspaceExportConfirm,
             titleVisibility: .visible
         ) {
-            Button("Build Package") { performWorkspaceExport() }
+            Button("Build & Share Package") { performWorkspaceExport() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans.")
+            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans, then open the iOS share sheet.")
         }
     }
 
@@ -204,7 +204,7 @@ struct ReviewExportView: View {
             Button {
                 showingWorkspaceExportConfirm = true
             } label: {
-                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up")
+                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up.on.square")
                     .font(.body.bold())
                     .frame(maxWidth: .infinity)
             }
@@ -250,7 +250,7 @@ struct ReviewExportView: View {
         do {
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
-            workspacePackageURL = package.packageURL
+            atlasVisitURL = package.atlasVisitURL
             store.markExported()
             showingWorkspaceExport = true
         } catch {
