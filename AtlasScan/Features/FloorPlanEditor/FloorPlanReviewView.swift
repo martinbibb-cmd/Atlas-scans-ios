@@ -63,7 +63,7 @@ struct FloorPlanReviewView: View {
     // MARK: - Scans list
 
     private var scansSection: some View {
-        Section("Rooms (\(store.draft.roomScans.count))") {
+        Section {
             ForEach(store.draft.roomScans) { scan in
                 Button {
                     editingScan = scan
@@ -85,6 +85,8 @@ struct FloorPlanReviewView: View {
                 }
                 .contentShape(Rectangle())
             }
+        } header: {
+            Text("Rooms (\(store.draft.roomScans.count))")
         } footer: {
             Text("Tap a room to open the floor plan editor. Annotation is optional.")
                 .font(.caption2)
@@ -125,7 +127,7 @@ struct FloorPlanReviewView: View {
     @ViewBuilder
     private var snapshotsSection: some View {
         if !store.draft.floorPlanSnapshots.isEmpty {
-            Section("Saved Snapshots (\(store.draft.floorPlanSnapshots.count))") {
+            Section {
                 ForEach(store.draft.floorPlanSnapshots) { snapshot in
                     HStack {
                         Image(systemName: "photo")
@@ -145,6 +147,8 @@ struct FloorPlanReviewView: View {
                         store.removeFloorPlanSnapshot(id: store.draft.floorPlanSnapshots[i].id)
                     }
                 }
+            } header: {
+                Text("Saved Snapshots (\(store.draft.floorPlanSnapshots.count))")
             }
         }
     }
