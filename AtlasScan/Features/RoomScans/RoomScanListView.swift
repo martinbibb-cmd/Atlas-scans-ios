@@ -217,8 +217,7 @@ struct RoomScanManualEntrySheet: View {
 
     private func saveScan() {
         var scan = CapturedRoomScanDraft()
-        let trimmed = roomLabel.trimmingCharacters(in: .whitespaces)
-        scan.roomLabel = trimmed.isEmpty ? nil : trimmed
+        scan.roomLabel  = roomLabel.trimmingCharacters(in: .whitespaces)
         scan.rawWidthM  = Double(widthText.trimmingCharacters(in: .whitespaces))
         scan.rawDepthM  = Double(depthText.trimmingCharacters(in: .whitespaces))
         scan.rawHeightM = Double(heightText.trimmingCharacters(in: .whitespaces))

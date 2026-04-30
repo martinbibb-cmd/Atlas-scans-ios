@@ -95,12 +95,12 @@ struct FloorPlanReviewView: View {
     private func annotationSummary(for scan: CapturedRoomScanDraft) -> some View {
         if let plan = scan.floorPlan {
             if !plan.objectPlacements.isEmpty {
-                Label("\(plan.objectPlacements.count) object\(plan.objectPlacements.count == 1 ? "" : "s")", systemImage: "mappin.circle")
+                Label(countLabel(plan.objectPlacements.count, singular: "object"), systemImage: "mappin.circle")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             if !plan.pipeSegments.isEmpty {
-                Label("\(plan.pipeSegments.count) pipe\(plan.pipeSegments.count == 1 ? "" : "s")", systemImage: "line.diagonal")
+                Label(countLabel(plan.pipeSegments.count, singular: "pipe"), systemImage: "line.diagonal")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -114,6 +114,10 @@ struct FloorPlanReviewView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
+    }
+
+    private func countLabel(_ count: Int, singular: String) -> String {
+        "\(count) \(singular)\(count == 1 ? "" : "s")"
     }
 
     // MARK: - Snapshots section
