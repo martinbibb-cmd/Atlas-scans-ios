@@ -3,12 +3,14 @@ import AtlasContracts
 
 // MARK: - WorkspaceExporter
 //
-// Assembles a Visit Workspace package folder from a CaptureSessionDraft.
+// Assembles a Visit Workspace package from a CaptureSessionDraft and zips it
+// as a <visitRef>.atlasvisit file for sharing to Atlas Mind.
 //
-// Package layout:
+// Package layout (inside the zip):
 //   <visitRef>_workspace/
 //     session_capture_v2.json   – full SessionCaptureV2 payload
 //     workspace.json            – scaffold for Atlas Mind to identify the package
+//     review_decisions.json     – empty decisions scaffold for Atlas Mind
 //     photos/                   – evidence photo files (copied from PhotoStore)
 //     floorplans/               – floor plan snapshot images
 //
@@ -16,14 +18,17 @@ import AtlasContracts
 //   • No cloud logic — the package is assembled locally only.
 //   • JSON-only export via CaptureSessionExporter remains unaffected.
 //   • Source files that are missing on disk are skipped without error.
+//   • Raw audio is never included.
 //   • The package is written to the system temporary directory.
 
 // MARK: - Workspace package result
 
 /// The assembled Visit Workspace package, ready to share or save.
 struct WorkspacePackageResult {
-    /// Root folder of the assembled workspace package.
+    /// Root folder of the assembled workspace package (intermediate build artefact).
     let packageURL: URL
+    /// The final `.atlasvisit` zip archive ready to share to Atlas Mind.
+    let atlasVisitURL: URL
 }
 
 // MARK: - WorkspaceExporter
@@ -105,12 +110,33 @@ enum WorkspaceExporter {
             }
         }
 
-        return WorkspacePackageResult(packageURL: packageURL)
+        // 5. Write review_decisions.json scaffold
+        let decisionsScaffold = ReviewDecisionsScaffold(
+            visitReference: draft.visitReference,
+            createdAt: iso8601.string(from: Date())
+        )
+        let decisionsData = try encodeDecisions(decisionsScaffold)
+        let decisionsURL = packageURL.appendingPathComponent("review_decisions.json")
+        try decisionsData.write(to: decisionsURL, options: .atomic)
+
+        // 6. Zip the folder into a .atlasvisit archive
+        let atlasVisitURL = fileManager.temporaryDirectory
+            .appendingPathComponent("\(safeRef).atlasvisit")
+        try? fileManager.removeItem(at: atlasVisitURL)
+        try fileManager.zipItem(at: packageURL, to: atlasVisitURL, shouldKeepParent: true)
+
+        return WorkspacePackageResult(packageURL: packageURL, atlasVisitURL: atlasVisitURL)
     }
 
     // MARK: - Private helpers
 
     private static func encodeScaffold(_ scaffold: WorkspaceScaffold) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(scaffold)
+    }
+
+    private static func encodeDecisions(_ scaffold: ReviewDecisionsScaffold) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(scaffold)
@@ -150,5 +176,34 @@ struct WorkspaceScaffold: Codable {
         self.visitReference = visitReference
         self.sessionCaptureRef = sessionCaptureRef
         self.createdAt = createdAt
+    }
+}
+
+// MARK: - ReviewDecisionsScaffold
+
+/// Scaffold `review_decisions.json` written into every `.atlasvisit` package.
+///
+/// Atlas Mind reads this file to track per-artefact review decisions made after
+/// import. The Scan app always writes an empty decisions array; Mind populates
+/// it during the review workflow.
+struct ReviewDecisionsScaffold: Codable {
+
+    /// Schema version of this manifest format.
+    let schemaVersion: String
+
+    /// Engineer-assigned visit / job reference matching the parent workspace.
+    let visitReference: String
+
+    /// ISO-8601 timestamp of when the package was assembled.
+    let createdAt: String
+
+    /// Per-artefact review decisions. Empty on initial export from Scan.
+    let decisions: [String]
+
+    init(visitReference: String, createdAt: String) {
+        self.schemaVersion = "1.0"
+        self.visitReference = visitReference
+        self.createdAt = createdAt
+        self.decisions = []
     }
 }
