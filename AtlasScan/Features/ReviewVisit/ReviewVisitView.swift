@@ -25,7 +25,7 @@ struct ReviewVisitView: View {
     @State private var showingFullPhoto: CapturedPhotoDraft? = nil
 
     @State private var showingAtlasMindShare = false
-    @State private var atlasMindPackageURL: URL?
+    @State private var atlasVisitURL: URL?
     @State private var showingAtlasMindConfirm = false
 
     var body: some View {
@@ -47,7 +47,7 @@ struct ReviewVisitView: View {
             }
         }
         .sheet(isPresented: $showingAtlasMindShare) {
-            if let url = atlasMindPackageURL {
+            if let url = atlasVisitURL {
                 ShareSheet(items: [url])
             }
         }
@@ -66,10 +66,10 @@ struct ReviewVisitView: View {
             isPresented: $showingAtlasMindConfirm,
             titleVisibility: .visible
         ) {
-            Button("Build Package") { performAtlasMindExport() }
+            Button("Build & Share Package") { performAtlasMindExport() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans.")
+            Text("This assembles a .atlasvisit package and opens the iOS share sheet so you can send it to Atlas Mind.")
         }
     }
 
@@ -378,7 +378,7 @@ struct ReviewVisitView: View {
             Button {
                 showingAtlasMindConfirm = true
             } label: {
-                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up")
+                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up.on.square")
                     .font(.body.bold()).frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -407,12 +407,14 @@ struct ReviewVisitView: View {
         }
     }
 
+    // MARK: - Open in Atlas Mind action
+
     private func performAtlasMindExport() {
         exportError = nil
         do {
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
-            atlasMindPackageURL = package.packageURL
+            atlasVisitURL = package.atlasVisitURL
             store.markExported()
             showingAtlasMindShare = true
         } catch {
