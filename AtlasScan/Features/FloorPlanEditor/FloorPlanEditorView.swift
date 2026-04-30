@@ -497,11 +497,7 @@ extension FloorPlanEditorView.EditorTool {
 
 // MARK: - Comparable extension for clamping
 
-extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
-        min(max(self, range.lowerBound), range.upperBound)
-    }
-}
+
 
 // MARK: - Preview
 
