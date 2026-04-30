@@ -153,6 +153,13 @@ struct CapturedRoomScanDraft: Identifiable, Codable {
     /// Scan confidence as reported by the capture API.
     var confidence: RoomScanConfidence = .medium
 
+    /// How the room scan data was obtained (manual entry or LiDAR hardware scan).
+    var captureSource: RoomScanCaptureSource = .manual
+
+    /// Raw LiDAR metadata JSON from the RoomPlan capture API.
+    /// Nil for manually entered scans. Stored for future use; not exported.
+    var lidarMetadata: String?
+
     /// Floor plan annotations added by the engineer after the room scan.
     var floorPlan: FloorPlanDraft?
 }
@@ -169,6 +176,30 @@ enum RoomScanConfidence: String, Codable, CaseIterable {
         case .high:   return "High"
         case .medium: return "Medium"
         case .low:    return "Low"
+        }
+    }
+}
+
+// MARK: - RoomScanCaptureSource
+
+/// How the room scan data was obtained.
+enum RoomScanCaptureSource: String, Codable, CaseIterable {
+    /// Engineer entered dimensions manually.
+    case manual = "manual"
+    /// Data derived from a LiDAR / RoomPlan hardware scan.
+    case lidar  = "lidar"
+
+    var displayName: String {
+        switch self {
+        case .manual: return "Manual"
+        case .lidar:  return "LiDAR"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .manual: return "pencil"
+        case .lidar:  return "lidar.scanner"
         }
     }
 }
@@ -283,6 +314,12 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
     /// UUID of a linked evidence photo.
     var linkedPhotoId: UUID?
 
+    /// Source of the pin placement.
+    var pinSource: ObjectPinSource?
+
+    /// Confidence level for the pin (especially relevant for LiDAR-inferred pins).
+    var pinConfidence: ObjectPinConfidence?
+
     /// Approximate position if captured from a placement interaction.
     var approximatePositionX: Double?
     var approximatePositionY: Double?
@@ -371,6 +408,46 @@ enum ObjectPinType: String, Codable, CaseIterable, Identifiable {
         case .airingCupboard:   return "cabinet"
         case .evidencePoint:    return "mappin"
         case .genericNote:      return "note.text"
+        }
+    }
+}
+
+// MARK: - ObjectPinSource
+
+/// How an object pin was placed.
+enum ObjectPinSource: String, Codable {
+    /// Placed manually by the engineer.
+    case manual = "manual"
+    /// Inferred from a LiDAR / RoomPlan scan.
+    case lidar  = "lidar"
+
+    var displayName: String {
+        switch self {
+        case .manual: return "Manual"
+        case .lidar:  return "LiDAR"
+        }
+    }
+}
+
+// MARK: - ObjectPinConfidence
+
+/// Confidence level for an object pin placement.
+enum ObjectPinConfidence: String, Codable {
+    /// Manually verified by the engineer.
+    case manual      = "manual"
+    /// Inferred from scan data; may require review.
+    case inferred    = "inferred"
+    /// Requires engineer review before export.
+    case needsReview = "needs_review"
+    /// Linked to photographic evidence.
+    case photoLinked = "photo_linked"
+
+    var displayName: String {
+        switch self {
+        case .manual:      return "Manual"
+        case .inferred:    return "Inferred"
+        case .needsReview: return "Needs Review"
+        case .photoLinked: return "Photo Linked"
         }
     }
 }
