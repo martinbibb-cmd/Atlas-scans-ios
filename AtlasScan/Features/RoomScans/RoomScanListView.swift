@@ -3,13 +3,17 @@ import SwiftUI
 // MARK: - RoomScanListView
 //
 // Lists all room scans captured during the visit.
-// Provides navigation to capture a new room scan.
+// Provides two capture modes:
+//   • Scan with LiDAR  — fullscreen RoomPlan capture (hardware-dependent)
+//   • Enter manually   — manual dimension entry sheet (always available)
 
 struct RoomScanListView: View {
 
     @ObservedObject var store: CaptureSessionStore
-    @State private var showingCapture = false
+    @State private var showingManualEntry = false
+    @State private var showingLiDARCapture = false
     @State private var editingScan: CapturedRoomScanDraft?
+    @State private var openFloorPlanForScan: CapturedRoomScanDraft?
 
     var body: some View {
         List {
@@ -23,12 +27,39 @@ struct RoomScanListView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Room Scans")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingCapture) {
+        // Manual entry sheet
+        .sheet(isPresented: $showingManualEntry) {
             RoomScanManualEntrySheet { scan in
                 store.addRoomScan(scan)
-                showingCapture = false
+                showingManualEntry = false
             }
         }
+        // LiDAR capture fullscreen modal
+        .fullScreenCover(isPresented: $showingLiDARCapture) {
+            RoomPlanCaptureView(
+                roomIndex: store.draft.roomScans.count + 1
+            ) { scan, pins, snapshot in
+                store.addRoomScan(scan)
+                pins.forEach { store.addObjectPin($0) }
+                store.addFloorPlanSnapshot(snapshot)
+                showingLiDARCapture = false
+                openFloorPlanForScan = scan
+            } onCancel: {
+                showingLiDARCapture = false
+            }
+        }
+        // Floor plan editor opened after LiDAR accept
+        .sheet(item: $openFloorPlanForScan) { scan in
+            FloorPlanEditorView(
+                scan: scan,
+                onSnapshot: { snapshot in store.addFloorPlanSnapshot(snapshot) },
+                onSave: { updated in
+                    store.updateRoomScan(updated)
+                    openFloorPlanForScan = nil
+                }
+            )
+        }
+        // Existing scan edit sheet
         .sheet(item: $editingScan) { scan in
             RoomScanEditView(scan: scan) { updated in
                 store.updateRoomScan(updated)
@@ -77,11 +108,12 @@ struct RoomScanListView: View {
 
     private func scanRow(_ scan: CapturedRoomScanDraft) -> some View {
         HStack(spacing: 12) {
-            scanThumbnail
+            scanThumbnail(source: scan.captureSource)
             VStack(alignment: .leading, spacing: 4) {
                 Text(scan.roomLabel ?? "Unnamed Room")
                     .font(.body)
                 HStack(spacing: 8) {
+                    captureSourceBadge(scan.captureSource)
                     confidenceBadge(scan.confidence)
                     if let w = scan.rawWidthM, let d = scan.rawDepthM {
                         Text(String(format: "%.1f × %.1f m", w, d))
@@ -102,14 +134,25 @@ struct RoomScanListView: View {
         }
     }
 
-    private var scanThumbnail: some View {
+    private func scanThumbnail(source: RoomScanCaptureSource) -> some View {
         RoundedRectangle(cornerRadius: 8)
             .fill(Color.accentColor.opacity(0.15))
             .frame(width: 44, height: 44)
             .overlay {
-                Image(systemName: "cube.fill")
+                Image(systemName: source == .lidar ? "lidar.scanner" : "cube.fill")
                     .foregroundStyle(Color.accentColor)
             }
+    }
+
+    private func captureSourceBadge(_ source: RoomScanCaptureSource) -> some View {
+        let color: Color = source == .lidar ? .blue : .secondary
+        return Label(source.displayName, systemImage: source.symbolName)
+            .font(.caption2.bold())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 
     private func confidenceBadge(_ confidence: RoomScanConfidence) -> some View {
@@ -133,15 +176,22 @@ struct RoomScanListView: View {
     private var captureSection: some View {
         Section {
             Button {
-                showingCapture = true
+                showingLiDARCapture = true
             } label: {
-                Label("Add Room Scan", systemImage: "cube.transparent")
+                Label("Scan with LiDAR", systemImage: "lidar.scanner")
                     .font(.body.bold())
             }
+
+            Button {
+                showingManualEntry = true
+            } label: {
+                Label("Enter Manually", systemImage: "pencil")
+                    .font(.body)
+            }
         } header: {
-            Text("Actions")
+            Text("Add Room Scan")
         } footer: {
-            Text("Room scan records are stored as raw evidence. No heat-loss or engineering calculations are run on scan assets.")
+            Text("LiDAR scanning requires a device with a LiDAR sensor. Manual entry is always available.")
                 .font(.caption2)
         }
     }
@@ -217,11 +267,12 @@ struct RoomScanManualEntrySheet: View {
 
     private func saveScan() {
         var scan = CapturedRoomScanDraft()
-        scan.roomLabel  = roomLabel.trimmingCharacters(in: .whitespaces)
-        scan.rawWidthM  = Double(widthText.trimmingCharacters(in: .whitespaces))
-        scan.rawDepthM  = Double(depthText.trimmingCharacters(in: .whitespaces))
-        scan.rawHeightM = Double(heightText.trimmingCharacters(in: .whitespaces))
-        scan.confidence = confidence
+        scan.roomLabel     = roomLabel.trimmingCharacters(in: .whitespaces)
+        scan.rawWidthM     = Double(widthText.trimmingCharacters(in: .whitespaces))
+        scan.rawDepthM     = Double(depthText.trimmingCharacters(in: .whitespaces))
+        scan.rawHeightM    = Double(heightText.trimmingCharacters(in: .whitespaces))
+        scan.confidence    = confidence
+        scan.captureSource = .manual
         onSave(scan)
         dismiss()
     }

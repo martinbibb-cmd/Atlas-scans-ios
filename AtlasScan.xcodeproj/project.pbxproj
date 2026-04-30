@@ -90,6 +90,11 @@
 		AA0100EB /* VisitReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200EB /* VisitReviewView.swift */; };
 		AA0100EC /* VisitContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200EC /* VisitContainerTests.swift */; };
 		AA0100F0 /* SessionCaptureV2ValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F0 /* SessionCaptureV2ValidatorTests.swift */; };
+
+		AA0100F1 /* RoomPlanMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F1 /* RoomPlanMapper.swift */; };
+		AA0100F2 /* RoomPlanCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F2 /* RoomPlanCaptureService.swift */; };
+		AA0100F3 /* RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F3 /* RoomPlanCaptureView.swift */; };
+		AA0100F4 /* RoomPlanMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F4 /* RoomPlanMapperTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +184,11 @@
 		AA0200E1 /* CaptureSessionExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionExporterTests.swift; sourceTree = "<group>"; };
 		AA0200E2 /* CaptureSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStoreTests.swift; sourceTree = "<group>"; };
 		AA0200F0 /* SessionCaptureV2ValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureV2ValidatorTests.swift; sourceTree = "<group>"; };
+
+		AA0200F1 /* RoomPlanMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanMapper.swift; sourceTree = "<group>"; };
+		AA0200F2 /* RoomPlanCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureService.swift; sourceTree = "<group>"; };
+		AA0200F3 /* RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureView.swift; sourceTree = "<group>"; };
+		AA0200F4 /* RoomPlanMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanMapperTests.swift; sourceTree = "<group>"; };
 
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -387,7 +397,9 @@
 			isa = PBXGroup;
 			children = (
 				AA0200D2 /* RoomScanListView.swift */,
-
+				AA0200F1 /* RoomPlanMapper.swift */,
+				AA0200F2 /* RoomPlanCaptureService.swift */,
+				AA0200F3 /* RoomPlanCaptureView.swift */,
 			);
 			path = RoomScans;
 			sourceTree = "<group>";
@@ -496,6 +508,7 @@
 				AA0200EC /* VisitContainerTests.swift */,
 
 				AA0200F0 /* SessionCaptureV2ValidatorTests.swift */,
+				AA0200F4 /* RoomPlanMapperTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -667,6 +680,10 @@
 				AA0100D1 /* ReviewExportView.swift in Sources */,
 				AA0100D2 /* RoomScanListView.swift in Sources */,
 
+				AA0100F1 /* RoomPlanMapper.swift in Sources */,
+				AA0100F2 /* RoomPlanCaptureService.swift in Sources */,
+				AA0100F3 /* RoomPlanCaptureView.swift in Sources */,
+
 				AA0100D4 /* VoiceNotesView.swift in Sources */,
 				AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */,
 				AA0100D6 /* LiveCaptureView.swift in Sources */,
@@ -709,6 +726,7 @@
 				AA0100EC /* VisitContainerTests.swift in Sources */,
 
 				AA0100F0 /* SessionCaptureV2ValidatorTests.swift in Sources */,
+				AA0100F4 /* RoomPlanMapperTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
