@@ -285,6 +285,67 @@ final class CaptureSessionExporterTests: XCTestCase {
         XCTAssertNoThrow(try CaptureSessionExporter.export(draft))
     }
 
+    // MARK: - Object pin attachment modes
+
+    /// An object pin with a roomId links to that room scan.
+    func test_objectPin_withRoomId_linksToRoom() throws {
+        var draft = makeDraft()
+        let roomScan = CapturedRoomScanDraft()
+        draft.roomScans.append(roomScan)
+
+        var pin = CapturedObjectPinDraft(type: .boiler)
+        pin.roomId = roomScan.id
+        draft.objectPins.append(pin)
+
+        let result = try CaptureSessionExporter.export(draft)
+        XCTAssertEqual(result.payload.objectPins.first?.roomId, roomScan.id.uuidString)
+        XCTAssertNil(result.payload.objectPins.first?.linkedPhotoId)
+    }
+
+    /// An object pin can link to a photo via linkedPhotoId even when no room scan exists.
+    func test_objectPin_withPhotoId_linksToPhoto_noRoomRequired() throws {
+        var draft = makeDraft()
+        // No room scan — photo-only job
+        let photo = CapturedPhotoDraft(localFilename: "boiler_overview.jpg")
+        draft.photos.append(photo)
+
+        var pin = CapturedObjectPinDraft(type: .boiler)
+        pin.linkedPhotoId = photo.id
+        // roomId is intentionally nil
+        draft.objectPins.append(pin)
+
+        let result = try CaptureSessionExporter.export(draft)
+        let exported = try XCTUnwrap(result.payload.objectPins.first)
+        XCTAssertEqual(exported.linkedPhotoId, photo.id.uuidString)
+        XCTAssertNil(exported.roomId, "Photo-linked pin must not carry a roomId")
+    }
+
+    /// An object pin with neither a roomId nor a linkedPhotoId is visit-level evidence.
+    func test_objectPin_noRoomNoPhoto_isSessionLevelEvidence() throws {
+        var draft = makeDraft()
+        let pin = CapturedObjectPinDraft(type: .evidencePoint)
+        // Both roomId and linkedPhotoId are nil — session-level
+        draft.objectPins.append(pin)
+
+        let result = try CaptureSessionExporter.export(draft)
+        let exported = try XCTUnwrap(result.payload.objectPins.first)
+        XCTAssertNil(exported.roomId, "Session-level pin must have nil roomId")
+        XCTAssertNil(exported.linkedPhotoId, "Session-level pin must have nil linkedPhotoId")
+        XCTAssertEqual(exported.id, pin.id.uuidString)
+    }
+
+    /// Photo-only jobs are first-class: a draft with only photos and object pins
+    /// passes validation and exports without errors.
+    func test_photoOnlyJob_withObjectPin_isValid() throws {
+        var draft = makeDraft()
+        draft.photos.append(CapturedPhotoDraft(localFilename: "overview.jpg"))
+        draft.objectPins.append(CapturedObjectPinDraft(type: .boiler))
+
+        let errors = CaptureSessionExporter.validate(draft)
+        XCTAssertTrue(errors.isEmpty, "Photo-only job with an object pin must pass validation")
+        XCTAssertNoThrow(try CaptureSessionExporter.export(draft))
+    }
+
     // MARK: - JSON encoding
 
     func test_export_encodesToValidJSON() throws {
