@@ -24,6 +24,10 @@ struct ReviewVisitView: View {
     @State private var showingExportConfirm = false
     @State private var showingFullPhoto: CapturedPhotoDraft? = nil
 
+    @State private var showingAtlasMindShare = false
+    @State private var atlasMindPackageURL: URL?
+    @State private var showingAtlasMindConfirm = false
+
     var body: some View {
         List {
             visitSection
@@ -42,6 +46,11 @@ struct ReviewVisitView: View {
                 exportPreviewSheet(result: result)
             }
         }
+        .sheet(isPresented: $showingAtlasMindShare) {
+            if let url = atlasMindPackageURL {
+                ShareSheet(items: [url])
+            }
+        }
         .confirmationDialog(
             "Export to Atlas Recommendations?",
             isPresented: $showingExportConfirm,
@@ -51,6 +60,16 @@ struct ReviewVisitView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This packages the session and sends it to Atlas Recommendations.")
+        }
+        .confirmationDialog(
+            "Open in Atlas Mind?",
+            isPresented: $showingAtlasMindConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Build Package") { performAtlasMindExport() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans.")
         }
     }
 
@@ -356,6 +375,16 @@ struct ReviewVisitView: View {
             .disabled(!isReady || store.draft.exportState == .exported)
             .listRowBackground(Color.clear)
 
+            Button {
+                showingAtlasMindConfirm = true
+            } label: {
+                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up")
+                    .font(.body.bold()).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!isReady)
+            .listRowBackground(Color.clear)
+
             if let errMsg = exportError {
                 Label(errMsg, systemImage: "xmark.circle")
                     .font(.caption).foregroundStyle(.red)
@@ -374,6 +403,20 @@ struct ReviewVisitView: View {
             showingExportPreview = true
         } catch {
             exportError = "Export failed: \(error.localizedDescription)"
+            store.markExportFailed()
+        }
+    }
+
+    private func performAtlasMindExport() {
+        exportError = nil
+        do {
+            let result = try CaptureSessionExporter.export(store.draft)
+            let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
+            atlasMindPackageURL = package.packageURL
+            store.markExported()
+            showingAtlasMindShare = true
+        } catch {
+            exportError = "Atlas Mind export failed: \(error.localizedDescription)"
             store.markExportFailed()
         }
     }

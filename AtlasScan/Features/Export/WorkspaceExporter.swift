@@ -6,9 +6,10 @@ import AtlasContracts
 // Assembles a Visit Workspace package folder from a CaptureSessionDraft.
 //
 // Package layout:
-//   <visitRef>_workspace/
+//   <visitRef>.atlasvisit/
 //     session_capture_v2.json   – full SessionCaptureV2 payload
 //     workspace.json            – scaffold for Atlas Mind to identify the package
+//     review_decisions.json     – scaffold for engineer review decisions
 //     photos/                   – evidence photo files (copied from PhotoStore)
 //     floorplans/               – floor plan snapshot images
 //
@@ -17,6 +18,7 @@ import AtlasContracts
 //   • JSON-only export via CaptureSessionExporter remains unaffected.
 //   • Source files that are missing on disk are skipped without error.
 //   • The package is written to the system temporary directory.
+//   • Raw audio files are never included.
 
 // MARK: - Workspace package result
 
@@ -57,7 +59,7 @@ enum WorkspaceExporter {
         let safeRef = draft.visitReference
             .components(separatedBy: CharacterSet(charactersIn: "/\\:*?\"<>|"))
             .joined(separator: "_")
-        let packageName = "\(safeRef)_workspace"
+        let packageName = "\(safeRef).atlasvisit"
         let packageURL = fileManager.temporaryDirectory
             .appendingPathComponent(packageName, isDirectory: true)
 
@@ -79,7 +81,16 @@ enum WorkspaceExporter {
         let scaffoldURL = packageURL.appendingPathComponent("workspace.json")
         try scaffoldData.write(to: scaffoldURL, options: .atomic)
 
-        // 3. Copy evidence photos
+        // 3. Write review_decisions.json scaffold
+        let reviewDecisions = ReviewDecisionsScaffold(
+            visitReference: draft.visitReference,
+            createdAt: iso8601.string(from: Date())
+        )
+        let reviewDecisionsData = try encodeReviewDecisions(reviewDecisions)
+        let reviewDecisionsURL = packageURL.appendingPathComponent("review_decisions.json")
+        try reviewDecisionsData.write(to: reviewDecisionsURL, options: .atomic)
+
+        // 4. Copy evidence photos
         if !draft.photos.isEmpty {
             let photosDestDir = packageURL.appendingPathComponent("photos", isDirectory: true)
             try fileManager.createDirectory(at: photosDestDir, withIntermediateDirectories: true)
@@ -92,7 +103,7 @@ enum WorkspaceExporter {
             }
         }
 
-        // 4. Copy floor plan snapshot images
+        // 5. Copy floor plan snapshot images
         if !draft.floorPlanSnapshots.isEmpty {
             let floorplansDestDir = packageURL.appendingPathComponent("floorplans", isDirectory: true)
             try fileManager.createDirectory(at: floorplansDestDir, withIntermediateDirectories: true)
@@ -114,6 +125,12 @@ enum WorkspaceExporter {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(scaffold)
+    }
+
+    private static func encodeReviewDecisions(_ decisions: ReviewDecisionsScaffold) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(decisions)
     }
 
     private static let iso8601: ISO8601DateFormatter = {
@@ -150,5 +167,39 @@ struct WorkspaceScaffold: Codable {
         self.visitReference = visitReference
         self.sessionCaptureRef = sessionCaptureRef
         self.createdAt = createdAt
+    }
+}
+
+// MARK: - ReviewDecisionsScaffold
+
+/// Scaffold for `review_decisions.json` — a placeholder that Atlas Mind
+/// populates with engineer review decisions after opening the package.
+///
+/// The file is written empty (no decisions yet) so that Mind can detect
+/// whether review has taken place when re-importing the package.
+struct ReviewDecisionsScaffold: Codable {
+
+    /// Schema version of this manifest format.
+    let schemaVersion: String
+
+    /// Type discriminator recognised by Atlas Mind.
+    let type: String
+
+    /// Engineer-assigned visit / job reference (e.g. "JOB-2025-001").
+    let visitReference: String
+
+    /// ISO-8601 timestamp of when the scaffold was created.
+    let createdAt: String
+
+    /// Review decisions recorded by the engineer in Atlas Mind.
+    /// Empty at export time; populated by Atlas Mind after review.
+    let decisions: [String]
+
+    init(visitReference: String, createdAt: String) {
+        self.schemaVersion = "1.0"
+        self.type = "atlas.visit.review_decisions"
+        self.visitReference = visitReference
+        self.createdAt = createdAt
+        self.decisions = []
     }
 }

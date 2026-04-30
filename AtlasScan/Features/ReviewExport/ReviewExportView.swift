@@ -57,14 +57,14 @@ struct ReviewExportView: View {
             Text("This will package the session capture and mark it as exported.")
         }
         .confirmationDialog(
-            "Export Workspace Package?",
+            "Open in Atlas Mind?",
             isPresented: $showingWorkspaceExportConfirm,
             titleVisibility: .visible
         ) {
-            Button("Export Package") { performWorkspaceExport() }
+            Button("Build Package") { performWorkspaceExport() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will assemble a workspace folder with the session capture, photos, and floor plans.")
+            Text("This will assemble a .atlasvisit package with the session capture, photos, and floor plans.")
         }
     }
 
@@ -204,7 +204,7 @@ struct ReviewExportView: View {
             Button {
                 showingWorkspaceExportConfirm = true
             } label: {
-                Label("Export Workspace Package", systemImage: "folder.badge.plus")
+                Label("Open in Atlas Mind", systemImage: "square.and.arrow.up")
                     .font(.body.bold())
                     .frame(maxWidth: .infinity)
             }
