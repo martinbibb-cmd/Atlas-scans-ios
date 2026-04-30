@@ -24,28 +24,9 @@ struct RoomScanListView: View {
         .navigationTitle("Room Scans")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingCapture) {
-            NavigationStack {
-                VStack(spacing: 20) {
-                    Image(systemName: "lidar.scanner")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("LiDAR Capture Unavailable")
-                        .font(.headline)
-                    Text("Room scanning requires the RoomPlan capture module.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("Dismiss") { showingCapture = false }
-                        .buttonStyle(.bordered)
-                }
-                .padding()
-                .navigationTitle("Room Scan")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { showingCapture = false }
-                    }
-                }
+            RoomScanManualEntrySheet { scan in
+                store.addRoomScan(scan)
+                showingCapture = false
             }
         }
         .sheet(item: $editingScan) { scan in
@@ -61,13 +42,13 @@ struct RoomScanListView: View {
     private var emptyState: some View {
         Section {
             VStack(spacing: 12) {
-                Image(systemName: "lidar.scanner")
+                Image(systemName: "cube.transparent")
                     .font(.system(size: 40))
                     .foregroundStyle(.secondary)
                 Text("No room scans yet")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Capture a LiDAR room scan to document each room's geometry.")
+                Text("Add a room scan record to document each room's geometry.")
                     .font(.caption)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.tertiary)
@@ -154,15 +135,95 @@ struct RoomScanListView: View {
             Button {
                 showingCapture = true
             } label: {
-                Label("Capture Room Scan", systemImage: "lidar.scanner")
+                Label("Add Room Scan", systemImage: "cube.transparent")
                     .font(.body.bold())
             }
         } header: {
             Text("Actions")
         } footer: {
-            Text("LiDAR scan data is stored as raw evidence. No heat-loss or engineering calculations are run on scan assets.")
+            Text("Room scan records are stored as raw evidence. No heat-loss or engineering calculations are run on scan assets.")
                 .font(.caption2)
         }
+    }
+}
+
+// MARK: - RoomScanManualEntrySheet
+//
+// Lets the engineer manually record a room scan artefact when
+// LiDAR hardware capture is unavailable or not required.
+// All fields are optional except the room label; engineers can fill
+// in dimensions and confidence from their own measurement tools.
+
+struct RoomScanManualEntrySheet: View {
+
+    let onSave: (CapturedRoomScanDraft) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var roomLabel:   String = ""
+    @State private var widthText:   String = ""
+    @State private var depthText:   String = ""
+    @State private var heightText:  String = ""
+    @State private var confidence:  RoomScanConfidence = .medium
+
+    private var canSave: Bool {
+        !roomLabel.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Room Details") {
+                    TextField("Room label (e.g. Kitchen)", text: $roomLabel)
+                }
+
+                Section {
+                    TextField("Width (m)", text: $widthText)
+                        .keyboardType(.decimalPad)
+                    TextField("Depth (m)", text: $depthText)
+                        .keyboardType(.decimalPad)
+                    TextField("Ceiling height (m)", text: $heightText)
+                        .keyboardType(.decimalPad)
+                } header: {
+                    Text("Dimensions (optional)")
+                } footer: {
+                    Text("Enter approximate room dimensions if known.")
+                        .font(.caption2)
+                }
+
+                Section("Confidence") {
+                    Picker("Confidence", selection: $confidence) {
+                        ForEach(RoomScanConfidence.allCases, id: \.self) { c in
+                            Text(c.displayName).tag(c)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .navigationTitle("Add Room Scan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveScan() }
+                        .disabled(!canSave)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func saveScan() {
+        var scan = CapturedRoomScanDraft()
+        scan.roomLabel  = roomLabel.trimmingCharacters(in: .whitespaces)
+        scan.rawWidthM  = Double(widthText.trimmingCharacters(in: .whitespaces))
+        scan.rawDepthM  = Double(depthText.trimmingCharacters(in: .whitespaces))
+        scan.rawHeightM = Double(heightText.trimmingCharacters(in: .whitespaces))
+        scan.confidence = confidence
+        onSave(scan)
+        dismiss()
     }
 }
 

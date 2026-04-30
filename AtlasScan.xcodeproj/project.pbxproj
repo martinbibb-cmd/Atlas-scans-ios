@@ -69,6 +69,7 @@
 		AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D5 /* VoiceNoteRecorderViewModel.swift */; };
 		AA0100D6 /* LiveCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D6 /* LiveCaptureView.swift */; };
 		AA0100D7 /* FloorPlanEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D7 /* FloorPlanEditorView.swift */; };
+		AA0100E8 /* FloorPlanReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200E8 /* FloorPlanReviewView.swift */; };
 		AA0100D8 /* ReviewVisitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D8 /* ReviewVisitView.swift */; };
 		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
 		AA0100DA /* AtlasRecommendationsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DA /* AtlasRecommendationsSync.swift */; };
@@ -165,6 +166,7 @@
 		AA0200D5 /* VoiceNoteRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderViewModel.swift; sourceTree = "<group>"; };
 		AA0200D6 /* LiveCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCaptureView.swift; sourceTree = "<group>"; };
 		AA0200D7 /* FloorPlanEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanEditorView.swift; sourceTree = "<group>"; };
+		AA0200E8 /* FloorPlanReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanReviewView.swift; sourceTree = "<group>"; };
 		AA0200D8 /* ReviewVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewVisitView.swift; sourceTree = "<group>"; };
 		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
 		AA0200DA /* AtlasRecommendationsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsSync.swift; sourceTree = "<group>"; };
@@ -411,6 +413,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0200D7 /* FloorPlanEditorView.swift */,
+				AA0200E8 /* FloorPlanReviewView.swift */,
 			);
 			path = FloorPlanEditor;
 			sourceTree = "<group>";
@@ -668,6 +671,7 @@
 				AA0100D5 /* VoiceNoteRecorderViewModel.swift in Sources */,
 				AA0100D6 /* LiveCaptureView.swift in Sources */,
 				AA0100D7 /* FloorPlanEditorView.swift in Sources */,
+				AA0100E8 /* FloorPlanReviewView.swift in Sources */,
 				AA0100D8 /* ReviewVisitView.swift in Sources */,
 				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
 				AA0100DA /* AtlasRecommendationsSync.swift in Sources */,

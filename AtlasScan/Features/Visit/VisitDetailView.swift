@@ -6,9 +6,13 @@ import PhotosUI
 // Main capture container for a single visit session.
 //
 // The engineer can:
+//   • Scan rooms / areas via the room scan flow
+//   • Place typed object pins (boiler, radiator, etc.)
+//   • Review and annotate floor plans
+//   • Record voice notes (transcript-only export)
 //   • Add photos via the system photo picker
 //   • Add free-text notes
-//   • Review all captured evidence
+//   • Review all captured evidence and export
 //   • End / exit the visit at any time
 //
 // Design rule: the "End Visit" action is always visible in the toolbar.
@@ -21,10 +25,11 @@ struct VisitDetailView: View {
 
     @StateObject private var store: CaptureSessionStore
 
-    @State private var showingPhotoCapture  = false
-    @State private var showingTextNote      = false
-    @State private var showingReview        = false
-    @State private var showingExitConfirm   = false
+    @State private var showingPhotoCapture         = false
+    @State private var showingTextNote             = false
+    @State private var showingObjectPinPlacement   = false
+    @State private var showingVoiceNoteRecorder    = false
+    @State private var showingExitConfirm          = false
 
     // MARK: Init
 
@@ -66,8 +71,22 @@ struct VisitDetailView: View {
         .sheet(isPresented: $showingTextNote) {
             TextNoteSheet(store: store)
         }
-        .sheet(isPresented: $showingReview) {
-            VisitReviewView(store: store, onDone: { showingReview = false })
+        .sheet(isPresented: $showingObjectPinPlacement) {
+            ObjectPinPlacementView(
+                roomScans: store.draft.roomScans,
+                photos: store.draft.photos
+            ) { pin in
+                store.addObjectPin(pin)
+                showingObjectPinPlacement = false
+            }
+        }
+        .sheet(isPresented: $showingVoiceNoteRecorder) {
+            CaptureVoiceNoteRecorderSheet(
+                roomScans: store.draft.roomScans
+            ) { note in
+                store.addVoiceNote(note)
+                showingVoiceNoteRecorder = false
+            }
         }
     }
 
@@ -85,10 +104,12 @@ struct VisitDetailView: View {
             .tint(.red)
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Review") {
-                showingReview = true
+            NavigationLink {
+                ReviewExportView(store: store)
+            } label: {
+                Text("Review")
+                    .fontWeight(.semibold)
             }
-            .fontWeight(.semibold)
         }
     }
 
@@ -131,6 +152,26 @@ struct VisitDetailView: View {
 
     private var captureSection: some View {
         Section("Capture Evidence") {
+            NavigationLink {
+                RoomScanListView(store: store)
+            } label: {
+                Label("Scan Room / Area", systemImage: "cube.transparent")
+            }
+            Button {
+                showingObjectPinPlacement = true
+            } label: {
+                Label("Place Object", systemImage: "mappin.circle")
+            }
+            NavigationLink {
+                FloorPlanReviewView(store: store)
+            } label: {
+                Label("Review Floor Plan", systemImage: "map")
+            }
+            Button {
+                showingVoiceNoteRecorder = true
+            } label: {
+                Label("Record Voice Note", systemImage: "mic.badge.plus")
+            }
             Button {
                 showingPhotoCapture = true
             } label: {
@@ -148,27 +189,77 @@ struct VisitDetailView: View {
 
     private var evidenceSummarySection: some View {
         Section("Evidence") {
-            if store.draft.photos.isEmpty && store.draft.voiceNotes.isEmpty {
-                Text("No evidence captured yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                if !store.draft.photos.isEmpty {
-                    LabeledContent("Photos") {
-                        Text("\(store.draft.photos.count)")
-                            .foregroundStyle(.secondary)
-                    }
+            NavigationLink {
+                RoomScanListView(store: store)
+            } label: {
+                evidenceRow(
+                    title: "Room Scans",
+                    symbol: "cube.transparent",
+                    count: store.draft.roomScans.count
+                )
+            }
+            NavigationLink {
+                PhotoListView(store: store)
+            } label: {
+                evidenceRow(
+                    title: "Photos",
+                    symbol: "camera",
+                    count: store.draft.photos.count
+                )
+            }
+            NavigationLink {
+                VoiceNotesView(store: store)
+            } label: {
+                evidenceRow(
+                    title: "Notes",
+                    symbol: "mic",
+                    count: store.draft.voiceNotes.count,
+                    detail: transcriptDetail
+                )
+            }
+            NavigationLink {
+                ObjectPinListView(store: store)
+            } label: {
+                evidenceRow(
+                    title: "Objects & Pins",
+                    symbol: "mappin.and.ellipse",
+                    count: store.draft.objectPins.count
+                )
+            }
+            NavigationLink {
+                FloorPlanReviewView(store: store)
+            } label: {
+                evidenceRow(
+                    title: "Floor Plans",
+                    symbol: "map",
+                    count: store.draft.floorPlanSnapshots.count
+                )
+            }
+        }
+    }
+
+    private var transcriptDetail: String? {
+        let total = store.draft.voiceNotes.count
+        guard total > 0 else { return nil }
+        let transcribed = store.draft.voiceNotes.filter {
+            !$0.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }.count
+        return "\(transcribed)/\(total) transcribed"
+    }
+
+    private func evidenceRow(title: String, symbol: String, count: Int, detail: String? = nil) -> some View {
+        HStack {
+            Label(title, systemImage: symbol)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(count)")
+                    .font(.body.monospacedDigit())
+                    .foregroundStyle(count == 0 ? .tertiary : .secondary)
+                if let detail {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                if !store.draft.voiceNotes.isEmpty {
-                    LabeledContent("Notes") {
-                        Text("\(store.draft.voiceNotes.count)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Button("Review All Evidence →") {
-                    showingReview = true
-                }
-                .font(.subheadline)
             }
         }
     }
