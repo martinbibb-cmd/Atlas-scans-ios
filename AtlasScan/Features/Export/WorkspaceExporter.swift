@@ -123,7 +123,7 @@ enum WorkspaceExporter {
         let atlasVisitURL = fileManager.temporaryDirectory
             .appendingPathComponent("\(safeRef).atlasvisit")
         try? fileManager.removeItem(at: atlasVisitURL)
-        try fileManager.zipItem(at: packageURL, to: atlasVisitURL, shouldKeepParent: true)
+        try createZipArchive(from: packageURL, to: atlasVisitURL, keepParent: true)
 
         return WorkspacePackageResult(packageURL: packageURL, atlasVisitURL: atlasVisitURL)
     }
@@ -147,6 +147,151 @@ enum WorkspaceExporter {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
+
+    // MARK: - ZIP archive writer
+    //
+    // Produces a spec-compliant ZIP archive (PKWARE App Note §V) using the
+    // STORED (uncompressed) method — no third-party dependency required.
+    // CRC-32 is computed with a pure-Swift reflected-polynomial implementation.
+    //
+    // Limitations: standard ZIP format (no ZIP64), so entry count must be
+    // ≤ 65,535 and each file must be < 4 GB — both safe for on-device packages.
+
+    // External file attribute bit indicating an MS-DOS directory entry.
+    private static let msDosDirectoryAttribute: UInt32 = 0x0010_0000
+
+    private static func createZipArchive(
+        from sourceDirectory: URL,
+        to destinationURL: URL,
+        keepParent: Bool
+    ) throws {
+        let fm = FileManager.default
+        // Normalise to avoid trailing-slash ambiguity in path prefix stripping.
+        let basePath = (keepParent
+            ? sourceDirectory.deletingLastPathComponent().path
+            : sourceDirectory.path)
+            .appending("/")
+
+        guard let enumerator = fm.enumerator(
+            at: sourceDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        var entries: [(url: URL, isDirectory: Bool)] = []
+        if keepParent {
+            entries.append((url: sourceDirectory, isDirectory: true))
+        }
+        for case let item as URL in enumerator {
+            let rv = try item.resourceValues(forKeys: [.isDirectoryKey])
+            entries.append((url: item, isDirectory: rv.isDirectory ?? false))
+        }
+
+        guard entries.count <= Int(UInt16.max) else {
+            throw CocoaError(.fileWriteUnknown)  // ZIP format limit: max 65,535 entries
+        }
+
+        var archive = Data()
+        var centralDirectory = Data()
+
+        for entry in entries {
+            // Strip the base prefix to obtain the archive-relative path.
+            let fullPath = entry.url.path
+            let relativePath = fullPath.hasPrefix(basePath)
+                ? String(fullPath.dropFirst(basePath.count))
+                : entry.url.lastPathComponent
+            let entryName = entry.isDirectory ? relativePath + "/" : relativePath
+            let nameData = entryName.data(using: .utf8) ?? Data()
+
+            let fileData: Data = entry.isDirectory ? Data() : (try Data(contentsOf: entry.url))
+            guard fileData.count <= Int(UInt32.max) else {
+                throw CocoaError(.fileWriteUnknown) // ZIP format limit: max ~4 GB per file
+            }
+            let crc: UInt32 = fileData.isEmpty ? 0 : computeCRC32(fileData)
+            let localOffset = UInt32(archive.count)
+
+            var lh = Data()
+            lh.appendLE32(0x04034B50)                    // local file header sig
+            lh.appendLE16(20)                             // version needed
+            lh.appendLE16(0)                              // flags
+            lh.appendLE16(0)                              // compression: STORED
+            lh.appendLE16(0)                              // mod time
+            lh.appendLE16(0)                              // mod date
+            lh.appendLE32(crc)
+            lh.appendLE32(UInt32(fileData.count))         // compressed size
+            lh.appendLE32(UInt32(fileData.count))         // uncompressed size
+            lh.appendLE16(UInt16(nameData.count))
+            lh.appendLE16(0)                              // extra field length
+            lh.append(nameData)
+            archive.append(lh)
+            archive.append(fileData)
+
+            var cd = Data()
+            cd.appendLE32(0x02014B50)                    // central dir file header sig
+            cd.appendLE16(20)                             // version made by
+            cd.appendLE16(20)                             // version needed
+            cd.appendLE16(0)                              // flags
+            cd.appendLE16(0)                              // compression: STORED
+            cd.appendLE16(0)                              // mod time
+            cd.appendLE16(0)                              // mod date
+            cd.appendLE32(crc)
+            cd.appendLE32(UInt32(fileData.count))         // compressed size
+            cd.appendLE32(UInt32(fileData.count))         // uncompressed size
+            cd.appendLE16(UInt16(nameData.count))
+            cd.appendLE16(0)                              // extra field length
+            cd.appendLE16(0)                              // file comment length
+            cd.appendLE16(0)                              // disk number start
+            cd.appendLE16(0)                              // internal file attributes
+            cd.appendLE32(entry.isDirectory ? msDosDirectoryAttribute : 0)
+            cd.appendLE32(localOffset)
+            cd.append(nameData)
+            centralDirectory.append(cd)
+        }
+
+        let cdOffset = UInt32(archive.count)
+        archive.append(centralDirectory)
+
+        var eocd = Data()
+        eocd.appendLE32(0x06054B50)                      // end of central dir sig
+        eocd.appendLE16(0)                                // disk number
+        eocd.appendLE16(0)                                // disk with start of CD
+        eocd.appendLE16(UInt16(entries.count))            // entries on disk
+        eocd.appendLE16(UInt16(entries.count))            // total entries
+        eocd.appendLE32(UInt32(centralDirectory.count))   // size of CD
+        eocd.appendLE32(cdOffset)                         // offset of CD start
+        eocd.appendLE16(0)                                // comment length
+        archive.append(eocd)
+
+        try archive.write(to: destinationURL, options: .atomic)
+    }
+
+    /// Standard CRC-32 checksum (ISO 3309 / PKZIP reflected polynomial 0xEDB88320).
+    private static func computeCRC32(_ data: Data) -> UInt32 {
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in data {
+            var c = (crc ^ UInt32(byte)) & 0xFF
+            for _ in 0..<8 {
+                c = (c & 1) != 0 ? 0xEDB8_8320 ^ (c >> 1) : c >> 1
+            }
+            crc = c ^ (crc >> 8)
+        }
+        return crc ^ 0xFFFF_FFFF
+    }
+}
+
+// MARK: - Data little-endian helpers
+
+private extension Data {
+    mutating func appendLE16(_ value: UInt16) {
+        var v = value.littleEndian
+        Swift.withUnsafeBytes(of: &v) { append(contentsOf: $0) }
+    }
+    mutating func appendLE32(_ value: UInt32) {
+        var v = value.littleEndian
+        Swift.withUnsafeBytes(of: &v) { append(contentsOf: $0) }
+    }
 }
 
 // MARK: - WorkspaceScaffold
