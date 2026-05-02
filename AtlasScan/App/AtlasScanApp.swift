@@ -18,9 +18,12 @@ import AtlasContracts
 @main
 struct AtlasScanApp: App {
 
+    @StateObject private var visitStore = AtlasScanVisitStore.shared
+
     var body: some Scene {
         WindowGroup {
             HomeView()
+                .environmentObject(visitStore)
         }
     }
 }

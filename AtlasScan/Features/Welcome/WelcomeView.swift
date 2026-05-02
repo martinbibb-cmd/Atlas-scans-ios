@@ -5,9 +5,10 @@ import AtlasContracts
 //
 // Atlas Scan home screen.
 //
-// Three navigation paths:
-//   • Open Atlas Mind          → full-screen Atlas Recommendations WebView
-//   • Start Local Capture Visit → sheet to enter visit number, then VisitDetailView
+// Navigation paths:
+//   • Resume Active Visit       → VisitHomeView (when a visit is already in progress)
+//   • Start Local Capture Visit → StartVisitView sheet → VisitHomeView
+//   • Open Atlas Mind           → full-screen Atlas Recommendations WebView
 //   • Saved Visits              → full-screen list of persisted local visits
 //
 // Developer mode:
@@ -20,6 +21,7 @@ import AtlasContracts
 
 struct HomeView: View {
 
+    @EnvironmentObject private var visitStore: AtlasScanVisitStore
     @StateObject private var developerMode = DeveloperModeStore.shared
 
     @State private var showingMind        = false
@@ -28,6 +30,7 @@ struct HomeView: View {
     @State private var showingNewVisit    = false
     @State private var showingSavedVisits = false
     @State private var openVisit: CaptureSessionDraft?
+    @State private var showingVisitHome   = false
 
     // Dev-mode unlock tap counter
     @State private var devTapCount  = 0
@@ -63,6 +66,17 @@ struct HomeView: View {
 
                 // MARK: Action tiles
                 VStack(spacing: 16) {
+                    // Resume active visit — shown only when a visit is in progress
+                    if let active = visitStore.activeVisit {
+                        HomeCard(
+                            title: "Resume Active Visit",
+                            subtitle: active.visitNumber.map { "Visit \($0) is in progress." }
+                                ?? "A visit is currently in progress.",
+                            symbolName: "arrow.clockwise.circle.fill",
+                            accentColor: .blue
+                        ) { showingVisitHome = true }
+                    }
+
                     HomeCard(
                         title: "Open Atlas Mind",
                         subtitle: "View recommendations, reports and visit history.",
@@ -74,7 +88,7 @@ struct HomeView: View {
                         title: "Start Local Capture Visit",
                         subtitle: "Begin a new on-site evidence capture visit.",
                         symbolName: "camera.viewfinder",
-                        accentColor: .blue
+                        accentColor: visitStore.activeVisit == nil ? .blue : Color(.systemGray)
                     ) { showingNewVisit = true }
 
                     HomeCard(
@@ -111,20 +125,24 @@ struct HomeView: View {
                 mindVisitId = nil
             }
         }
-        // New visit flow — sheet to enter reference, then full-screen detail
+        // New visit — sheet to enter reference, creates via visitStore → VisitHomeView
         .sheet(isPresented: $showingNewVisit) {
-            StartVisitView { draft in
+            StartVisitView {
                 showingNewVisit = false
-                openVisit = draft
+                showingVisitHome = visitStore.activeVisit != nil
+            }
+            .environmentObject(visitStore)
+        }
+        // Active visit home — driven by visitStore.activeVisit
+        .fullScreenCover(isPresented: $showingVisitHome) {
+            if let visit = visitStore.activeVisit {
+                VisitHomeView(visit: visit, onExit: {
+                    showingVisitHome = false
+                })
+                .environmentObject(visitStore)
             }
         }
-        // Open a specific visit (from new-visit or from saved-visits or URL)
-        .fullScreenCover(item: $openVisit) { draft in
-            VisitDetailView(initialDraft: draft) {
-                openVisit = nil
-            }
-        }
-        // Saved visits list
+        // Saved visits list (legacy VisitDetailView flow preserved for existing drafts)
         .fullScreenCover(isPresented: $showingSavedVisits) {
             SavedVisitsView(
                 onOpen: { draft in
@@ -133,6 +151,12 @@ struct HomeView: View {
                 },
                 onClose: { showingSavedVisits = false }
             )
+        }
+        // Open a specific saved visit via VisitDetailView (backward-compat)
+        .fullScreenCover(item: $openVisit) { draft in
+            VisitDetailView(initialDraft: draft) {
+                openVisit = nil
+            }
         }
         // Developer mode toast overlay
         .overlay(alignment: .bottom) {
@@ -147,6 +171,12 @@ struct HomeView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showDevToast)
+        // Resume active visit on launch / return to home
+        .onAppear {
+            if visitStore.activeVisit != nil {
+                showingVisitHome = true
+            }
+        }
         // URL scheme handler: atlasscan://?visitId=<ref>&handoff=<base64>
         .onOpenURL { url in
             handleIncomingURL(url)
