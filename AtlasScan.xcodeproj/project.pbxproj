@@ -76,7 +76,6 @@
 		AA0100F5 /* Comparable+Clamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F5 /* Comparable+Clamp.swift */; };
 		AA0100D8 /* ReviewVisitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D8 /* ReviewVisitView.swift */; };
 		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
-		AA0100DA /* AtlasRecommendationsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DA /* AtlasRecommendationsSync.swift */; };
 		AA0100DB /* AtlasRecommendationsWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DB /* AtlasRecommendationsWebView.swift */; };
 		AA0100DC /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DC /* WelcomeView.swift */; };
 		AA0100DD /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* VisitPickerView.swift */; };
@@ -204,7 +203,6 @@
 		AA0200F5 /* Comparable+Clamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamp.swift"; sourceTree = "<group>"; };
 		AA0200D8 /* ReviewVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewVisitView.swift; sourceTree = "<group>"; };
 		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
-		AA0200DA /* AtlasRecommendationsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsSync.swift; sourceTree = "<group>"; };
 		AA0200DB /* AtlasRecommendationsWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsWebView.swift; sourceTree = "<group>"; };
 		AA0200DC /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		AA0200DD /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
@@ -524,7 +522,6 @@
 			isa = PBXGroup;
 			children = (
 				AA0200D9 /* AtlasKeychainStore.swift */,
-				AA0200DA /* AtlasRecommendationsSync.swift */,
 				AA0200DB /* AtlasRecommendationsWebView.swift */,
 			);
 			path = AtlasRecommendations;
@@ -799,7 +796,6 @@
 				AA0100F5 /* Comparable+Clamp.swift in Sources */,
 				AA0100D8 /* ReviewVisitView.swift in Sources */,
 				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
-				AA0100DA /* AtlasRecommendationsSync.swift in Sources */,
 				AA0100DB /* AtlasRecommendationsWebView.swift in Sources */,
 				AA0100DC /* WelcomeView.swift in Sources */,
 				AA0100DD /* VisitPickerView.swift in Sources */,

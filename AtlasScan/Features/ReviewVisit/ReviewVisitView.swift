@@ -1,6 +1,10 @@
 import SwiftUI
 import AtlasContracts
 
+// Atlas Scan is capture-only.
+// Recommendation, simulation, scenario ranking, presentation,
+// portal and PDF outputs are owned by Atlas Mind.
+
 // MARK: - ReviewVisitView
 //
 // Full visit review screen shown before export.
@@ -12,17 +16,13 @@ import AtlasContracts
 //   4. Photos — grid with room/object badges
 //   5. Transcript — voice notes grouped by room with status badges
 //   6. Readiness — blocking errors + non-blocking warnings
-//   7. Export — export button + sync state
+//   7. Export — "Open in Atlas Mind" package handoff
 
 struct ReviewVisitView: View {
 
     @ObservedObject var store: CaptureSessionStore
 
-    @State private var showingExportPreview = false
-    @State private var exportResult: CaptureExportResult?
-    @State private var exportError: String?
-    @State private var showingExportConfirm = false
-    @State private var showingFullPhoto: CapturedPhotoDraft? = nil
+    @State private var atlasMindExportError: String?
 
     @State private var showingAtlasMindShare = false
     @State private var atlasVisitURL: URL?
@@ -41,25 +41,10 @@ struct ReviewVisitView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Review Visit")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingExportPreview) {
-            if let result = exportResult {
-                exportPreviewSheet(result: result)
-            }
-        }
         .sheet(isPresented: $showingAtlasMindShare) {
             if let url = atlasVisitURL {
                 ShareSheet(items: [url])
             }
-        }
-        .confirmationDialog(
-            "Export to Atlas Recommendations?",
-            isPresented: $showingExportConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Export Now") { performExport() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This packages the session and sends it to Atlas Recommendations.")
         }
         .confirmationDialog(
             "Open in Atlas Mind?",
@@ -250,7 +235,6 @@ struct ReviewVisitView: View {
                     .lineLimit(1)
             }
         }
-        .onTapGesture { showingFullPhoto = photo }
     }
 
     // MARK: - Transcript section
@@ -360,20 +344,10 @@ struct ReviewVisitView: View {
             if store.draft.exportState == .exported {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(.green)
-                    Text("Session exported to Atlas Recommendations")
+                    Text("Session exported to Atlas Mind")
                         .font(.caption.bold()).foregroundStyle(.green)
                 }
             }
-
-            Button {
-                showingExportConfirm = true
-            } label: {
-                Label("Export to Atlas Recommendations", systemImage: "arrow.up.circle.fill")
-                    .font(.body.bold()).frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!isReady || store.draft.exportState == .exported)
-            .listRowBackground(Color.clear)
 
             Button {
                 showingAtlasMindConfirm = true
@@ -381,76 +355,29 @@ struct ReviewVisitView: View {
                 Label("Open in Atlas Mind", systemImage: "square.and.arrow.up.on.square")
                     .font(.body.bold()).frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
             .disabled(!isReady)
             .listRowBackground(Color.clear)
 
-            if let errMsg = exportError {
+            if let errMsg = atlasMindExportError {
                 Label(errMsg, systemImage: "xmark.circle")
                     .font(.caption).foregroundStyle(.red)
             }
         }
     }
 
-    // MARK: - Export action
-
-    private func performExport() {
-        exportError = nil
-        do {
-            let result = try CaptureSessionExporter.export(store.draft)
-            exportResult = result
-            store.markExported()
-            showingExportPreview = true
-        } catch {
-            exportError = "Export failed: \(error.localizedDescription)"
-            store.markExportFailed()
-        }
-    }
-
     // MARK: - Open in Atlas Mind action
 
     private func performAtlasMindExport() {
-        exportError = nil
-        do {
+        atlasMindExportError = nil
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
             atlasVisitURL = package.atlasVisitURL
             store.markExported()
             showingAtlasMindShare = true
         } catch {
-            exportError = "Atlas Mind export failed: \(error.localizedDescription)"
+            atlasMindExportError = "Atlas Mind export failed: \(error.localizedDescription)"
             store.markExportFailed()
-        }
-    }
-
-    // MARK: - Export preview sheet
-
-    @ViewBuilder
-    private func exportPreviewSheet(result: CaptureExportResult) -> some View {
-        NavigationStack {
-            ScrollView {
-                Text(String(data: result.jsonData, encoding: .utf8) ?? "(empty)")
-                    .font(.system(.caption2, design: .monospaced))
-                    .padding()
-            }
-            .navigationTitle("Export Preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        showingExportPreview = false
-                        exportResult = nil
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    let json = String(data: result.jsonData, encoding: .utf8) ?? ""
-                    ShareLink(
-                        item: json,
-                        subject: Text("Atlas Capture Export"),
-                        message: Text("atlas_capture_\(store.draft.visitReference).json")
-                    )
-                }
-            }
         }
     }
 }

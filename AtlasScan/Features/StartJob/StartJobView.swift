@@ -78,7 +78,7 @@ struct StartJobView: View {
             }
 
             fieldGroup {
-                fieldLabel("Appointment ID (optional — links this visit to Atlas Recommendations)")
+                fieldLabel("Appointment ID (optional — links this visit to Atlas Mind)")
                 TextField("Atlas appointment UUID", text: $appointmentId)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
