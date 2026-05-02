@@ -125,8 +125,6 @@
 		AA010501 /* PermissionPreflightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020501 /* PermissionPreflightView.swift */; };
 		AA010502 /* TestFlightDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020502 /* TestFlightDiagnosticsView.swift */; };
 		AA010503 /* TestFlightFeedbackReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020503 /* TestFlightFeedbackReporter.swift */; };
-
-		AA010600 /* CustomerPackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020600 /* CustomerPackView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -252,8 +250,6 @@
 		AA020502 /* TestFlightDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestFlightDiagnosticsView.swift; sourceTree = "<group>"; };
 		AA020503 /* TestFlightFeedbackReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestFlightFeedbackReporter.swift; sourceTree = "<group>"; };
 
-		AA020600 /* CustomerPackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerPackView.swift; sourceTree = "<group>"; };
-
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -325,7 +321,6 @@
 				AA050040 /* Review */,
 				AA050050 /* Handoff */,
 				AA050060 /* Diagnostics */,
-				AA050070 /* CustomerPack */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -543,14 +538,6 @@
 				AA020503 /* TestFlightFeedbackReporter.swift */,
 			);
 			path = Diagnostics;
-			sourceTree = "<group>";
-		};
-		AA050070 /* CustomerPack */ = {
-			isa = PBXGroup;
-			children = (
-				AA020600 /* CustomerPackView.swift */,
-			);
-			path = CustomerPack;
 			sourceTree = "<group>";
 		};
 		AA050036 /* AtlasRecommendations */ = {
@@ -864,8 +851,6 @@
 				AA010501 /* PermissionPreflightView.swift in Sources */,
 				AA010502 /* TestFlightDiagnosticsView.swift in Sources */,
 				AA010503 /* TestFlightFeedbackReporter.swift in Sources */,
-
-				AA010600 /* CustomerPackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
