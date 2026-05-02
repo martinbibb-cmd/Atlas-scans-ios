@@ -35,12 +35,13 @@ struct VisitHomeView: View {
 
     // MARK: Presentation state
 
-    @State private var showingExitConfirm   = false
-    @State private var showingCompleteGate  = false
-    @State private var showingCompletion    = false
-    @State private var showingVoiceNote     = false
-    @State private var showingPhotoCapture  = false
-    @State private var showingTextNote      = false
+    @State private var showingExitConfirm      = false
+    @State private var showingCompleteGate     = false
+    @State private var showingCompletion       = false
+    @State private var showingVoiceNote        = false
+    @State private var showingPhotoCapture     = false
+    @State private var showingTextNote         = false
+    @State private var showingCaptureV2Debug   = false
 
     // MARK: Init
 
@@ -108,8 +109,14 @@ struct VisitHomeView: View {
             .sheet(isPresented: $showingTextNote) {
                 TextNoteSheet(store: captureStore)
             }
+            .sheet(isPresented: $showingCaptureV2Debug) {
+                if let visit = visitStore.activeVisit {
+                    SessionCaptureV2DebugView(visit: visit, draft: captureStore.draft)
+                }
+            }
         }
         .onAppear { syncReadiness() }
+        .onReceive(captureStore.$draft) { _ in rebuildAndPersistCapture() }
     }
 
     // MARK: - Visit info section
@@ -255,6 +262,22 @@ struct VisitHomeView: View {
                 } footer: {
                     Text("All seven items must be completed before the visit can be marked as done.")
                 }
+                if DeveloperModeStore.shared.isEnabled {
+                    Section {
+                        Button {
+                            showingCompleteGate = false
+                            showingCaptureV2Debug = true
+                        } label: {
+                            Label("View SessionCaptureV2", systemImage: "doc.text.magnifyingglass")
+                                .foregroundStyle(.orange)
+                        }
+                    } header: {
+                        Text("Developer Tools")
+                    } footer: {
+                        Text("Inspect the current capture payload. Not visible to customers.")
+                            .font(.caption2)
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Not Ready to Complete")
@@ -334,6 +357,19 @@ struct VisitHomeView: View {
         captureStore.saveNow()
         visitStore.clearActiveVisit()
         onExit()
+    }
+
+    /// Rebuilds SessionCaptureV2 from current draft and persists it alongside the visit.
+    ///
+    /// Called whenever the capture draft changes so the persisted payload stays current.
+    private func rebuildAndPersistCapture() {
+        guard let visit = visitStore.activeVisit else { return }
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
+            visit: visit,
+            draft: captureStore.draft
+        )
+        SessionCaptureV2Store.shared.saveCapture(capture, for: visit.visitId)
+        visitStore.updateReadiness(currentReadiness)
     }
 }
 
