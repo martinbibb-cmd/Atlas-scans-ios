@@ -26,6 +26,12 @@
 	<string>Atlas Scan uses on-device speech recognition to transcribe voice notes recorded during site visits. Audio is processed locally and never sent to a third-party service.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Atlas Scan accesses your photo library to import evidence photos for rooms and service objects.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Atlas Scan may save captured evidence photos to your photo library when requested.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Atlas Scan uses motion and orientation data to support ARKit room-capture features during site surveys.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Atlas Scan may use the local network to discover nearby devices for collaborative capture sessions.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
