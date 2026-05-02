@@ -112,6 +112,11 @@
 		AA010202 /* SessionCaptureV2DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020202 /* SessionCaptureV2DebugView.swift */; };
 		AA010203 /* SessionCaptureV2BuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020203 /* SessionCaptureV2BuilderTests.swift */; };
 		AA010204 /* SessionCaptureV2StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020204 /* SessionCaptureV2StoreTests.swift */; };
+
+		AA010300 /* ReviewEvidenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020300 /* ReviewEvidenceView.swift */; };
+		AA010301 /* CaptureReviewUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020301 /* CaptureReviewUpdater.swift */; };
+		AA010302 /* CaptureReviewUpdaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020302 /* CaptureReviewUpdaterTests.swift */; };
+		AA010303 /* VisitReadinessReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020303 /* VisitReadinessReviewTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -224,6 +229,11 @@
 		AA020203 /* SessionCaptureV2BuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureV2BuilderTests.swift; sourceTree = "<group>"; };
 		AA020204 /* SessionCaptureV2StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCaptureV2StoreTests.swift; sourceTree = "<group>"; };
 
+		AA020300 /* ReviewEvidenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewEvidenceView.swift; sourceTree = "<group>"; };
+		AA020301 /* CaptureReviewUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureReviewUpdater.swift; sourceTree = "<group>"; };
+		AA020302 /* CaptureReviewUpdaterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureReviewUpdaterTests.swift; sourceTree = "<group>"; };
+		AA020303 /* VisitReadinessReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitReadinessReviewTests.swift; sourceTree = "<group>"; };
+
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -292,6 +302,7 @@
 				AA050033 /* LiveCapture */,
 				AA050034 /* FloorPlanEditor */,
 				AA050035 /* ReviewVisit */,
+				AA050040 /* Review */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -481,6 +492,15 @@
 			path = ReviewVisit;
 			sourceTree = "<group>";
 		};
+		AA050040 /* Review */ = {
+			isa = PBXGroup;
+			children = (
+				AA020300 /* ReviewEvidenceView.swift */,
+				AA020301 /* CaptureReviewUpdater.swift */,
+			);
+			path = Review;
+			sourceTree = "<group>";
+		};
 		AA050036 /* AtlasRecommendations */ = {
 			isa = PBXGroup;
 			children = (
@@ -567,6 +587,9 @@
 
 				AA020203 /* SessionCaptureV2BuilderTests.swift */,
 				AA020204 /* SessionCaptureV2StoreTests.swift */,
+
+				AA020302 /* CaptureReviewUpdaterTests.swift */,
+				AA020303 /* VisitReadinessReviewTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -779,6 +802,9 @@
 				AA010200 /* SessionCaptureV2Builder.swift in Sources */,
 				AA010201 /* SessionCaptureV2Store.swift in Sources */,
 				AA010202 /* SessionCaptureV2DebugView.swift in Sources */,
+
+				AA010300 /* ReviewEvidenceView.swift in Sources */,
+				AA010301 /* CaptureReviewUpdater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -810,6 +836,9 @@
 
 				AA010203 /* SessionCaptureV2BuilderTests.swift in Sources */,
 				AA010204 /* SessionCaptureV2StoreTests.swift in Sources */,
+
+				AA010302 /* CaptureReviewUpdaterTests.swift in Sources */,
+				AA010303 /* VisitReadinessReviewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

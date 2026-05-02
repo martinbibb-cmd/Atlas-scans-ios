@@ -144,6 +144,17 @@ final class CaptureSessionStore: ObservableObject {
         }
     }
 
+    // MARK: - Review status
+
+    /// Updates the review status of a single evidence item by its UUID.
+    ///
+    /// Searches all evidence categories for a matching ID and applies the new status.
+    func updateReviewStatus(id: UUID, status: EvidenceReviewStatus) {
+        update { draft in
+            CaptureReviewUpdater.updateReviewStatus(id: id, status: status, in: &draft)
+        }
+    }
+
     // MARK: - Floor plan snapshots
 
     func addFloorPlanSnapshot(_ snapshot: CapturedFloorPlanSnapshotDraft) {

@@ -149,6 +149,7 @@ enum RoomPlanMapper {
         scan.confidence    = .high
         scan.captureSource = .lidar
         scan.lidarMetadata = result.rawJSON
+        scan.reviewStatus  = .pending   // LiDAR scans require engineer review
 
         if !result.outlinePoints.isEmpty {
             var plan = FloorPlanDraft()
@@ -164,6 +165,7 @@ enum RoomPlanMapper {
             pin.approximatePositionY  = obj.normalisedPositionY
             pin.pinSource             = .lidar
             pin.pinConfidence         = .inferred
+            pin.reviewStatus          = .pending  // LiDAR-inferred pins require review
             return pin
         }
 
