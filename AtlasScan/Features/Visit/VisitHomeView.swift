@@ -1,0 +1,349 @@
+import SwiftUI
+import AtlasContracts
+
+// MARK: - VisitHomeView
+//
+// Primary hub for an active visit capture session.
+//
+// This is the engineer's home during a visit. Every capture action
+// and the exit/complete lifecycle are accessible from here.
+//
+// Cards:
+//   Scan Rooms · Photos · Voice Notes · Floor Plan
+//   Objects & Pipe Routes · Review Evidence
+//
+// Actions:
+//   Complete Capture  — gates on readiness; shows blocking checklist if missing
+//   Exit Visit        — always available; saves evidence and returns to app home
+//
+// Design rule: no route may trap the engineer. Every sub-screen has a
+// "Back to Visit Home" path via the NavigationStack back button.
+
+struct VisitHomeView: View {
+
+    // MARK: Environment
+
+    @EnvironmentObject private var visitStore: AtlasScanVisitStore
+
+    // MARK: Callbacks
+
+    let onExit: () -> Void
+
+    // MARK: Capture session
+
+    @StateObject private var captureStore: CaptureSessionStore
+
+    // MARK: Presentation state
+
+    @State private var showingExitConfirm   = false
+    @State private var showingCompleteGate  = false
+    @State private var showingCompletion    = false
+    @State private var showingVoiceNote     = false
+    @State private var showingPhotoCapture  = false
+    @State private var showingTextNote      = false
+
+    // MARK: Init
+
+    init(visit: AtlasScanVisit, onExit: @escaping () -> Void) {
+        self.onExit = onExit
+
+        // Load the linked capture session draft, or fall back to a fresh one.
+        let draft: CaptureSessionDraft
+        if let sessionId = visit.captureSessionId,
+           let existing = CaptureSessionPersistence.shared.load(id: sessionId) {
+            draft = existing
+        } else {
+            draft = CaptureSessionStore.newSession(visitReference: visit.visitNumber ?? "")
+        }
+        _captureStore = StateObject(
+            wrappedValue: CaptureSessionStore(draft: draft, persistence: .shared)
+        )
+    }
+
+    // MARK: Body
+
+    var body: some View {
+        NavigationStack {
+            List {
+                visitInfoSection
+                captureSectionCards
+                readinessSection
+                actionsSection
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle(visitStore.activeVisit?.visitNumber ?? "Visit")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar { saveStateBadge }
+            .confirmationDialog(
+                "Exit this visit?",
+                isPresented: $showingExitConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Exit Visit", role: .destructive) { performExit() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your captured evidence is saved locally. You can resume this visit from the home screen.")
+            }
+            .sheet(isPresented: $showingCompleteGate) {
+                completeGateSheet
+            }
+            .fullScreenCover(isPresented: $showingCompletion) {
+                VisitCompleteView {
+                    showingCompletion = false
+                    visitStore.clearActiveVisit()
+                    onExit()
+                }
+            }
+            .sheet(isPresented: $showingPhotoCapture) {
+                PhotoCaptureSheet(store: captureStore)
+            }
+            .sheet(isPresented: $showingVoiceNote) {
+                CaptureVoiceNoteRecorderSheet(
+                    roomScans: captureStore.draft.roomScans
+                ) { note in
+                    captureStore.addVoiceNote(note)
+                    showingVoiceNote = false
+                }
+            }
+            .sheet(isPresented: $showingTextNote) {
+                TextNoteSheet(store: captureStore)
+            }
+        }
+        .onAppear { syncReadiness() }
+    }
+
+    // MARK: - Visit info section
+
+    private var visitInfoSection: some View {
+        Section {
+            LabeledContent("Reference") {
+                Text(captureStore.draft.visitReference.isEmpty
+                     ? "–"
+                     : captureStore.draft.visitReference)
+                    .foregroundStyle(.secondary)
+            }
+            LabeledContent("Status") {
+                Text(visitStore.activeVisit?.status.displayName ?? "–")
+                    .foregroundStyle(statusColor)
+            }
+            LabeledContent("Started") {
+                Text(captureStore.draft.capturedAt, style: .date)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Visit")
+        }
+    }
+
+    private var statusColor: Color {
+        switch visitStore.activeVisit?.status {
+        case .capturing:       return .blue
+        case .readyToComplete: return .green
+        case .complete:        return .secondary
+        default:               return .orange
+        }
+    }
+
+    // MARK: - Capture section cards
+
+    private var captureSectionCards: some View {
+        Section {
+            NavigationLink {
+                RoomScanListView(store: captureStore)
+            } label: {
+                captureRow("Scan Rooms", symbol: "lidar.scanner",
+                           badge: captureStore.draft.roomScans.count)
+            }
+
+            Button { showingPhotoCapture = true } label: {
+                captureRow("Photos", symbol: "camera",
+                           badge: captureStore.draft.photos.count)
+            }
+
+            Button { showingVoiceNote = true } label: {
+                captureRow("Voice Notes", symbol: "mic.badge.plus",
+                           badge: captureStore.draft.voiceNotes.count)
+            }
+
+            NavigationLink {
+                FloorPlanReviewView(store: captureStore)
+            } label: {
+                captureRow("Floor Plan", symbol: "map",
+                           badge: captureStore.draft.floorPlanSnapshots.count)
+            }
+
+            NavigationLink {
+                ObjectPinListView(store: captureStore)
+            } label: {
+                captureRow("Objects & Pipe Routes", symbol: "mappin.and.ellipse",
+                           badge: captureStore.draft.objectPins.count)
+            }
+
+            NavigationLink {
+                VisitReviewView(store: captureStore, onDone: {})
+            } label: {
+                captureRow("Review Evidence", symbol: "checklist",
+                           badge: captureStore.draft.totalArtefactCount)
+            }
+        } header: {
+            Text("Capture Evidence")
+        }
+    }
+
+    private func captureRow(_ title: String, symbol: String, badge: Int) -> some View {
+        HStack {
+            Label(title, systemImage: symbol)
+            Spacer()
+            if badge > 0 {
+                Text("\(badge)")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color(.tertiarySystemFill))
+                    .clipShape(Capsule())
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: - Readiness section
+
+    private var readinessSection: some View {
+        Section {
+            VisitReadinessPanel(readiness: currentReadiness)
+        } header: {
+            Text("Readiness")
+        }
+    }
+
+    // MARK: - Actions section
+
+    private var actionsSection: some View {
+        Section {
+            Button {
+                handleCompleteTapped()
+            } label: {
+                Label("Complete Capture", systemImage: "checkmark.circle.fill")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(allComplete ? .green : .orange)
+            }
+
+            Button(role: .destructive) {
+                showingExitConfirm = true
+            } label: {
+                Label("Exit Visit", systemImage: "xmark.circle")
+            }
+        } header: {
+            Text("Actions")
+        } footer: {
+            if !allComplete {
+                Text("Some required evidence is still missing. Tap Complete Capture to see what's needed.")
+                    .font(.caption2)
+            }
+        }
+    }
+
+    // MARK: - Complete gate sheet
+
+    private var completeGateSheet: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VisitReadinessPanel(readiness: currentReadiness)
+                } header: {
+                    Text("Missing Required Evidence")
+                } footer: {
+                    Text("All seven items must be completed before the visit can be marked as done.")
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Not Ready to Complete")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showingCompleteGate = false }
+                }
+                if DeveloperModeStore.shared.isEnabled {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Developer: mark ready for handoff") {
+                            showingCompleteGate = false
+                            forceComplete()
+                        }
+                        .tint(.orange)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Save state toolbar badge
+
+    @ToolbarContentBuilder
+    private var saveStateBadge: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            switch captureStore.saveState {
+            case .unsaved:
+                Text("Unsaved")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            case .saving:
+                Text("Saving…")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            case .saved:
+                EmptyView()
+            }
+        }
+    }
+
+    // MARK: - Computed readiness
+
+    /// Live readiness derived from the current capture session.
+    private var currentReadiness: VisitReadinessV1 {
+        AtlasScanVisit.deriveReadiness(from: captureStore.draft)
+    }
+
+    /// True when the completion validator says all 7 flags pass.
+    private var allComplete: Bool {
+        validateVisitForCompletion(readiness: currentReadiness).isCompletable
+    }
+
+    // MARK: - Actions
+
+    private func syncReadiness() {
+        visitStore.updateReadiness(currentReadiness)
+    }
+
+    private func handleCompleteTapped() {
+        let result = validateVisitForCompletion(readiness: currentReadiness)
+        if result.isCompletable {
+            visitStore.updateStatus(.readyToComplete)
+            visitStore.updateStatus(.complete)
+            showingCompletion = true
+        } else {
+            showingCompleteGate = true
+        }
+    }
+
+    private func forceComplete() {
+        visitStore.updateStatus(.complete)
+        showingCompletion = true
+    }
+
+    private func performExit() {
+        captureStore.saveNow()
+        visitStore.clearActiveVisit()
+        onExit()
+    }
+}
+
+// MARK: - Preview
+
+#if DEBUG
+#Preview {
+    let store = AtlasScanVisitStore.makeTestInstance()
+    let visit = store.createVisit(visitNumber: "PREVIEW-001", brandId: nil)
+    return VisitHomeView(visit: visit, onExit: {})
+        .environmentObject(store)
+}
+#endif

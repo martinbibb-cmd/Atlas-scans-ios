@@ -99,6 +99,13 @@
 		AA0100F2 /* RoomPlanCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F2 /* RoomPlanCaptureService.swift */; };
 		AA0100F3 /* RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F3 /* RoomPlanCaptureView.swift */; };
 		AA0100F4 /* RoomPlanMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F4 /* RoomPlanMapperTests.swift */; };
+
+		AA010100 /* AtlasScanVisit.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020100 /* AtlasScanVisit.swift */; };
+		AA010101 /* AtlasScanVisitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020101 /* AtlasScanVisitStore.swift */; };
+		AA010102 /* VisitHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020102 /* VisitHomeView.swift */; };
+		AA010103 /* VisitReadinessPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020103 /* VisitReadinessPanel.swift */; };
+		AA010104 /* VisitCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020104 /* VisitCompleteView.swift */; };
+		AA010105 /* AtlasScanVisitStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020105 /* AtlasScanVisitStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -198,6 +205,13 @@
 		AA0200F3 /* RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureView.swift; sourceTree = "<group>"; };
 		AA0200F4 /* RoomPlanMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanMapperTests.swift; sourceTree = "<group>"; };
 
+		AA020100 /* AtlasScanVisit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanVisit.swift; sourceTree = "<group>"; };
+		AA020101 /* AtlasScanVisitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanVisitStore.swift; sourceTree = "<group>"; };
+		AA020102 /* VisitHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitHomeView.swift; sourceTree = "<group>"; };
+		AA020103 /* VisitReadinessPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitReadinessPanel.swift; sourceTree = "<group>"; };
+		AA020104 /* VisitCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitCompleteView.swift; sourceTree = "<group>"; };
+		AA020105 /* AtlasScanVisitStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanVisitStoreTests.swift; sourceTree = "<group>"; };
+
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -283,6 +297,8 @@
 
 				AA020018 /* ServiceObjectCategory.swift */,
 
+				AA020100 /* AtlasScanVisit.swift */,
+
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -302,6 +318,8 @@
 				AA0200B2 /* VoiceNoteTranscriptionService.swift */,
 				AA050036 /* AtlasRecommendations */,
 				AA05003A /* CloudflareAPI */,
+
+				AA020101 /* AtlasScanVisitStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -530,6 +548,8 @@
 				AA0200F4 /* RoomPlanMapperTests.swift */,
 
 				AA020073 /* WorkspaceExporterTests.swift */,
+
+				AA020105 /* AtlasScanVisitStoreTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -552,6 +572,9 @@
 				AA0200E9 /* PhotoCaptureSheet.swift */,
 				AA0200EA /* TextNoteSheet.swift */,
 				AA0200EB /* VisitReviewView.swift */,
+				AA020102 /* VisitHomeView.swift */,
+				AA020103 /* VisitReadinessPanel.swift */,
+				AA020104 /* VisitCompleteView.swift */,
 			);
 			path = Visit;
 			sourceTree = "<group>";
@@ -728,6 +751,12 @@
 				AA0100E9 /* PhotoCaptureSheet.swift in Sources */,
 				AA0100EA /* TextNoteSheet.swift in Sources */,
 				AA0100EB /* VisitReviewView.swift in Sources */,
+
+				AA010100 /* AtlasScanVisit.swift in Sources */,
+				AA010101 /* AtlasScanVisitStore.swift in Sources */,
+				AA010102 /* VisitHomeView.swift in Sources */,
+				AA010103 /* VisitReadinessPanel.swift in Sources */,
+				AA010104 /* VisitCompleteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -754,6 +783,8 @@
 				AA0100F4 /* RoomPlanMapperTests.swift in Sources */,
 
 				AA010073 /* WorkspaceExporterTests.swift in Sources */,
+
+				AA010105 /* AtlasScanVisitStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

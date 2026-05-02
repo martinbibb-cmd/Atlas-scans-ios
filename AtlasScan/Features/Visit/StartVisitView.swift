@@ -5,35 +5,42 @@ import SwiftUI
 // Sheet presented when the engineer taps "Start Local Capture Visit".
 //
 // Collects:
-//   • Visit reference (required — used as identifier and in export)
+//   • Visit reference / number (required)
 //   • Property address (optional)
+//   • Brand / client ID (optional, shown under Advanced)
 //
-// On confirm, creates a persisted CaptureSessionDraft and calls onStart.
+// On confirm:
+//   • Creates a visit via AtlasScanVisitStore (status = capturing).
+//   • Also creates the linked CaptureSessionDraft.
+//   • Calls onStart() to dismiss and navigate to VisitHomeView.
 
 struct StartVisitView: View {
 
-    let onStart: (CaptureSessionDraft) -> Void
+    let onStart: () -> Void
 
+    @EnvironmentObject private var visitStore: AtlasScanVisitStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var visitReference = ""
+    @State private var visitNumber    = ""
     @State private var propertyAddress = ""
-    @FocusState private var referenceFocused: Bool
+    @State private var brandId        = ""
+    @State private var showAdvanced   = false
+    @FocusState private var numberFocused: Bool
 
     private var canStart: Bool {
-        !visitReference.trimmingCharacters(in: .whitespaces).isEmpty
+        !visitNumber.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("e.g. JOB-2025-001", text: $visitReference)
-                        .focused($referenceFocused)
+                    TextField("e.g. JOB-2025-001", text: $visitNumber)
+                        .focused($numberFocused)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
                 } header: {
-                    Text("Visit Reference")
+                    Text("Visit Number")
                 } footer: {
                     Text("Required. Used to identify this visit in exports.")
                 }
@@ -45,6 +52,16 @@ struct StartVisitView: View {
                     Text("Property Address")
                 } footer: {
                     Text("Optional.")
+                }
+
+                Section {
+                    DisclosureGroup("Advanced", isExpanded: $showAdvanced) {
+                        TextField("Brand / client ID", text: $brandId)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+                } footer: {
+                    Text("Brand or client identifier — not required for most visits.")
                 }
             }
             .navigationTitle("New Visit")
@@ -59,19 +76,32 @@ struct StartVisitView: View {
                         .fontWeight(.semibold)
                 }
             }
-            .onAppear { referenceFocused = true }
+            .onAppear { numberFocused = true }
         }
     }
 
     // MARK: - Actions
 
     private func startVisit() {
-        var draft = CaptureSessionStore.newSession(
-            visitReference: visitReference.trimmingCharacters(in: .whitespaces)
+        let ref     = visitNumber.trimmingCharacters(in: .whitespaces)
+        let address = propertyAddress.trimmingCharacters(in: .whitespaces)
+        let brand   = brandId.trimmingCharacters(in: .whitespaces)
+
+        // Create the visit lifecycle via the store (also creates CaptureSessionDraft).
+        let visit = visitStore.createVisit(
+            visitNumber: ref.isEmpty ? nil : ref,
+            brandId: brand.isEmpty ? nil : brand
         )
-        draft.propertyAddress = propertyAddress.trimmingCharacters(in: .whitespaces)
-        CaptureSessionPersistence.shared.save(draft)
-        onStart(draft)
+
+        // Backfill the property address into the linked capture session draft.
+        if !address.isEmpty,
+           let sessionId = visit.captureSessionId,
+           var draft = CaptureSessionPersistence.shared.load(id: sessionId) {
+            draft.propertyAddress = address
+            CaptureSessionPersistence.shared.save(draft)
+        }
+
+        onStart()
     }
 }
 
@@ -79,6 +109,9 @@ struct StartVisitView: View {
 
 #if DEBUG
 #Preview {
-    StartVisitView { _ in }
+    let store = AtlasScanVisitStore.makeTestInstance()
+    StartVisitView(onStart: {})
+        .environmentObject(store)
 }
 #endif
+
