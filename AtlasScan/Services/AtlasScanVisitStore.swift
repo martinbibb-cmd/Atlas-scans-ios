@@ -119,9 +119,9 @@ final class AtlasScanVisitStore: ObservableObject {
     }
 
     /// Updates the readiness flags of the active visit.
-    func updateReadiness(_ readiness: AtlasVisitReadinessV1) {
+    func updateReadiness(_ newReadiness: AtlasVisitReadinessV1) {
         guard var visit = activeVisit else { return }
-        visit.readiness = readiness
+        visit.readiness = newReadiness
         saveActiveVisit(visit)
     }
 

@@ -32,6 +32,11 @@ struct HomeView: View {
     @State private var openVisit: CaptureSessionDraft?
     @State private var showingVisitHome   = false
 
+    // Tracks whether we've already performed the launch-time active-visit check.
+    // Prevents re-navigating to VisitHomeView every time WelcomeView re-appears
+    // (e.g. after swiping down from VisitHomeView).
+    @State private var didCheckOnLaunch = false
+
     // Dev-mode unlock tap counter
     @State private var devTapCount  = 0
     @State private var showDevToast = false
@@ -171,8 +176,11 @@ struct HomeView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showDevToast)
-        // Resume active visit on launch / return to home
+        // Resume active visit on launch only (not on every re-appearance).
+        // After the first check, the "Resume Active Visit" card handles navigation.
         .onAppear {
+            guard !didCheckOnLaunch else { return }
+            didCheckOnLaunch = true
             if visitStore.activeVisit != nil {
                 showingVisitHome = true
             }

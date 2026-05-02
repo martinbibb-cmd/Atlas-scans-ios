@@ -88,7 +88,7 @@ struct StartVisitView: View {
         let brand   = brandId.trimmingCharacters(in: .whitespaces)
 
         // Create the visit lifecycle via the store (also creates CaptureSessionDraft).
-        var visit = visitStore.createVisit(
+        let visit = visitStore.createVisit(
             visitNumber: ref.isEmpty ? nil : ref,
             brandId: brand.isEmpty ? nil : brand
         )
