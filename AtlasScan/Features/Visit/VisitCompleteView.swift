@@ -1,13 +1,27 @@
 import SwiftUI
+import AtlasContracts
 
 // MARK: - VisitCompleteView
 //
 // Shown when the engineer marks a visit as complete.
 //
-// Handoff options (export, ScanToMind, etc.) are reserved for later PRs.
-// This screen provides a clear completion state and a route back to home.
+// Primary action:
+//   Continue in Atlas Mind — encodes the ScanToMindHandoffV1 and opens
+//   the Mind PWA at /receive-scan with the visit preloaded.
+//
+// Secondary action:
+//   Return to Home — clears the active visit and returns to the app home screen.
+//
+// Developer-only:
+//   No JSON inspector or raw payload screen is shown in the normal flow.
 
 struct VisitCompleteView: View {
+
+    /// Pre-built handoff to deliver to Atlas Mind.
+    ///
+    /// Nil when the handoff could not be assembled (e.g. session ID mismatch);
+    /// the "Continue in Atlas Mind" button is hidden in that case.
+    let handoff: ScanToMindHandoffV1?
 
     let onDone: () -> Void
 
@@ -25,7 +39,7 @@ struct VisitCompleteView: View {
                     Text("Visit Complete")
                         .font(.largeTitle.bold())
 
-                    Text("All required evidence has been captured.\nYou can return home or export the data.")
+                    Text("All required evidence has been captured.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -36,23 +50,34 @@ struct VisitCompleteView: View {
 
                 // Actions
                 VStack(spacing: 12) {
+                    if let handoff {
+                        Button {
+                            OpenAtlasMind.openMind(with: handoff)
+                            onDone()
+                        } label: {
+                            Label("Continue in Atlas Mind", systemImage: "brain.head.profile")
+                                .font(.body.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.accentColor)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     Button {
                         onDone()
                     } label: {
                         Label("Return to Home", systemImage: "house")
-                            .font(.body.bold())
+                            .font(.body)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.accentColor)
-                            .foregroundStyle(.white)
+                            .background(Color(.secondarySystemBackground))
+                            .foregroundStyle(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
-
-                    Text("Export and handoff options will be available in a future release.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
@@ -67,6 +92,6 @@ struct VisitCompleteView: View {
 
 #if DEBUG
 #Preview {
-    VisitCompleteView(onDone: {})
+    VisitCompleteView(handoff: nil, onDone: {})
 }
 #endif
