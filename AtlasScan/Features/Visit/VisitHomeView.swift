@@ -116,7 +116,9 @@ struct VisitHomeView: View {
             }
         }
         .onAppear { syncReadiness() }
-        .onReceive(captureStore.$draft) { _ in rebuildAndPersistCapture() }
+        .onReceive(
+            captureStore.$draft.debounce(for: .milliseconds(800), scheduler: DispatchQueue.main)
+        ) { _ in rebuildAndPersistCapture() }
     }
 
     // MARK: - Visit info section

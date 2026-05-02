@@ -181,12 +181,11 @@ enum SessionCaptureV2Builder {
             ))
         }
 
-        // Object pins: manual → confirmed; LiDAR/inferred → pending review.
+        // Single pass over objectPins for provenance and label flags.
+        var hasUnlabelledGenericPin = false
         for pin in draft.objectPins {
             switch pin.pinSource {
             case .manual, .none:
-                // Manual placements are engineer-confirmed; emit an info flag only
-                // when the pin has confidence explicitly flagged as 'needsReview'.
                 if pin.pinConfidence == .needsReview {
                     flags.append(ScanQAFlag(
                         code: "PIN_NEEDS_REVIEW",
@@ -210,9 +209,19 @@ enum SessionCaptureV2Builder {
                     entityId: pin.id.uuidString
                 ))
             }
+            if pin.type == .genericNote && pin.hasNoLabel {
+                hasUnlabelledGenericPin = true
+            }
+        }
+        if hasUnlabelledGenericPin {
+            flags.append(ScanQAFlag(
+                code: "GENERIC_PIN_NO_LABEL",
+                message: "One or more generic note pins have no label.",
+                severity: "info"
+            ))
         }
 
-        // Object-linked photos: annotate to support downstream includeInCustomerReport=false rule.
+        // Single pass over photos for object-link annotations.
         for photo in draft.photos where photo.linkedObjectId != nil {
             flags.append(ScanQAFlag(
                 code: "OBJECT_LINKED_PHOTO",
@@ -222,21 +231,17 @@ enum SessionCaptureV2Builder {
             ))
         }
 
-        // Voice notes with no transcript.
-        if draft.voiceNotes.contains(where: { $0.transcript.trimmingCharacters(in: .whitespaces).isEmpty }) {
+        // Single pass over voice notes for missing-transcript flags.
+        var hasUntranscribedNote = false
+        for note in draft.voiceNotes where note.transcript.trimmingCharacters(in: .whitespaces).isEmpty {
+            hasUntranscribedNote = true
+            break
+        }
+        if hasUntranscribedNote {
             flags.append(ScanQAFlag(
                 code: "VOICE_NOTE_NO_TRANSCRIPT",
                 message: "One or more voice notes have no transcript.",
                 severity: "warning"
-            ))
-        }
-
-        // Generic note pins with no label.
-        if draft.objectPins.contains(where: { $0.hasNoLabel && $0.type == .genericNote }) {
-            flags.append(ScanQAFlag(
-                code: "GENERIC_PIN_NO_LABEL",
-                message: "One or more generic note pins have no label.",
-                severity: "info"
             ))
         }
 
