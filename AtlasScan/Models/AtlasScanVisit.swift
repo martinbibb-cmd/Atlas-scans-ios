@@ -120,9 +120,8 @@ extension AtlasScanVisit {
         // Photos: at least one confirmed photo
         let hasPhotos = !confirmedPhotos.isEmpty
 
-        // Notes: at least one confirmed voice note / transcript
+        // Notes: at least one confirmed voice note that has transcript content
         let hasNotes = confirmedNotes.contains(where: { !$0.transcript.isEmpty })
-            || !confirmedNotes.isEmpty
 
         return VisitReadinessV1(
             hasRooms: hasRooms,

@@ -24,6 +24,8 @@ import SwiftUI
 //   - Rejected items stay stored for audit.
 //   - Pending required items block final completion.
 
+private let transcriptPreviewLength = 40
+
 struct ReviewEvidenceView: View {
 
     @ObservedObject var store: CaptureSessionStore
@@ -231,8 +233,8 @@ struct ReviewEvidenceView: View {
     private func noteTitle(for note: CapturedVoiceNoteDraft) -> String {
         let text = note.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty { return "(empty transcript)" }
-        let preview = String(text.prefix(40))
-        return text.count > 40 ? preview + "…" : preview
+        let preview = String(text.prefix(transcriptPreviewLength))
+        return text.count > transcriptPreviewLength ? preview + "…" : preview
     }
 }
 
