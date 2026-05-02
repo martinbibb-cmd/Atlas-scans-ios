@@ -234,7 +234,7 @@ struct ReviewEvidenceView: View {
         let text = note.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty { return "(empty transcript)" }
         let preview = String(text.prefix(transcriptPreviewLength))
-        return text.count > transcriptPreviewLength ? preview + "…" : preview
+        return preview.count < text.count ? preview + "…" : preview
     }
 }
 

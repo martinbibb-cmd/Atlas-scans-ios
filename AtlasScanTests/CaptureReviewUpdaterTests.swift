@@ -238,22 +238,25 @@ final class CaptureReviewUpdaterTests: XCTestCase {
         var pin = CapturedObjectPinDraft(type: .boiler)
         pin.reviewStatus = .pending
         draft.objectPins.append(pin)
-        let before = draft.updatedAt
 
-        // Small sleep to ensure updatedAt changes
-        Thread.sleep(forTimeInterval: 0.01)
+        // Set updatedAt to a known past date so any change is detectable without sleep.
+        let pastDate = Date(timeIntervalSinceNow: -60)
+        draft.updatedAt = pastDate
+
         CaptureReviewUpdater.confirmEvidence(id: pin.id, in: &draft)
 
-        XCTAssertGreaterThan(draft.updatedAt, before)
+        XCTAssertGreaterThan(draft.updatedAt, pastDate)
     }
 
     func test_updateReviewStatus_unknownId_doesNotTouchUpdatedAt() {
         var draft = makeDraft()
-        let before = draft.updatedAt
 
-        Thread.sleep(forTimeInterval: 0.01)
+        // Set updatedAt to a known past date.
+        let pastDate = Date(timeIntervalSinceNow: -60)
+        draft.updatedAt = pastDate
+
         CaptureReviewUpdater.updateReviewStatus(id: UUID(), status: .rejected, in: &draft)
 
-        XCTAssertEqual(draft.updatedAt, before)
+        XCTAssertEqual(draft.updatedAt, pastDate)
     }
 }
