@@ -43,6 +43,9 @@ struct VisitHomeView: View {
     @State private var showingTextNote         = false
     @State private var showingCaptureV2Debug   = false
 
+    /// Pre-built handoff delivered to VisitCompleteView on successful completion.
+    @State private var completionHandoff: ScanToMindHandoffV1?
+
     // MARK: Init
 
     init(visit: AtlasScanVisit, onExit: @escaping () -> Void) {
@@ -89,8 +92,9 @@ struct VisitHomeView: View {
                 completeGateSheet
             }
             .fullScreenCover(isPresented: $showingCompletion) {
-                VisitCompleteView {
+                VisitCompleteView(handoff: completionHandoff) {
                     showingCompletion = false
+                    completionHandoff = nil
                     visitStore.clearActiveVisit()
                     onExit()
                 }
@@ -393,6 +397,7 @@ struct VisitHomeView: View {
         if result.isCompletable {
             visitStore.updateStatus(.readyToComplete)
             visitStore.updateStatus(.complete)
+            completionHandoff = buildCompletionHandoff(reason: .completedCapture)
             showingCompletion = true
         } else {
             showingCompleteGate = true
@@ -401,7 +406,31 @@ struct VisitHomeView: View {
 
     private func forceComplete() {
         visitStore.updateStatus(.complete)
+        completionHandoff = buildCompletionHandoff(reason: .reviewInMind)
         showingCompletion = true
+    }
+
+    /// Builds a ``ScanToMindHandoffV1`` from the active visit and its current capture.
+    ///
+    /// Returns nil when the active visit is missing or the handoff cannot be assembled
+    /// (e.g. visit ID / session ID mismatch).  In that case Mind is opened without a
+    /// preloaded payload — the engineer is never blocked by a handoff build failure.
+    private func buildCompletionHandoff(reason: ScanToMindHandoffReasonV1) -> ScanToMindHandoffV1? {
+        guard let visit = visitStore.activeVisit else { return nil }
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
+            visit: visit,
+            draft: captureStore.draft
+        )
+        do {
+            return try ScanToMindHandoffBuilder.buildHandoff(
+                visit: visit,
+                capture: capture,
+                reason: reason
+            )
+        } catch {
+            print("[VisitHomeView] Failed to build ScanToMind handoff: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     private func performExit() {
