@@ -83,23 +83,55 @@ extension AtlasScanVisit {
 
     /// Derives visit readiness flags from a CaptureSessionDraft.
     ///
+    /// Only confirmed evidence counts toward readiness.
+    /// Rejected evidence is never counted.
+    /// Pending evidence does not satisfy any readiness flag.
+    ///
     /// Used in VisitHomeView to compute live readiness without
     /// storing a snapshot in the visit model.
     static func deriveReadiness(from draft: CaptureSessionDraft) -> VisitReadinessV1 {
-        let objectTypes = draft.objectPins.map(\.type)
-        let hasBoiler = objectTypes.contains(.boiler) || objectTypes.contains(.heatPump)
-        let hasFlue = objectTypes.contains(.flue)
-        let hasHotWaterSystem = objectTypes.contains(.cylinder)
-        let hasHeatingSystem = hasBoiler || objectTypes.contains(.radiator)
+
+        // Confirmed items only
+        let confirmedPins  = draft.objectPins.filter   { $0.reviewStatus == .confirmed }
+        let confirmedPhotos = draft.photos.filter      { $0.reviewStatus == .confirmed }
+        let confirmedRooms  = draft.roomScans.filter   { $0.reviewStatus == .confirmed }
+        let confirmedNotes  = draft.voiceNotes.filter  { $0.reviewStatus == .confirmed }
+
+        let confirmedPinTypes = confirmedPins.map(\.type)
+
+        // Boiler: confirmed boiler or heat-pump object
+        let hasBoiler = confirmedPinTypes.contains(.boiler) || confirmedPinTypes.contains(.heatPump)
+
+        // Flue: confirmed flue object or a confirmed photo of kind .flue
+        let hasFlue = confirmedPinTypes.contains(.flue)
+            || confirmedPhotos.contains(where: { $0.kind == .flue })
+
+        // Hot water: confirmed cylinder or combi-related object
+        // (combi boilers share the .boiler type; a separate cylinder covers hot water)
+        let hasHotWaterSystem = confirmedPinTypes.contains(.cylinder)
+            || hasBoiler    // a confirmed boiler implicitly covers a combi system
+
+        // Heating: confirmed boiler, heat pump, or radiator
+        let hasHeatingSystem = hasBoiler || confirmedPinTypes.contains(.radiator)
+
+        // Rooms: at least one confirmed room scan
+        let hasRooms = !confirmedRooms.isEmpty
+
+        // Photos: at least one confirmed photo
+        let hasPhotos = !confirmedPhotos.isEmpty
+
+        // Notes: at least one confirmed voice note / transcript
+        let hasNotes = confirmedNotes.contains(where: { !$0.transcript.isEmpty })
+            || !confirmedNotes.isEmpty
 
         return VisitReadinessV1(
-            hasRooms: !draft.roomScans.isEmpty,
-            hasPhotos: !draft.photos.isEmpty,
+            hasRooms: hasRooms,
+            hasPhotos: hasPhotos,
             hasHeatingSystem: hasHeatingSystem,
             hasHotWaterSystem: hasHotWaterSystem,
             hasBoiler: hasBoiler,
             hasFlue: hasFlue,
-            hasNotes: !draft.voiceNotes.isEmpty
+            hasNotes: hasNotes
         )
     }
 }

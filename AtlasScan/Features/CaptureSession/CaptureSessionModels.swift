@@ -84,6 +84,40 @@ enum CaptureSyncState: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - EvidenceReviewStatus
+
+/// Engineer review status for a single piece of captured evidence.
+///
+/// Rules:
+///   - Manually created items default to `.confirmed`.
+///   - LiDAR/inferred items default to `.pending`.
+///   - Rejected items remain stored for audit but never count toward readiness.
+///   - Pending items block final completion when they are required for readiness.
+enum EvidenceReviewStatus: String, Codable, CaseIterable {
+    /// Engineer has confirmed this evidence is correct and complete.
+    case confirmed = "confirmed"
+    /// Engineer has explicitly rejected this evidence (kept for audit; not counted).
+    case rejected  = "rejected"
+    /// Awaiting engineer review — may block completion if required.
+    case pending   = "pending"
+
+    var displayName: String {
+        switch self {
+        case .confirmed: return "Confirmed"
+        case .rejected:  return "Rejected"
+        case .pending:   return "Pending"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .confirmed: return "checkmark.circle.fill"
+        case .rejected:  return "xmark.circle.fill"
+        case .pending:   return "clock.fill"
+        }
+    }
+}
+
 // MARK: - CaptureExportState
 
 /// Lifecycle state for a capture session draft.
@@ -162,6 +196,11 @@ struct CapturedRoomScanDraft: Identifiable, Codable {
 
     /// Floor plan annotations added by the engineer after the room scan.
     var floorPlan: FloorPlanDraft?
+
+    /// Engineer review status for this room scan.
+    /// Defaults to `.confirmed` for manually entered rooms; `.pending` for LiDAR scans.
+    /// When creating a LiDAR room scan, set this to `.pending` explicitly.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
 // MARK: - RoomScanConfidence
@@ -225,6 +264,10 @@ struct CapturedPhotoDraft: Identifiable, Codable {
 
     /// Evidence kind / category.
     var kind: CapturePhotoKind = .other
+
+    /// Engineer review status for this photo.
+    /// Photos are always manually captured, so they default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
 // MARK: - CapturePhotoKind
@@ -290,6 +333,10 @@ struct CapturedVoiceNoteDraft: Identifiable, Codable {
 
     /// UUID of the object pin this note is linked to; nil when not linked.
     var linkedObjectId: UUID?
+
+    /// Engineer review status for this voice note.
+    /// Voice notes are always manually recorded, so they default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
 // MARK: - CapturedObjectPinDraft
@@ -327,6 +374,10 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
 
     /// When the pin was placed.
     var placedAt: Date = Date()
+
+    /// Engineer review status for this object pin.
+    /// Manual pins default to `.confirmed`; LiDAR-inferred pins default to `.pending`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 
     /// Returns true when the pin has no meaningful user-assigned label.
     var hasNoLabel: Bool {
@@ -467,6 +518,10 @@ struct CapturedFloorPlanSnapshotDraft: Identifiable, Codable {
 
     /// UUID of the room associated with this snapshot; nil for whole-property snapshots.
     var roomId: UUID?
+
+    /// Engineer review status for this floor plan snapshot.
+    /// Snapshots are always manually created, so they default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
 // MARK: - CaptureSessionDraft helpers
@@ -477,6 +532,37 @@ extension CaptureSessionDraft {
     var totalArtefactCount: Int {
         roomScans.count + photos.count + voiceNotes.count + objectPins.count + floorPlanSnapshots.count
     }
+
+    // MARK: Review counts
+
+    /// Number of artefacts across all categories with a pending review status.
+    var pendingReviewCount: Int {
+        roomScans.filter       { $0.reviewStatus == .pending }.count
+        + photos.filter        { $0.reviewStatus == .pending }.count
+        + voiceNotes.filter    { $0.reviewStatus == .pending }.count
+        + objectPins.filter    { $0.reviewStatus == .pending }.count
+        + floorPlanSnapshots.filter { $0.reviewStatus == .pending }.count
+    }
+
+    /// Number of artefacts across all categories that have been rejected.
+    var rejectedReviewCount: Int {
+        roomScans.filter       { $0.reviewStatus == .rejected }.count
+        + photos.filter        { $0.reviewStatus == .rejected }.count
+        + voiceNotes.filter    { $0.reviewStatus == .rejected }.count
+        + objectPins.filter    { $0.reviewStatus == .rejected }.count
+        + floorPlanSnapshots.filter { $0.reviewStatus == .rejected }.count
+    }
+
+    /// Number of artefacts across all categories that have been confirmed.
+    var confirmedReviewCount: Int {
+        roomScans.filter       { $0.reviewStatus == .confirmed }.count
+        + photos.filter        { $0.reviewStatus == .confirmed }.count
+        + voiceNotes.filter    { $0.reviewStatus == .confirmed }.count
+        + objectPins.filter    { $0.reviewStatus == .confirmed }.count
+        + floorPlanSnapshots.filter { $0.reviewStatus == .confirmed }.count
+    }
+
+    // MARK: Room-scoped helpers
 
     /// Returns voice notes associated with a specific room.
     func voiceNotes(for roomId: UUID) -> [CapturedVoiceNoteDraft] {

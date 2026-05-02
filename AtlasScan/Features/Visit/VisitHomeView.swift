@@ -189,10 +189,9 @@ struct VisitHomeView: View {
             }
 
             NavigationLink {
-                VisitReviewView(store: captureStore, onDone: {})
+                ReviewEvidenceView(store: captureStore)
             } label: {
-                captureRow("Review Evidence", symbol: "checklist",
-                           badge: captureStore.draft.totalArtefactCount)
+                reviewEvidenceRow
             }
         } header: {
             Text("Capture Evidence")
@@ -213,6 +212,36 @@ struct VisitHomeView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// Review Evidence card row with confirmed / pending / rejected counts.
+    private var reviewEvidenceRow: some View {
+        HStack(spacing: 8) {
+            Label("Review Evidence", systemImage: "checklist")
+            Spacer()
+            let pending   = captureStore.draft.pendingReviewCount
+            let rejected  = captureStore.draft.rejectedReviewCount
+            let confirmed = captureStore.draft.confirmedReviewCount
+            if pending > 0 {
+                reviewBadge("\(pending)", color: .orange)
+            }
+            if rejected > 0 {
+                reviewBadge("\(rejected)", color: .red)
+            }
+            if confirmed > 0 {
+                reviewBadge("\(confirmed)", color: .green)
+            }
+        }
+    }
+
+    private func reviewBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 
     // MARK: - Readiness section
@@ -264,6 +293,26 @@ struct VisitHomeView: View {
                 } footer: {
                     Text("All seven items must be completed before the visit can be marked as done.")
                 }
+
+                if captureStore.draft.pendingReviewCount > 0 {
+                    Section {
+                        NavigationLink {
+                            ReviewEvidenceView(store: captureStore)
+                        } label: {
+                            Label(
+                                "\(captureStore.draft.pendingReviewCount) item(s) awaiting review",
+                                systemImage: "clock.fill"
+                            )
+                            .foregroundStyle(.orange)
+                        }
+                    } header: {
+                        Text("Pending Review")
+                    } footer: {
+                        Text("Review and confirm or reject these items to progress toward completion.")
+                            .font(.caption2)
+                    }
+                }
+
                 if DeveloperModeStore.shared.isEnabled {
                     Section {
                         Button {
