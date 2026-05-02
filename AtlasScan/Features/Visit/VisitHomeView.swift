@@ -421,11 +421,16 @@ struct VisitHomeView: View {
             visit: visit,
             draft: captureStore.draft
         )
-        return try? ScanToMindHandoffBuilder.buildHandoff(
-            visit: visit,
-            capture: capture,
-            reason: reason
-        )
+        do {
+            return try ScanToMindHandoffBuilder.buildHandoff(
+                visit: visit,
+                capture: capture,
+                reason: reason
+            )
+        } catch {
+            print("[VisitHomeView] Failed to build ScanToMind handoff: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     private func performExit() {

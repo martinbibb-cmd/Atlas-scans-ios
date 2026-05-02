@@ -71,6 +71,7 @@ enum OpenAtlasMind {
             encodedPayload = try ScanToMindPayloadEncoder.encodeForURL(handoff)
         } catch {
             // Encoding failure: open Mind at the base URL without a payload.
+            print("[OpenAtlasMind] Failed to encode handoff payload: \(error.localizedDescription)")
             openURL(receiveScanBaseURL)
             return
         }
