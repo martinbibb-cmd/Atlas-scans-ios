@@ -124,6 +124,7 @@
 		AA010500 /* BuildInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020500 /* BuildInfoView.swift */; };
 		AA010501 /* PermissionPreflightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020501 /* PermissionPreflightView.swift */; };
 		AA010502 /* TestFlightDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020502 /* TestFlightDiagnosticsView.swift */; };
+		AA010503 /* TestFlightFeedbackReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020503 /* TestFlightFeedbackReporter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -247,6 +248,7 @@
 		AA020500 /* BuildInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfoView.swift; sourceTree = "<group>"; };
 		AA020501 /* PermissionPreflightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionPreflightView.swift; sourceTree = "<group>"; };
 		AA020502 /* TestFlightDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestFlightDiagnosticsView.swift; sourceTree = "<group>"; };
+		AA020503 /* TestFlightFeedbackReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestFlightFeedbackReporter.swift; sourceTree = "<group>"; };
 
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -533,6 +535,7 @@
 				AA020500 /* BuildInfoView.swift */,
 				AA020501 /* PermissionPreflightView.swift */,
 				AA020502 /* TestFlightDiagnosticsView.swift */,
+				AA020503 /* TestFlightFeedbackReporter.swift */,
 			);
 			path = Diagnostics;
 			sourceTree = "<group>";
@@ -847,6 +850,7 @@
 				AA010500 /* BuildInfoView.swift in Sources */,
 				AA010501 /* PermissionPreflightView.swift in Sources */,
 				AA010502 /* TestFlightDiagnosticsView.swift in Sources */,
+				AA010503 /* TestFlightFeedbackReporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
