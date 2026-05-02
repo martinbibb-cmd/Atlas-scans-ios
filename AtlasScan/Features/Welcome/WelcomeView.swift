@@ -31,6 +31,7 @@ struct HomeView: View {
     @State private var showingSavedVisits = false
     @State private var openVisit: CaptureSessionDraft?
     @State private var showingVisitHome   = false
+    @State private var showingDiagnostics = false
 
     // Tracks whether we've already performed the launch-time active-visit check.
     // Prevents re-navigating to VisitHomeView every time WelcomeView re-appears
@@ -119,6 +120,15 @@ struct HomeView: View {
                             .font(.caption2.bold())
                             .foregroundStyle(.orange)
                     }
+
+                    Button {
+                        showingDiagnostics = true
+                    } label: {
+                        Label("Diagnostics", systemImage: "stethoscope")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 20)
             }
@@ -161,6 +171,12 @@ struct HomeView: View {
         .fullScreenCover(item: $openVisit) { draft in
             VisitDetailView(initialDraft: draft) {
                 openVisit = nil
+            }
+        }
+        // TestFlight diagnostics sheet
+        .sheet(isPresented: $showingDiagnostics) {
+            TestFlightDiagnosticsView {
+                showingDiagnostics = false
             }
         }
         // Developer mode toast overlay
