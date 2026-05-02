@@ -120,6 +120,10 @@
 		AA010400 /* ScanToMindHandoffBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020400 /* ScanToMindHandoffBuilder.swift */; };
 		AA010401 /* ScanToMindPayloadEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020401 /* ScanToMindPayloadEncoder.swift */; };
 		AA010402 /* OpenAtlasMind.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020402 /* OpenAtlasMind.swift */; };
+
+		AA010500 /* BuildInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020500 /* BuildInfoView.swift */; };
+		AA010501 /* PermissionPreflightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020501 /* PermissionPreflightView.swift */; };
+		AA010502 /* TestFlightDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020502 /* TestFlightDiagnosticsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -240,6 +244,10 @@
 		AA020401 /* ScanToMindPayloadEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindPayloadEncoder.swift; sourceTree = "<group>"; };
 		AA020402 /* OpenAtlasMind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAtlasMind.swift; sourceTree = "<group>"; };
 
+		AA020500 /* BuildInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfoView.swift; sourceTree = "<group>"; };
+		AA020501 /* PermissionPreflightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionPreflightView.swift; sourceTree = "<group>"; };
+		AA020502 /* TestFlightDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestFlightDiagnosticsView.swift; sourceTree = "<group>"; };
+
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -310,6 +318,7 @@
 				AA050035 /* ReviewVisit */,
 				AA050040 /* Review */,
 				AA050050 /* Handoff */,
+				AA050060 /* Diagnostics */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -516,6 +525,16 @@
 				AA020402 /* OpenAtlasMind.swift */,
 			);
 			path = Handoff;
+			sourceTree = "<group>";
+		};
+		AA050060 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				AA020500 /* BuildInfoView.swift */,
+				AA020501 /* PermissionPreflightView.swift */,
+				AA020502 /* TestFlightDiagnosticsView.swift */,
+			);
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 		AA050036 /* AtlasRecommendations */ = {
@@ -824,6 +843,10 @@
 				AA010400 /* ScanToMindHandoffBuilder.swift in Sources */,
 				AA010401 /* ScanToMindPayloadEncoder.swift in Sources */,
 				AA010402 /* OpenAtlasMind.swift in Sources */,
+
+				AA010500 /* BuildInfoView.swift in Sources */,
+				AA010501 /* PermissionPreflightView.swift in Sources */,
+				AA010502 /* TestFlightDiagnosticsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

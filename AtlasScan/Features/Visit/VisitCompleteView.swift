@@ -12,8 +12,9 @@ import AtlasContracts
 // Secondary action:
 //   Return to Home — clears the active visit and returns to the app home screen.
 //
-// Developer-only:
-//   No JSON inspector or raw payload screen is shown in the normal flow.
+// Handoff diagnostics:
+//   All users see a success / error indicator for URL formation.
+//   Developer Mode additionally shows the encoded payload length (characters).
 
 struct VisitCompleteView: View {
 
@@ -24,6 +25,8 @@ struct VisitCompleteView: View {
     let handoff: ScanToMindHandoffV1?
 
     let onDone: () -> Void
+
+    @StateObject private var developerMode = DeveloperModeStore.shared
 
     var body: some View {
         NavigationStack {
@@ -47,6 +50,11 @@ struct VisitCompleteView: View {
                 }
 
                 Spacer()
+
+                // Handoff diagnostics
+                handoffDiagnosticsView
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
 
                 // Actions
                 VStack(spacing: 12) {
@@ -84,6 +92,41 @@ struct VisitCompleteView: View {
             }
             .navigationTitle("Complete")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    // MARK: - Handoff diagnostics
+
+    @ViewBuilder
+    private var handoffDiagnosticsView: some View {
+        if let handoff {
+            VStack(alignment: .leading, spacing: 6) {
+                // URL formation success — visible to all testers
+                Label("Atlas Mind URL: Ready", systemImage: "link.circle.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+
+                // Encoded payload length — developer only
+                if developerMode.isEnabled,
+                   let encodedPayload = try? ScanToMindPayloadEncoder.encodeForURL(handoff) {
+                    Text("Payload: \(encodedPayload.count) chars")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        } else {
+            // URL formation failed — visible to all testers
+            Label("Atlas Mind URL: Not available", systemImage: "link.circle")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 }

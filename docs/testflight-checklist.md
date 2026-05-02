@@ -96,7 +96,97 @@ Walk through the following sequence to exercise the core capture → review → 
 
 ---
 
-## Local Xcode Archive & TestFlight Upload Steps
+## Smoke-Test Checklist
+
+Walk through the following sequence on a real device before submitting feedback. Tick each item as you verify it.
+
+### Launch & Diagnostics
+
+- [ ] App launches without crash.
+- [ ] Tap **Diagnostics** (below the "Atlas Scan" label on the home screen).
+  - [ ] **Build & Device Info** shows correct app version, build number, and bundle ID.
+  - [ ] **Build & Device Info** shows correct device model and iOS version.
+  - [ ] **Build & Device Info** reports LiDAR as **Available** (iPhone 12 Pro+) or **Unavailable** (older device).
+  - [ ] **Permissions** shows the expected status for Camera, Microphone, Speech Recognition, Photo Library, and Motion / AR.
+  - [ ] Tapping **Refresh Status** updates the permission rows without crashing.
+  - [ ] Close the Diagnostics sheet.
+
+### Permission grant flow
+
+- [ ] Start a new visit, begin a room scan → Camera permission prompt appears (if not yet granted).
+- [ ] Add a voice note → Microphone and Speech Recognition prompts appear (if not yet granted).
+- [ ] Add a photo via library → Photo Library prompt appears (if not yet granted).
+- [ ] Return to **Diagnostics → Permissions** and confirm all granted permissions now show **Granted**.
+
+### LiDAR / RoomPlan fallback
+
+- [ ] On a device **without** LiDAR, tap **Scan Rooms → Add Room Scan**.
+  - [ ] Screen shows "LiDAR Not Available" message — **no blank white screen**.
+  - [ ] **Dismiss** button returns to the room list without crash.
+- [ ] On a device **with** LiDAR, scanning flow starts normally.
+
+### Core capture journey (unchanged)
+
+- [ ] Start a visit, capture at least one room, photo, and voice note.
+- [ ] Review and confirm all evidence.
+- [ ] Tap **Complete Capture**.
+- [ ] On the completion screen, verify the **Atlas Mind URL** row shows **Ready** (green).
+  - [ ] If Developer Mode is active (7 taps on "Atlas Scan"), a payload length (chars) row is also shown.
+- [ ] Tap **Continue in Atlas Mind** (or **Return to Home** if Mind is not installed).
+- [ ] App does not crash at any point.
+
+---
+
+## Failure Report Template
+
+Copy this template into your TestFlight feedback or bug report tool and fill in all fields.
+
+```
+## Atlas Scan TestFlight Failure Report
+
+**Build**: <app version> (<build number>)
+**Date**: <YYYY-MM-DD>
+**Tester**: <name or email>
+
+### Device
+
+| Field        | Value |
+|---|---|
+| Device Model | <from Diagnostics → Build & Device Info> |
+| iOS Version  | <from Diagnostics → Build & Device Info> |
+| LiDAR        | Available / Unavailable |
+
+### Permissions at time of failure
+
+| Permission       | Status |
+|---|---|
+| Camera           | Granted / Denied / Not Asked |
+| Microphone       | Granted / Denied / Not Asked |
+| Speech           | Granted / Denied / Not Asked |
+| Photo Library    | Granted / Denied / Not Asked |
+| Motion / AR      | Granted / Unavailable |
+
+### What happened
+
+<Describe what you tapped / did, step by step.>
+
+### Expected behaviour
+
+<What should have happened.>
+
+### Actual behaviour
+
+<What actually happened — crash, blank screen, wrong data, etc.>
+
+### Atlas Mind handoff status
+
+<On the Visit Complete screen: "Atlas Mind URL: Ready" or "Atlas Mind URL: Not available">
+
+### Screenshots / crash log
+
+<Attach screenshots or Xcode crash log here.>
+```
+
 
 ### Prerequisites
 - Xcode 15 or later
