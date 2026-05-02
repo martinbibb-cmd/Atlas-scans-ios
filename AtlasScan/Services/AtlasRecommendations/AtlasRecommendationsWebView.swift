@@ -1,19 +1,26 @@
 import SwiftUI
 import WebKit
 
-// MARK: - AtlasRecommendationsWebView
+// Atlas Scan is capture-only.
+// Recommendation, simulation, scenario ranking, presentation,
+// portal and PDF outputs are owned by Atlas Mind.
+
+// MARK: - AtlasMindWebView
 //
-// WKWebView wrapper that loads the Atlas Recommendations web app at
-// https://next.atlas-phm.uk.
+// WKWebView wrapper that loads the Atlas Mind PWA at https://next.atlas-phm.uk.
+// This view is an "Open Atlas Mind" shortcut only — it does not run any
+// native simulator or display recommendation outputs.
 //
 // Features:
 //   • Injects the stored auth token as an Authorization cookie on load.
-//   • Optionally deep-links to a specific visit page if remoteVisitId is provided.
-//   • Pull-to-refresh.
+//   • Optionally deep-links to a specific visit page if visitId is provided.
 //   • Back / forward swipe navigation.
-//   • Offline banner when network is not reachable.
 
-struct AtlasRecommendationsWebView: View {
+// MARK: - Atlas Mind base URL
+
+private let atlasMindBaseURL = URL(string: "https://next.atlas-phm.uk")!
+
+struct AtlasMindWebView: View {
 
     // When set, navigates to the specific visit on appear.
     let visitId: String?
@@ -28,7 +35,7 @@ struct AtlasRecommendationsWebView: View {
     var body: some View {
         ZStack(alignment: .top) {
             AtlasWebViewRepresentable(
-                baseURL: AtlasRecommendationsSync.webBaseURL,
+                baseURL: atlasMindBaseURL,
                 visitId: visitId,
                 isLoading: $isLoading,
                 canGoBack: $canGoBack,
@@ -45,7 +52,7 @@ struct AtlasRecommendationsWebView: View {
                     .padding(.top, 8)
             }
         }
-        .navigationTitle("Atlas Recommendations")
+        .navigationTitle("Open Atlas Mind")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarItems }
         .sheet(isPresented: $showingTokenEntry) { tokenEntrySheet }
@@ -243,18 +250,12 @@ struct AtlasWebViewRepresentable: UIViewRepresentable {
     }
 }
 
-// MARK: - URL constant
-
-extension AtlasRecommendationsSync {
-    static let webBaseURL = URL(string: "https://next.atlas-phm.uk")!
-}
-
 // MARK: - Preview
 
 #if DEBUG
 #Preview {
     NavigationStack {
-        AtlasRecommendationsWebView(visitId: nil)
+        AtlasMindWebView(visitId: nil)
     }
 }
 #endif
