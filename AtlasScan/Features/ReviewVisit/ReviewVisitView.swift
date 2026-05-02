@@ -22,7 +22,7 @@ struct ReviewVisitView: View {
 
     @ObservedObject var store: CaptureSessionStore
 
-    @State private var exportError: String?
+    @State private var atlasMindExportError: String?
 
     @State private var showingAtlasMindShare = false
     @State private var atlasVisitURL: URL?
@@ -344,7 +344,7 @@ struct ReviewVisitView: View {
             if store.draft.exportState == .exported {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(.green)
-                    Text("Session exported")
+                    Text("Session exported to Atlas Mind")
                         .font(.caption.bold()).foregroundStyle(.green)
                 }
             }
@@ -359,7 +359,7 @@ struct ReviewVisitView: View {
             .disabled(!isReady)
             .listRowBackground(Color.clear)
 
-            if let errMsg = exportError {
+            if let errMsg = atlasMindExportError {
                 Label(errMsg, systemImage: "xmark.circle")
                     .font(.caption).foregroundStyle(.red)
             }
@@ -369,15 +369,14 @@ struct ReviewVisitView: View {
     // MARK: - Open in Atlas Mind action
 
     private func performAtlasMindExport() {
-        exportError = nil
-        do {
+        atlasMindExportError = nil
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
             atlasVisitURL = package.atlasVisitURL
             store.markExported()
             showingAtlasMindShare = true
         } catch {
-            exportError = "Atlas Mind export failed: \(error.localizedDescription)"
+            atlasMindExportError = "Atlas Mind export failed: \(error.localizedDescription)"
             store.markExportFailed()
         }
     }
