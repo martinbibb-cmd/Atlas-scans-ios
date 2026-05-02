@@ -11,9 +11,9 @@ import CoreMotion
 // before beginning a capture session.
 //
 // Permissions checked:
-//   Camera, Microphone, Speech Recognition, Photo Library,
-//   Motion/AR (CMMotionActivityManager),
-//   Local Network — listed as "future / optional" (no runtime API to query)
+//   Camera, Microphone, Speech Recognition, Photo Library — OS authorization status.
+//   Motion Activity — hardware availability (no authorization prompt required).
+//   Local Network   — listed as "future / optional" (no runtime API to query).
 
 struct PermissionPreflightView: View {
 
@@ -21,7 +21,7 @@ struct PermissionPreflightView: View {
     @State private var micStatus:     PermissionStatus = .unknown
     @State private var speechStatus:  PermissionStatus = .unknown
     @State private var photosStatus:  PermissionStatus = .unknown
-    @State private var motionStatus:  PermissionStatus = .unknown
+    @State private var motionAvailable: Bool? = nil
 
     var body: some View {
         List {
@@ -30,9 +30,16 @@ struct PermissionPreflightView: View {
                 permissionRow("Microphone",         symbol: "mic",                 status: micStatus)
                 permissionRow("Speech Recognition", symbol: "waveform",            status: speechStatus)
                 permissionRow("Photo Library",      symbol: "photo.on.rectangle",  status: photosStatus)
-                permissionRow("Motion / AR",        symbol: "gyroscope",           status: motionStatus)
+                hardwareAvailabilityRow(
+                    "Motion Activity",
+                    symbol: "gyroscope",
+                    available: motionAvailable
+                )
             } header: {
                 Text("Required Permissions")
+            } footer: {
+                Text("Motion Activity shows hardware availability — the device prompts for authorization only when the app first accesses step/activity data.")
+                    .font(.caption2)
             }
 
             Section {
@@ -64,18 +71,18 @@ struct PermissionPreflightView: View {
         .task { await refreshAll() }
     }
 
-    // MARK: - Row
+    // MARK: - Permission row
 
     private func permissionRow(_ label: String, symbol: String, status: PermissionStatus) -> some View {
         HStack {
             Label(label, systemImage: symbol)
             Spacer()
-            statusBadge(status)
+            permissionStatusBadge(status)
         }
     }
 
     @ViewBuilder
-    private func statusBadge(_ status: PermissionStatus) -> some View {
+    private func permissionStatusBadge(_ status: PermissionStatus) -> some View {
         switch status {
         case .granted:
             Label("Granted", systemImage: "checkmark.circle.fill")
@@ -102,15 +109,47 @@ struct PermissionPreflightView: View {
         }
     }
 
+    // MARK: - Hardware availability row
+
+    private func hardwareAvailabilityRow(
+        _ label: String,
+        symbol: String,
+        available: Bool?
+    ) -> some View {
+        HStack {
+            Label(label, systemImage: symbol)
+            Spacer()
+            hardwareAvailabilityBadge(available)
+        }
+    }
+
+    @ViewBuilder
+    private func hardwareAvailabilityBadge(_ available: Bool?) -> some View {
+        switch available {
+        case .none:
+            ProgressView()
+        case .some(true):
+            Label("Available", systemImage: "checkmark.circle.fill")
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(.green)
+                .font(.caption.bold())
+        case .some(false):
+            Label("Not Available", systemImage: "xmark.circle.fill")
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(.red)
+                .font(.caption.bold())
+        }
+    }
+
     // MARK: - Refresh
 
     @MainActor
     private func refreshAll() async {
-        cameraStatus  = await checkCamera()
-        micStatus     = await checkMicrophone()
-        speechStatus  = await checkSpeech()
-        photosStatus  = await checkPhotos()
-        motionStatus  = checkMotion()
+        cameraStatus    = await checkCamera()
+        micStatus       = await checkMicrophone()
+        speechStatus    = await checkSpeech()
+        photosStatus    = await checkPhotos()
+        motionAvailable = CMMotionActivityManager.isActivityAvailable()
     }
 
     private func checkCamera() async -> PermissionStatus {
@@ -151,13 +190,6 @@ struct PermissionPreflightView: View {
         case .notDetermined:              return .notDetermined
         @unknown default:                 return .unknown
         }
-    }
-
-    private func checkMotion() -> PermissionStatus {
-        if CMMotionActivityManager.isActivityAvailable() {
-            return .granted
-        }
-        return .denied
     }
 }
 
