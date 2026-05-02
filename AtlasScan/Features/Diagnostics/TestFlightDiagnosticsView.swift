@@ -14,6 +14,8 @@ struct TestFlightDiagnosticsView: View {
 
     let onClose: () -> Void
 
+    @State private var showingFeedback = false
+
     var body: some View {
         NavigationStack {
             List {
@@ -35,6 +37,19 @@ struct TestFlightDiagnosticsView: View {
                     Text("Use these screens to verify device capabilities and permission status before testing. Share screenshots with your feedback report.")
                         .font(.caption2)
                 }
+
+                Section {
+                    Button {
+                        showingFeedback = true
+                    } label: {
+                        Label("Report TestFlight Issue", systemImage: "exclamationmark.bubble")
+                    }
+                } header: {
+                    Text("Feedback")
+                } footer: {
+                    Text("Opens a pre-filled report with your build number, device model, and iOS version. Share it via email, Notes, or any other app.")
+                        .font(.caption2)
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Diagnostics")
@@ -43,6 +58,9 @@ struct TestFlightDiagnosticsView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { onClose() }
                 }
+            }
+            .sheet(isPresented: $showingFeedback) {
+                ShareSheet(items: TestFlightFeedbackReporter.makeShareItems())
             }
         }
     }
