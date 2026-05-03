@@ -59,6 +59,7 @@ enum SessionCaptureV2Builder {
             floorPlanSnapshots: draft.floorPlanSnapshots.map(mapFloorPlanSnapshot),
             floorPlanFabric: mapFloorPlanFabric(draft),
             hazardObservations: mapHazardObservations(draft),
+            quotePlannerEvidence: mapQuotePlannerEvidence(draft),
             qaFlags: buildQAFlags(visit: visit, draft: draft)
         )
     }
@@ -247,6 +248,40 @@ enum SessionCaptureV2Builder {
                 reviewStatus: h.reviewStatus.rawValue
             )
         }
+    }
+
+    // MARK: - Quote planner evidence mapping
+
+    /// Maps quote-planner anchor drafts to ``QuotePlannerEvidenceV1``.
+    ///
+    /// Returns nil when no anchors exist (keeping the payload backward-compatible).
+    private static func mapQuotePlannerEvidence(
+        _ draft: CaptureSessionDraft
+    ) -> QuotePlannerEvidenceV1? {
+        guard !draft.quotePlannerAnchors.isEmpty else { return nil }
+
+        let locations = draft.quotePlannerAnchors.map { anchor -> CandidateLocationAnchorV1 in
+            var coordinates: ScanPoint3D?
+            if let x = anchor.coordinateX,
+               let y = anchor.coordinateY,
+               let z = anchor.coordinateZ {
+                coordinates = ScanPoint3D(x: x, y: y, z: z)
+            }
+
+            return CandidateLocationAnchorV1(
+                id: anchor.id.uuidString,
+                kind: anchor.kind.rawValue,
+                label: anchor.label,
+                roomId: anchor.roomId?.uuidString,
+                coordinates: coordinates,
+                linkedPhotoIds: anchor.linkedPhotoIds.map(\.uuidString),
+                linkedObjectPinIds: anchor.linkedObjectPinIds.map(\.uuidString),
+                confidence: anchor.provenance.defaultConfidence,
+                provenance: anchor.provenance.rawValue
+            )
+        }
+
+        return QuotePlannerEvidenceV1(candidateLocations: locations)
     }
 
     // MARK: - QA flags

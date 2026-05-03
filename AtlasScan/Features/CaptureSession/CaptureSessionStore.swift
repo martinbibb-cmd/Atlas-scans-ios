@@ -201,6 +201,24 @@ final class CaptureSessionStore: ObservableObject {
         }
     }
 
+    // MARK: - Quote planner anchors
+
+    func addQuotePlannerAnchor(_ anchor: CapturedQuotePlannerAnchorDraft) {
+        update { $0.quotePlannerAnchors.append(anchor) }
+    }
+
+    func removeQuotePlannerAnchor(id: UUID) {
+        update { $0.quotePlannerAnchors.removeAll { $0.id == id } }
+    }
+
+    func updateQuotePlannerAnchor(_ anchor: CapturedQuotePlannerAnchorDraft) {
+        update { draft in
+            if let idx = draft.quotePlannerAnchors.firstIndex(where: { $0.id == anchor.id }) {
+                draft.quotePlannerAnchors[idx] = anchor
+            }
+        }
+    }
+
     // MARK: - Visit reference
 
     func setVisitReference(_ reference: String) {

@@ -7,6 +7,7 @@ enum CaptureHubDestination: Hashable {
     case photos
     case voiceNotes
     case objectPins
+    case quotePlannerAnchors
     case reviewExport
 }
 
@@ -131,6 +132,14 @@ struct CaptureHubView: View {
             ) { destination = .objectPins }
 
             CaptureHubSectionCard(
+                title: "Quote Points",
+                subtitle: "Candidate install and service locations",
+                symbolName: "mappin.circle",
+                status: quotePlannerStatus,
+                actionLabel: store.draft.quotePlannerAnchors.isEmpty ? "Add Quote Point" : "View Quote Points"
+            ) { destination = .quotePlannerAnchors }
+
+            CaptureHubSectionCard(
                 title: "Review & Export",
                 subtitle: "Check completeness and send to Atlas Mind",
                 symbolName: "checklist",
@@ -166,6 +175,12 @@ struct CaptureHubView: View {
 
     private var objectPinStatus: CaptureHubSectionStatus {
         let count = store.draft.objectPins.count
+        if count == 0 { return .notStarted }
+        return .inProgress(count: count)
+    }
+
+    private var quotePlannerStatus: CaptureHubSectionStatus {
+        let count = store.draft.quotePlannerAnchors.count
         if count == 0 { return .notStarted }
         return .inProgress(count: count)
     }
@@ -239,6 +254,8 @@ struct CaptureHubView: View {
             VoiceNotesView(store: store)
         case .objectPins:
             ObjectPinListView(store: store)
+        case .quotePlannerAnchors:
+            QuotePlannerCaptureView(store: store)
         case .reviewExport:
             ReviewExportView(store: store)
         }
