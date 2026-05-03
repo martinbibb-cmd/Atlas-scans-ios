@@ -10,6 +10,11 @@ import AtlasContracts
 //   the Mind PWA at /receive-scan with the visit preloaded.
 //
 // Secondary action:
+//   Open Quote Planner in Atlas Mind — opens the Mind PWA at /quote-planner
+//   with the SessionCaptureV2 (including quotePlannerEvidence) preloaded.
+//   A "Copy Link" fallback appears after the button is tapped.
+//
+// Tertiary action:
 //   Return to Home — clears the active visit and returns to the app home screen.
 //
 // Handoff diagnostics:
@@ -21,12 +26,15 @@ struct VisitCompleteView: View {
     /// Pre-built handoff to deliver to Atlas Mind.
     ///
     /// Nil when the handoff could not be assembled (e.g. session ID mismatch);
-    /// the "Continue in Atlas Mind" button is hidden in that case.
+    /// the Mind action buttons are hidden in that case.
     let handoff: ScanToMindHandoffV1?
 
     let onDone: () -> Void
 
     @StateObject private var developerMode = DeveloperModeStore.shared
+
+    /// The quote-planner URL for the "copy link" fallback, built on demand.
+    @State private var quotePlannerLinkURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -72,6 +80,25 @@ struct VisitCompleteView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .buttonStyle(.plain)
+
+                        Button {
+                            let url = OpenAtlasMind.makeQuotePlannerURL(for: handoff)
+                            quotePlannerLinkURL = url
+                            OpenAtlasMind.openQuotePlanner(with: handoff)
+                        } label: {
+                            Label("Open Quote Planner in Atlas Mind", systemImage: "list.clipboard")
+                                .font(.body)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color(.secondarySystemBackground))
+                                .foregroundStyle(.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+
+                        if let url = quotePlannerLinkURL {
+                            quotePlannerFallbackRow(url: url)
+                        }
                     }
 
                     Button {
@@ -93,6 +120,38 @@ struct VisitCompleteView: View {
             .navigationTitle("Complete")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    // MARK: - Quote planner fallback
+
+    /// Compact fallback row shown after the user taps "Open Quote Planner".
+    ///
+    /// Offers a "Copy Link" action so the engineer can paste the URL manually
+    /// if the browser or PWA did not open as expected.
+    private func quotePlannerFallbackRow(url: URL) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "link.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Quote planner link ready")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button {
+                #if canImport(UIKit)
+                UIPasteboard.general.string = url.absoluteString
+                #endif
+            } label: {
+                Label("Copy Link", systemImage: "doc.on.clipboard")
+                    .font(.caption.bold())
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Handoff diagnostics
