@@ -40,6 +40,7 @@ struct ReviewEvidenceView: View {
             floorPlanSection
             fabricSection
             hazardsSection
+            candidateRoutesSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Review Evidence")
@@ -274,6 +275,29 @@ struct ReviewEvidenceView: View {
             }
         } header: {
             Text("Hazards (\(store.draft.hazardObservations.count))")
+        }
+    }
+
+    // MARK: - Candidate routes section
+
+    private var candidateRoutesSection: some View {
+        Section {
+            if store.draft.candidateRoutes.isEmpty {
+                emptyState("No route evidence recorded yet", symbol: "point.3.connected.trianglepath.dotted")
+            } else {
+                ForEach(store.draft.candidateRoutes) { route in
+                    EvidenceReviewRow(
+                        title: route.routeType.displayName,
+                        subtitle: route.status.displayName,
+                        provenanceSymbol: route.routeType.symbolName,
+                        status: route.reviewStatus
+                    ) { newStatus in
+                        store.updateReviewStatus(id: route.id, status: newStatus)
+                    }
+                }
+            }
+        } header: {
+            Text("Candidate Routes (\(store.draft.candidateRoutes.count))")
         }
     }
 

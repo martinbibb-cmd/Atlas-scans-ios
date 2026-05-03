@@ -254,11 +254,11 @@ enum SessionCaptureV2Builder {
 
     /// Maps quote-planner anchor drafts to ``QuotePlannerEvidenceV1``.
     ///
-    /// Returns nil when no anchors exist (keeping the payload backward-compatible).
+    /// Returns nil when no anchors or routes exist (keeping the payload backward-compatible).
     private static func mapQuotePlannerEvidence(
         _ draft: CaptureSessionDraft
     ) -> QuotePlannerEvidenceV1? {
-        guard !draft.quotePlannerAnchors.isEmpty else { return nil }
+        guard !draft.quotePlannerAnchors.isEmpty || !draft.candidateRoutes.isEmpty else { return nil }
 
         let locations = draft.quotePlannerAnchors.map { anchor -> CandidateLocationAnchorV1 in
             var coordinates: ScanPoint3D?
@@ -281,7 +281,37 @@ enum SessionCaptureV2Builder {
             )
         }
 
-        return QuotePlannerEvidenceV1(candidateLocations: locations)
+        let routes = draft.candidateRoutes.map { route -> CandidateRouteV1 in
+            let waypoints = route.waypoints.map { wp -> RouteWaypointV1 in
+                var coordinates: ScanPoint3D?
+                if let x = wp.coordinateX, let y = wp.coordinateY, let z = wp.coordinateZ {
+                    coordinates = ScanPoint3D(x: x, y: y, z: z)
+                }
+                return RouteWaypointV1(
+                    id: wp.id.uuidString,
+                    coordinates: coordinates,
+                    planX: wp.planX,
+                    planY: wp.planY,
+                    label: wp.label
+                )
+            }
+            return CandidateRouteV1(
+                id: route.id.uuidString,
+                routeType: route.routeType.rawValue,
+                status: route.status.rawValue,
+                installMethod: route.installMethod?.rawValue,
+                startAnchorId: route.startAnchorId?.uuidString,
+                endAnchorId: route.endAnchorId?.uuidString,
+                waypoints: waypoints,
+                notes: route.notes.isEmpty ? nil : route.notes,
+                confidence: route.provenance.defaultConfidence,
+                provenance: route.provenance.rawValue,
+                linkedPhotoIds: route.linkedPhotoIds.map(\.uuidString),
+                reviewStatus: route.reviewStatus.rawValue
+            )
+        }
+
+        return QuotePlannerEvidenceV1(candidateLocations: locations, candidateRoutes: routes)
     }
 
     // MARK: - QA flags
