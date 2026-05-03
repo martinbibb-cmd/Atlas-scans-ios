@@ -196,7 +196,7 @@ struct VisitHomeView: View {
                 FabricCaptureView(store: captureStore)
             } label: {
                 captureRow("Fabric & Perimeter", symbol: "square.3.layers.3d",
-                           badge: captureStore.draft.fabricRecords.flatMap { $0.boundaries + $0.openings }.count)
+                           badge: captureStore.draft.fabricRecords.reduce(0) { $0 + $1.boundaries.count + $1.openings.count })
             }
 
             NavigationLink {

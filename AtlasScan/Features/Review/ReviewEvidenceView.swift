@@ -220,9 +220,7 @@ struct ReviewEvidenceView: View {
     // MARK: - Fabric section
 
     private var fabricSection: some View {
-        let allBoundaries = store.draft.fabricRecords.flatMap { $0.boundaries }
-        let allOpenings   = store.draft.fabricRecords.flatMap { $0.openings }
-        let totalCount    = allBoundaries.count + allOpenings.count
+        let totalCount = store.draft.fabricRecords.reduce(0) { $0 + $1.boundaries.count + $1.openings.count }
         return Section {
             if totalCount == 0 {
                 emptyState("No fabric observations recorded yet", symbol: "square.3.layers.3d")
