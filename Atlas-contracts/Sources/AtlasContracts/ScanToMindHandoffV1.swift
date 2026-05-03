@@ -107,4 +107,7 @@ public enum ScanToMindHandoffReasonV1: String, Codable, Sendable, CaseIterable {
 
     /// Engineer (or developer) is triggering the handoff to review the visit in Mind.
     case reviewInMind = "review_in_mind"
+
+    /// Engineer is opening the Quote Planner in Atlas Mind with visit evidence preloaded.
+    case quotePlanner = "quote_planner"
 }

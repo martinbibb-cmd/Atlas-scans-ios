@@ -133,6 +133,7 @@
 		AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020702 /* FloorPlanFabricBuilderTests.swift */; };
 		AA010703 /* QuotePlannerCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020703 /* QuotePlannerCaptureView.swift */; };
 		AA010704 /* QuotePlannerEvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020704 /* QuotePlannerEvidenceTests.swift */; };
+		AA010705 /* ScanToMindHandoffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020705 /* ScanToMindHandoffTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -265,6 +266,7 @@
 		AA020702 /* FloorPlanFabricBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanFabricBuilderTests.swift; sourceTree = "<group>"; };
 		AA020703 /* QuotePlannerCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotePlannerCaptureView.swift; sourceTree = "<group>"; };
 		AA020704 /* QuotePlannerEvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotePlannerEvidenceTests.swift; sourceTree = "<group>"; };
+		AA020705 /* ScanToMindHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffTests.swift; sourceTree = "<group>"; };
 
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -683,6 +685,7 @@
 
 				AA020702 /* FloorPlanFabricBuilderTests.swift */,
 				AA020704 /* QuotePlannerEvidenceTests.swift */,
+				AA020705 /* ScanToMindHandoffTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -949,6 +952,7 @@
 
 				AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */,
 				AA010704 /* QuotePlannerEvidenceTests.swift in Sources */,
+				AA010705 /* ScanToMindHandoffTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

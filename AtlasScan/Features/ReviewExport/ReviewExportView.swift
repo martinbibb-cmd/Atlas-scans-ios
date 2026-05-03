@@ -9,9 +9,10 @@ import AtlasContracts
 // handoff actions to continue work in Atlas Mind.
 //
 // Primary actions (always visible):
-//   • Continue in Atlas Mind  — opens Mind WebView pre-loaded to this visit
+//   • Continue in Atlas Mind    — opens Mind WebView pre-loaded to this visit
+//   • Open Quote Planner        — opens Mind at /quote-planner with evidence preloaded
 //   • Save to Files / Cloud Drive — saves the .atlasvisit package to Files.app
-//   • Share Capture Package   — builds .atlasvisit and opens the iOS share sheet
+//   • Share Capture Package     — builds .atlasvisit and opens the iOS share sheet
 //
 // Developer-only actions (require Developer Mode):
 //   • Inspect JSON — opens the raw SessionCaptureV2 JSON inspector
@@ -31,6 +32,13 @@ struct ReviewExportView: View {
 
     @State private var showingMindHandoff         = false
     @State private var mindHandoffVisitId: String?
+
+    // MARK: - State: quote planner handoff
+
+    @State private var quotePlannerHandoffError: String?
+    @State private var quotePlannerLinkURL: URL?
+    @State private var isBuildingQuotePlanner     = false
+    @State private var copiedQuotePlannerLink     = false
 
     // MARK: - State: workspace package
 
@@ -231,6 +239,38 @@ struct ReviewExportView: View {
             .disabled(!isReady || isBuildingPackage)
             .listRowBackground(Color.clear)
 
+            // SECONDARY — Open Quote Planner in Atlas Mind
+            Button {
+                performQuotePlannerHandoff()
+            } label: {
+                HStack {
+                    if isBuildingQuotePlanner {
+                        ProgressView()
+                            .padding(.trailing, 6)
+                    } else {
+                        Image(systemName: "list.clipboard")
+                    }
+                    Text("Open Quote Planner in Atlas Mind")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!isReady || isBuildingQuotePlanner)
+            .listRowBackground(Color.clear)
+
+            // Quote planner error + fallback actions
+            if let errorMessage = quotePlannerHandoffError {
+                Label(errorMessage, systemImage: "xmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+
+                if let url = quotePlannerLinkURL {
+                    quotePlannerFallbackActions(url: url)
+                }
+            } else if let url = quotePlannerLinkURL {
+                quotePlannerFallbackActions(url: url)
+            }
+
             // Save to Files / Cloud Drive
             Button {
                 buildPackageIfNeeded { showingDocumentPicker = true }
@@ -311,6 +351,35 @@ struct ReviewExportView: View {
         }
     }
 
+    /// Compact fallback row offering "Copy Link" and "Retry" for the quote planner handoff.
+    private func quotePlannerFallbackActions(url: URL) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                #if canImport(UIKit)
+                UIPasteboard.general.string = url.absoluteString
+                #endif
+                copiedQuotePlannerLink = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    copiedQuotePlannerLink = false
+                }
+            } label: {
+                Label(
+                    copiedQuotePlannerLink ? "Copied!" : "Copy Link",
+                    systemImage: copiedQuotePlannerLink ? "checkmark" : "doc.on.clipboard"
+                )
+                .font(.caption)
+            }
+
+            Button {
+                performQuotePlannerHandoff()
+            } label: {
+                Label("Retry", systemImage: "arrow.clockwise")
+                    .font(.caption)
+            }
+        }
+        .foregroundStyle(Color.accentColor)
+    }
+
     // MARK: - Actions: Mind handoff
 
     /// Builds the workspace package and opens Atlas Mind with the visitId.
@@ -322,6 +391,34 @@ struct ReviewExportView: View {
             isBuildingPackage = false
             mindHandoffVisitId = store.draft.visitReference
             showingMindHandoff = true
+        }
+    }
+
+    // MARK: - Actions: Quote planner handoff
+
+    /// Builds the SessionCaptureV2, constructs a quote-planner handoff, and
+    /// opens Atlas Mind at the /quote-planner route.
+    ///
+    /// Caches the quote-planner URL so the "Copy Link" fallback is available
+    /// without re-encoding.  Always clears any previous error before attempting.
+    private func performQuotePlannerHandoff() {
+        quotePlannerHandoffError = nil
+        isBuildingQuotePlanner = true
+
+        do {
+            let result = try CaptureSessionExporter.export(store.draft)
+            let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(
+                store.draft,
+                capture: result.payload,
+                reason: .quotePlanner
+            )
+            let url = OpenAtlasMind.makeQuotePlannerURL(for: handoff)
+            quotePlannerLinkURL = url
+            isBuildingQuotePlanner = false
+            OpenAtlasMind.openQuotePlanner(with: handoff)
+        } catch {
+            quotePlannerHandoffError = "Quote Planner handoff failed: \(error.localizedDescription)"
+            isBuildingQuotePlanner = false
         }
     }
 

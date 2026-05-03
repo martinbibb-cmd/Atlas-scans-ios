@@ -14,6 +14,7 @@ import AtlasContracts
 //       complete_capture  — completed visit
 //       save_progress     — draft / incomplete visit
 //       review_in_mind    — engineer review flow
+//       quote_planner     — open quote planner in Atlas Mind
 //   • Pure function: no side effects, no I/O.
 
 enum ScanToMindHandoffBuilder {
@@ -61,6 +62,37 @@ enum ScanToMindHandoffBuilder {
             visitId: visit.visitId,
             sessionId: capture.sessionId,
             readiness: visit.readiness,
+            capture: capture,
+            reason: reason,
+            exportedAt: iso8601.string(from: Date())
+        )
+    }
+
+    /// Builds a ``ScanToMindHandoffV1`` directly from a ``CaptureSessionDraft``.
+    ///
+    /// Uses `draft.id.uuidString` as both `visitId` and `sessionId` (they are
+    /// always equal when produced this way, satisfying the contract).  Readiness
+    /// is derived from the draft at build time.
+    ///
+    /// Use this overload when no ``AtlasScanVisit`` lifecycle object is available
+    /// (e.g. the review/export screen accessed outside the main visit flow).
+    ///
+    /// - Parameters:
+    ///   - draft: The capture session draft to build the handoff from.
+    ///   - capture: The ``SessionCaptureV2`` produced from the same draft.
+    ///   - reason: The reason this handoff is being initiated.
+    /// - Returns: A fully-populated ``ScanToMindHandoffV1`` ready for encoding.
+    static func buildHandoffFromDraft(
+        _ draft: CaptureSessionDraft,
+        capture: SessionCaptureV2,
+        reason: ScanToMindHandoffReasonV1
+    ) -> ScanToMindHandoffV1 {
+        let sessionId = draft.id.uuidString
+        let readiness = AtlasScanVisit.deriveReadiness(from: draft)
+        return ScanToMindHandoffV1(
+            visitId: sessionId,
+            sessionId: sessionId,
+            readiness: readiness,
             capture: capture,
             reason: reason,
             exportedAt: iso8601.string(from: Date())
