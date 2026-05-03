@@ -87,6 +87,19 @@ public struct SessionCaptureV2: Codable, Sendable {
     /// Floor plan snapshots captured during the visit.
     public let floorPlanSnapshots: [CapturedFloorPlanSnapshotV2]
 
+    // MARK: Fabric + hazard evidence (optional)
+
+    /// Floor-plan fabric evidence (boundaries and openings) captured during the visit.
+    ///
+    /// Nil when no fabric data was recorded.  Not required for session validity —
+    /// existing sessions without fabric evidence remain valid.
+    public let floorPlanFabric: FloorPlanFabricCaptureV1?
+
+    /// Site hazard observations recorded by the engineer during the visit.
+    ///
+    /// Nil or empty when no hazards were observed.  Not required for session validity.
+    public let hazardObservations: [HazardObservationCaptureV1]?
+
     // MARK: Quality signals
 
     /// QA flags raised during capture. Capture-layer warnings only.
@@ -109,6 +122,8 @@ public struct SessionCaptureV2: Codable, Sendable {
         voiceNotes: [CapturedVoiceNoteV2],
         objectPins: [CapturedObjectPinV2],
         floorPlanSnapshots: [CapturedFloorPlanSnapshotV2],
+        floorPlanFabric: FloorPlanFabricCaptureV1? = nil,
+        hazardObservations: [HazardObservationCaptureV1]? = nil,
         qaFlags: [ScanQAFlag]
     ) {
         self.schemaVersion = schemaVersion
@@ -125,6 +140,8 @@ public struct SessionCaptureV2: Codable, Sendable {
         self.voiceNotes = voiceNotes
         self.objectPins = objectPins
         self.floorPlanSnapshots = floorPlanSnapshots
+        self.floorPlanFabric = floorPlanFabric
+        self.hazardObservations = hazardObservations
         self.qaFlags = qaFlags
     }
 }

@@ -165,6 +165,42 @@ final class CaptureSessionStore: ObservableObject {
         update { $0.floorPlanSnapshots.removeAll { $0.id == id } }
     }
 
+    // MARK: - Fabric records
+
+    func addFabricRecord(_ record: CapturedFloorPlanFabricDraft) {
+        update { $0.fabricRecords.append(record) }
+    }
+
+    func removeFabricRecord(id: UUID) {
+        update { $0.fabricRecords.removeAll { $0.id == id } }
+    }
+
+    func updateFabricRecord(_ record: CapturedFloorPlanFabricDraft) {
+        update { draft in
+            if let idx = draft.fabricRecords.firstIndex(where: { $0.id == record.id }) {
+                draft.fabricRecords[idx] = record
+            }
+        }
+    }
+
+    // MARK: - Hazard observations
+
+    func addHazardObservation(_ hazard: CapturedHazardObservationDraft) {
+        update { $0.hazardObservations.append(hazard) }
+    }
+
+    func removeHazardObservation(id: UUID) {
+        update { $0.hazardObservations.removeAll { $0.id == id } }
+    }
+
+    func updateHazardObservation(_ hazard: CapturedHazardObservationDraft) {
+        update { draft in
+            if let idx = draft.hazardObservations.firstIndex(where: { $0.id == hazard.id }) {
+                draft.hazardObservations[idx] = hazard
+            }
+        }
+    }
+
     // MARK: - Visit reference
 
     func setVisitReference(_ reference: String) {

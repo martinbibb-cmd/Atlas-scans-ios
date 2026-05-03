@@ -127,6 +127,10 @@
 		AA010503 /* TestFlightFeedbackReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020503 /* TestFlightFeedbackReporter.swift */; };
 
 		AA010600 /* CustomerPackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020600 /* CustomerPackView.swift */; };
+
+		AA010700 /* FabricCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020700 /* FabricCaptureView.swift */; };
+		AA010701 /* HazardCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020701 /* HazardCaptureView.swift */; };
+		AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020702 /* FloorPlanFabricBuilderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -254,6 +258,10 @@
 
 		AA020600 /* CustomerPackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerPackView.swift; sourceTree = "<group>"; };
 
+		AA020700 /* FabricCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FabricCaptureView.swift; sourceTree = "<group>"; };
+		AA020701 /* HazardCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardCaptureView.swift; sourceTree = "<group>"; };
+		AA020702 /* FloorPlanFabricBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanFabricBuilderTests.swift; sourceTree = "<group>"; };
+
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -326,6 +334,8 @@
 				AA050050 /* Handoff */,
 				AA050060 /* Diagnostics */,
 				AA050070 /* CustomerPack */,
+				AA050080 /* Fabric */,
+				AA050081 /* Hazards */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -553,6 +563,22 @@
 			path = CustomerPack;
 			sourceTree = "<group>";
 		};
+		AA050080 /* Fabric */ = {
+			isa = PBXGroup;
+			children = (
+				AA020700 /* FabricCaptureView.swift */,
+			);
+			path = Fabric;
+			sourceTree = "<group>";
+		};
+		AA050081 /* Hazards */ = {
+			isa = PBXGroup;
+			children = (
+				AA020701 /* HazardCaptureView.swift */,
+			);
+			path = Hazards;
+			sourceTree = "<group>";
+		};
 		AA050036 /* AtlasRecommendations */ = {
 			isa = PBXGroup;
 			children = (
@@ -641,6 +667,8 @@
 
 				AA020302 /* CaptureReviewUpdaterTests.swift */,
 				AA020303 /* VisitReadinessReviewTests.swift */,
+
+				AA020702 /* FloorPlanFabricBuilderTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -866,6 +894,9 @@
 				AA010503 /* TestFlightFeedbackReporter.swift in Sources */,
 
 				AA010600 /* CustomerPackView.swift in Sources */,
+
+				AA010700 /* FabricCaptureView.swift in Sources */,
+				AA010701 /* HazardCaptureView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -900,6 +931,8 @@
 
 				AA010302 /* CaptureReviewUpdaterTests.swift in Sources */,
 				AA010303 /* VisitReadinessReviewTests.swift in Sources */,
+
+				AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

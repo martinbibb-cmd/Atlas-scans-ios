@@ -193,6 +193,20 @@ struct VisitHomeView: View {
             }
 
             NavigationLink {
+                FabricCaptureView(store: captureStore)
+            } label: {
+                captureRow("Fabric & Perimeter", symbol: "square.3.layers.3d",
+                           badge: captureStore.draft.fabricRecords.flatMap { $0.boundaries + $0.openings }.count)
+            }
+
+            NavigationLink {
+                HazardCaptureView(store: captureStore)
+            } label: {
+                captureRow("Hazard Observations", symbol: "exclamationmark.triangle",
+                           badge: captureStore.draft.hazardObservations.count)
+            }
+
+            NavigationLink {
                 ReviewEvidenceView(store: captureStore)
             } label: {
                 reviewEvidenceRow
