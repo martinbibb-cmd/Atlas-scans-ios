@@ -90,7 +90,7 @@ struct QuotePlannerCaptureView: View {
                     .frame(width: 22)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(anchor.label?.isEmpty == false ? anchor.label! : anchor.kind.displayName)
+                    Text(anchor.label ?? anchor.kind.displayName)
                         .font(.subheadline)
                         .foregroundStyle(.primary)
 

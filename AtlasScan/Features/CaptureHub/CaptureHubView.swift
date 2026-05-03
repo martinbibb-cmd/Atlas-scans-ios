@@ -174,15 +174,15 @@ struct CaptureHubView: View {
     }
 
     private var objectPinStatus: CaptureHubSectionStatus {
-        let count = store.draft.objectPins.count
-        if count == 0 { return .notStarted }
-        return .inProgress(count: count)
+        captureStatus(count: store.draft.objectPins.count)
     }
 
     private var quotePlannerStatus: CaptureHubSectionStatus {
-        let count = store.draft.quotePlannerAnchors.count
-        if count == 0 { return .notStarted }
-        return .inProgress(count: count)
+        captureStatus(count: store.draft.quotePlannerAnchors.count)
+    }
+
+    private func captureStatus(count: Int) -> CaptureHubSectionStatus {
+        count == 0 ? .notStarted : .inProgress(count: count)
     }
 
     private var reviewExportStatus: CaptureHubSectionStatus {
