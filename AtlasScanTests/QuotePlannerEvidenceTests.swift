@@ -300,4 +300,205 @@ final class QuotePlannerEvidenceTests: XCTestCase {
                           "Kind '\(kind.rawValue)' missing from exported payload")
         }
     }
+
+    // MARK: - candidateRoutes helpers
+
+    private func makeRoute(
+        routeType: CandidateRouteType,
+        status: CandidateRouteStatus = .proposed,
+        installMethod: CandidateRouteInstallMethod? = nil,
+        provenance: QuoteAnchorProvenance = .manual,
+        notes: String = ""
+    ) -> CapturedCandidateRouteDraft {
+        var route = CapturedCandidateRouteDraft()
+        route.routeType = routeType
+        route.status = status
+        route.installMethod = installMethod
+        route.provenance = provenance
+        route.notes = notes
+        return route
+    }
+
+    // MARK: - Empty draft: candidateRoutes is empty
+
+    func test_build_emptyDraft_candidateRoutesIsEmpty() {
+        let visit = makeVisit()
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        XCTAssertNil(capture.quotePlannerEvidence,
+                     "quotePlannerEvidence must be nil when no anchors or routes recorded")
+    }
+
+    // MARK: - Candidate gas route exports
+
+    func test_build_candidateGasRoute_exports() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.candidateRoutes.append(makeRoute(routeType: .gas, status: .proposed))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertNotNil(capture.quotePlannerEvidence)
+        XCTAssertEqual(capture.quotePlannerEvidence?.candidateRoutes.count, 1)
+        let route = capture.quotePlannerEvidence?.candidateRoutes.first
+        XCTAssertEqual(route?.routeType, "gas")
+        XCTAssertEqual(route?.status, "proposed")
+    }
+
+    // MARK: - Candidate condensate route exports
+
+    func test_build_candidateCondensateRoute_exports() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.candidateRoutes.append(makeRoute(routeType: .condensate, status: .proposed,
+                                               installMethod: .surface))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertNotNil(capture.quotePlannerEvidence)
+        let route = capture.quotePlannerEvidence?.candidateRoutes.first
+        XCTAssertEqual(route?.routeType, "condensate")
+        XCTAssertEqual(route?.installMethod, "surface")
+    }
+
+    // MARK: - Route with no scale does not claim measured coordinates
+
+    func test_build_routeWithNoScale_waypointCoordinatesAreNil() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        var route = makeRoute(routeType: .heatingFlow)
+        var waypoint = CandidateRouteWaypointDraft()
+        // Deliberately set no 3-D coordinates (notes-only route).
+        waypoint.planX = 0.3
+        waypoint.planY = 0.5
+        route.waypoints.append(waypoint)
+        draft.candidateRoutes.append(route)
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        let exportedWaypoint = capture.quotePlannerEvidence?.candidateRoutes.first?.waypoints.first
+        XCTAssertNotNil(exportedWaypoint, "Waypoint must be exported")
+        XCTAssertNil(exportedWaypoint?.coordinates,
+                     "Waypoint without 3-D coordinates must export nil coordinates; no measured length claimed")
+        XCTAssertEqual(exportedWaypoint?.planX, 0.3)
+        XCTAssertEqual(exportedWaypoint?.planY, 0.5)
+    }
+
+    // MARK: - Assumed route remains assumed
+
+    func test_build_assumedRoute_remainsAssumed() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.candidateRoutes.append(makeRoute(routeType: .gas, status: .assumed))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        let route = capture.quotePlannerEvidence?.candidateRoutes.first
+        XCTAssertEqual(route?.status, "assumed",
+                       "Assumed route status must survive the builder unchanged")
+    }
+
+    // MARK: - All route types round-trip
+
+    func test_allRouteTypes_roundTripAsRawValues() throws {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        for routeType in CandidateRouteType.allCases {
+            draft.candidateRoutes.append(makeRoute(routeType: routeType))
+        }
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let data = try JSONEncoder().encode(capture)
+        let decoded = try JSONDecoder().decode(SessionCaptureV2.self, from: data)
+
+        let exportedTypes = decoded.quotePlannerEvidence?.candidateRoutes.map(\.routeType) ?? []
+        XCTAssertEqual(exportedTypes.count, CandidateRouteType.allCases.count)
+        for routeType in CandidateRouteType.allCases {
+            XCTAssertTrue(exportedTypes.contains(routeType.rawValue),
+                          "Route type '\(routeType.rawValue)' missing from exported payload")
+        }
+    }
+
+    // MARK: - Route notes exported
+
+    func test_build_routeWithNotes_notesExported() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.candidateRoutes.append(makeRoute(routeType: .gas, notes: "Run through utility room"))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertEqual(capture.quotePlannerEvidence?.candidateRoutes.first?.notes,
+                       "Run through utility room")
+    }
+
+    func test_build_routeWithEmptyNotes_notesIsNil() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.candidateRoutes.append(makeRoute(routeType: .gas, notes: ""))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertNil(capture.quotePlannerEvidence?.candidateRoutes.first?.notes,
+                     "Empty notes must export as nil")
+    }
+
+    // MARK: - Route ID is preserved
+
+    func test_build_routeId_preserved() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        let route = makeRoute(routeType: .condensate)
+        draft.candidateRoutes.append(route)
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertEqual(capture.quotePlannerEvidence?.candidateRoutes.first?.id,
+                       route.id.uuidString)
+    }
+
+    // MARK: - Anchors + routes together produce evidence
+
+    func test_build_anchorsAndRoutes_bothExported() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        draft.quotePlannerAnchors.append(makeAnchor(kind: .existingBoiler))
+        draft.candidateRoutes.append(makeRoute(routeType: .gas))
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+
+        XCTAssertNotNil(capture.quotePlannerEvidence)
+        XCTAssertEqual(capture.quotePlannerEvidence?.candidateLocations.count, 1)
+        XCTAssertEqual(capture.quotePlannerEvidence?.candidateRoutes.count, 1)
+    }
+
+    // MARK: - Existing payload without candidateRoutes decodes with empty array
+
+    func test_existingCapture_withQuotePlannerButNoCandidateRoutes_decodesSuccessfully() throws {
+        let json = """
+        {
+            "schemaVersion": "2.0",
+            "sessionId": "legacy-session-id",
+            "visitReference": "JOB-LEGACY-ROUTE",
+            "capturedAt": "2025-01-01T10:00:00.000Z",
+            "exportedAt": "2025-01-01T11:00:00.000Z",
+            "deviceModel": "iPhone 15 Pro",
+            "roomScans": [],
+            "photos": [],
+            "voiceNotes": [],
+            "objectPins": [],
+            "floorPlanSnapshots": [],
+            "qaFlags": [],
+            "quotePlannerEvidence": {
+                "candidateLocations": []
+            }
+        }
+        """
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let decoded = try JSONDecoder().decode(SessionCaptureV2.self, from: data)
+
+        XCTAssertNotNil(decoded.quotePlannerEvidence)
+        XCTAssertEqual(decoded.quotePlannerEvidence?.candidateRoutes.count, 0,
+                       "Legacy payload without candidateRoutes must decode as empty array")
+    }
 }

@@ -78,6 +78,12 @@ enum CaptureReviewUpdater {
         for i in draft.hazardObservations.indices {
             draft.hazardObservations[i].reviewStatus = .confirmed
         }
+        for i in draft.quotePlannerAnchors.indices {
+            draft.quotePlannerAnchors[i].reviewStatus = .confirmed
+        }
+        for i in draft.candidateRoutes.indices {
+            draft.candidateRoutes[i].reviewStatus = .confirmed
+        }
         draft.touch()
     }
 
@@ -99,7 +105,8 @@ enum CaptureReviewUpdater {
 
     /// Applies `status` to the evidence item identified by `id`, searching all categories.
     ///
-    /// Searches room scans, photos, voice notes, object pins, and floor plan snapshots.
+    /// Searches room scans, photos, voice notes, object pins, floor plan snapshots,
+    /// fabric records, hazard observations, quote-planner anchors, and candidate routes.
     /// If the ID is not found in any category the call is a no-op.
     static func updateReviewStatus(
         id: UUID,
@@ -143,6 +150,16 @@ enum CaptureReviewUpdater {
 
         if let idx = draft.hazardObservations.firstIndex(where: { $0.id == id }) {
             draft.hazardObservations[idx].reviewStatus = status
+            changed = true
+        }
+
+        if let idx = draft.quotePlannerAnchors.firstIndex(where: { $0.id == id }) {
+            draft.quotePlannerAnchors[idx].reviewStatus = status
+            changed = true
+        }
+
+        if let idx = draft.candidateRoutes.firstIndex(where: { $0.id == id }) {
+            draft.candidateRoutes[idx].reviewStatus = status
             changed = true
         }
 

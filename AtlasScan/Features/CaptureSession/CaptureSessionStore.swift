@@ -219,6 +219,24 @@ final class CaptureSessionStore: ObservableObject {
         }
     }
 
+    // MARK: - Candidate routes
+
+    func addCandidateRoute(_ route: CapturedCandidateRouteDraft) {
+        update { $0.candidateRoutes.append(route) }
+    }
+
+    func removeCandidateRoute(id: UUID) {
+        update { $0.candidateRoutes.removeAll { $0.id == id } }
+    }
+
+    func updateCandidateRoute(_ route: CapturedCandidateRouteDraft) {
+        update { draft in
+            if let idx = draft.candidateRoutes.firstIndex(where: { $0.id == route.id }) {
+                draft.candidateRoutes[idx] = route
+            }
+        }
+    }
+
     // MARK: - Visit reference
 
     func setVisitReference(_ reference: String) {

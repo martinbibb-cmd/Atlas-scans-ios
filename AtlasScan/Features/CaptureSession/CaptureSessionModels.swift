@@ -58,6 +58,10 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Evidence only — no pricing, no scope. Atlas Mind owns interpretation.
     var quotePlannerAnchors: [CapturedQuotePlannerAnchorDraft] = []
 
+    /// Candidate pipe/service routes recorded during the visit.
+    /// Evidence only — no lengths, no calculations. Atlas Mind calculates once scale is confirmed.
+    var candidateRoutes: [CapturedCandidateRouteDraft] = []
+
     /// Export lifecycle state.
     var exportState: CaptureExportState = .draft
 
@@ -556,6 +560,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .pending }.count
         + hazardObservations.filter { $0.reviewStatus == .pending }.count
         + quotePlannerAnchors.filter { $0.reviewStatus == .pending }.count
+        + candidateRoutes.filter { $0.reviewStatus == .pending }.count
     }
 
     /// Number of artefacts across all categories that have been rejected.
@@ -569,6 +574,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .rejected }.count
         + hazardObservations.filter { $0.reviewStatus == .rejected }.count
         + quotePlannerAnchors.filter { $0.reviewStatus == .rejected }.count
+        + candidateRoutes.filter { $0.reviewStatus == .rejected }.count
     }
 
     /// Number of artefacts across all categories that have been confirmed.
@@ -582,6 +588,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .confirmed }.count
         + hazardObservations.filter { $0.reviewStatus == .confirmed }.count
         + quotePlannerAnchors.filter { $0.reviewStatus == .confirmed }.count
+        + candidateRoutes.filter { $0.reviewStatus == .confirmed }.count
     }
 
     // MARK: Optional readiness indicators
@@ -608,6 +615,13 @@ extension CaptureSessionDraft {
     /// Informational only — does not gate completion flags.
     var hasQuotePlannerAnchors: Bool {
         quotePlannerAnchors.contains { $0.reviewStatus == .confirmed }
+    }
+
+    /// Returns true when at least one confirmed candidate route has been recorded.
+    ///
+    /// Informational only — does not gate completion flags.
+    var hasCandidateRoutes: Bool {
+        candidateRoutes.contains { $0.reviewStatus == .confirmed }
     }
 
     // MARK: Room-scoped helpers
@@ -1120,4 +1134,178 @@ enum QuoteAnchorProvenance: String, Codable, CaseIterable, Identifiable {
         case .floorPlanTap:     return "estimated"
         }
     }
+}
+
+// MARK: - CandidateRouteType
+
+/// The type of pipe or service route being recorded.
+enum CandidateRouteType: String, Codable, CaseIterable, Identifiable {
+    case gas           = "gas"
+    case condensate    = "condensate"
+    case heatingFlow   = "heating_flow"
+    case heatingReturn = "heating_return"
+    case hotWater      = "hot_water"
+    case coldMain      = "cold_main"
+    case discharge     = "discharge"
+    case controls      = "controls"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .gas:           return "Gas"
+        case .condensate:    return "Condensate"
+        case .heatingFlow:   return "Heating Flow"
+        case .heatingReturn: return "Heating Return"
+        case .hotWater:      return "Hot Water"
+        case .coldMain:      return "Cold Main"
+        case .discharge:     return "Discharge"
+        case .controls:      return "Controls"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .gas:           return "flame"
+        case .condensate:    return "drop.triangle"
+        case .heatingFlow:   return "arrow.right.circle"
+        case .heatingReturn: return "arrow.left.circle"
+        case .hotWater:      return "drop.fill"
+        case .coldMain:      return "drop"
+        case .discharge:     return "arrow.down.to.line"
+        case .controls:      return "dial.medium"
+        }
+    }
+}
+
+// MARK: - CandidateRouteStatus
+
+/// The engineering status of a candidate route.
+enum CandidateRouteStatus: String, Codable, CaseIterable, Identifiable {
+    /// An existing route that was observed in the property.
+    case existing        = "existing"
+    /// A new route proposed by the engineer.
+    case proposed        = "proposed"
+    /// An existing route that would be reused in the proposed scope.
+    case reusedExisting  = "reused_existing"
+    /// A route whose existence or routing is an assumption (not directly observed).
+    case assumed         = "assumed"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .existing:       return "Existing"
+        case .proposed:       return "Proposed"
+        case .reusedExisting: return "Reused Existing"
+        case .assumed:        return "Assumed"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .existing:       return "checkmark.circle"
+        case .proposed:       return "plus.circle"
+        case .reusedExisting: return "arrow.2.circlepath"
+        case .assumed:        return "questionmark.circle"
+        }
+    }
+}
+
+// MARK: - CandidateRouteInstallMethod
+
+/// How a candidate route is (or would be) installed.
+enum CandidateRouteInstallMethod: String, Codable, CaseIterable, Identifiable {
+    case surface    = "surface"
+    case boxed      = "boxed"
+    case concealed  = "concealed"
+    case underfloor = "underfloor"
+    case loft       = "loft"
+    case external   = "external"
+    case unknown    = "unknown"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .surface:    return "Surface"
+        case .boxed:      return "Boxed"
+        case .concealed:  return "Concealed"
+        case .underfloor: return "Underfloor"
+        case .loft:       return "Loft"
+        case .external:   return "External"
+        case .unknown:    return "Unknown"
+        }
+    }
+}
+
+// MARK: - CandidateRouteWaypointDraft
+
+/// An intermediate waypoint along a candidate route.
+///
+/// May carry a 3-D spatial position (when captured with scale), a normalised
+/// plan-canvas position, or neither (route is notes-only).
+struct CandidateRouteWaypointDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// Approximate 3-D position X component; nil when not recorded.
+    var coordinateX: Double?
+
+    /// Approximate 3-D position Y component; nil when not recorded.
+    var coordinateY: Double?
+
+    /// Approximate 3-D position Z component; nil when not recorded.
+    var coordinateZ: Double?
+
+    /// Normalised plan/photo X position in [0, 1]; nil when not placed on a plan.
+    var planX: Double?
+
+    /// Normalised plan/photo Y position in [0, 1]; nil when not placed on a plan.
+    var planY: Double?
+
+    /// Optional free-text label for this waypoint.
+    var label: String?
+}
+
+// MARK: - CapturedCandidateRouteDraft
+
+/// In-app draft of a candidate pipe or service route.
+///
+/// Raw observation only — no lengths, no calculations.
+/// Atlas Mind derives lengths once scale is confirmed.
+struct CapturedCandidateRouteDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// The type of service this route carries.
+    var routeType: CandidateRouteType = .gas
+
+    /// The engineering status of this route.
+    var status: CandidateRouteStatus = .proposed
+
+    /// How the route is (or would be) installed; nil when not yet known.
+    var installMethod: CandidateRouteInstallMethod?
+
+    /// UUID of the start quote-planner anchor; nil when not linked.
+    var startAnchorId: UUID?
+
+    /// UUID of the end quote-planner anchor; nil when not linked.
+    var endAnchorId: UUID?
+
+    /// Intermediate waypoints along the route.
+    var waypoints: [CandidateRouteWaypointDraft] = []
+
+    /// Free-text notes (e.g. routing constraints, pipe sizing observations).
+    var notes: String = ""
+
+    /// How the route evidence was recorded (determines default confidence).
+    var provenance: QuoteAnchorProvenance = .manual
+
+    /// UUIDs of evidence photos linked to this route.
+    var linkedPhotoIds: [UUID] = []
+
+    /// Engineer review status.
+    /// Manually created routes default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
 }
