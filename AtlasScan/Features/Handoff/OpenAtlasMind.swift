@@ -157,7 +157,10 @@ enum OpenAtlasMind {
         // Attempt to build the full URL with encoded payload.
         if let encoded = try? ScanToMindPayloadEncoder.encodeForURL(handoff) {
             var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
-            components?.percentEncodedQuery = "sessionRef=\(handoff.visitId)&payload=\(encoded)"
+            // visitId (UUID) is percent-encoded for robustness; payload is already encoded by the encoder.
+            let encodedRef = handoff.visitId
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? handoff.visitId
+            components?.percentEncodedQuery = "sessionRef=\(encodedRef)&payload=\(encoded)"
             if let url = components?.url,
                url.absoluteString.count <= quotePlannerURLLengthLimit {
                 return url

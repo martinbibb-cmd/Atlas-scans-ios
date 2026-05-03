@@ -269,7 +269,7 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertEqual(decoded.reason, .quotePlanner)
         XCTAssertNotNil(decoded.capture.quotePlannerEvidence)
         XCTAssertEqual(decoded.capture.quotePlannerEvidence?.candidateLocations.first?.kind,
-                       "proposed_boiler")
+                       QuoteAnchorKind.proposedBoiler.rawValue)
     }
 
     // MARK: - sourceApp / targetApp identity
