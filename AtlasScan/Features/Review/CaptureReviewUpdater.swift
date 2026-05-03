@@ -67,6 +67,17 @@ enum CaptureReviewUpdater {
         for i in draft.floorPlanSnapshots.indices {
             draft.floorPlanSnapshots[i].reviewStatus = .confirmed
         }
+        for i in draft.fabricRecords.indices {
+            for j in draft.fabricRecords[i].boundaries.indices {
+                draft.fabricRecords[i].boundaries[j].reviewStatus = .confirmed
+            }
+            for j in draft.fabricRecords[i].openings.indices {
+                draft.fabricRecords[i].openings[j].reviewStatus = .confirmed
+            }
+        }
+        for i in draft.hazardObservations.indices {
+            draft.hazardObservations[i].reviewStatus = .confirmed
+        }
         draft.touch()
     }
 
@@ -115,6 +126,23 @@ enum CaptureReviewUpdater {
         }
         if let idx = draft.floorPlanSnapshots.firstIndex(where: { $0.id == id }) {
             draft.floorPlanSnapshots[idx].reviewStatus = status
+            changed = true
+        }
+
+        // Search fabric boundaries and openings.
+        for i in draft.fabricRecords.indices {
+            if let j = draft.fabricRecords[i].boundaries.firstIndex(where: { $0.id == id }) {
+                draft.fabricRecords[i].boundaries[j].reviewStatus = status
+                changed = true
+            }
+            if let j = draft.fabricRecords[i].openings.firstIndex(where: { $0.id == id }) {
+                draft.fabricRecords[i].openings[j].reviewStatus = status
+                changed = true
+            }
+        }
+
+        if let idx = draft.hazardObservations.firstIndex(where: { $0.id == id }) {
+            draft.hazardObservations[idx].reviewStatus = status
             changed = true
         }
 

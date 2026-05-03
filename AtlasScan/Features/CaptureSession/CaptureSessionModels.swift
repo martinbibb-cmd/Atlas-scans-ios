@@ -48,6 +48,12 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Floor plan snapshots captured during the visit.
     var floorPlanSnapshots: [CapturedFloorPlanSnapshotDraft] = []
 
+    /// Floor plan fabric records (boundaries and openings) captured during the visit.
+    var fabricRecords: [CapturedFloorPlanFabricDraft] = []
+
+    /// Site hazard observations recorded during the visit.
+    var hazardObservations: [CapturedHazardObservationDraft] = []
+
     /// Export lifecycle state.
     var exportState: CaptureExportState = .draft
 
@@ -542,6 +548,9 @@ extension CaptureSessionDraft {
         + voiceNotes.filter    { $0.reviewStatus == .pending }.count
         + objectPins.filter    { $0.reviewStatus == .pending }.count
         + floorPlanSnapshots.filter { $0.reviewStatus == .pending }.count
+        + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .pending }.count
+        + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .pending }.count
+        + hazardObservations.filter { $0.reviewStatus == .pending }.count
     }
 
     /// Number of artefacts across all categories that have been rejected.
@@ -551,6 +560,9 @@ extension CaptureSessionDraft {
         + voiceNotes.filter    { $0.reviewStatus == .rejected }.count
         + objectPins.filter    { $0.reviewStatus == .rejected }.count
         + floorPlanSnapshots.filter { $0.reviewStatus == .rejected }.count
+        + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .rejected }.count
+        + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .rejected }.count
+        + hazardObservations.filter { $0.reviewStatus == .rejected }.count
     }
 
     /// Number of artefacts across all categories that have been confirmed.
@@ -560,6 +572,28 @@ extension CaptureSessionDraft {
         + voiceNotes.filter    { $0.reviewStatus == .confirmed }.count
         + objectPins.filter    { $0.reviewStatus == .confirmed }.count
         + floorPlanSnapshots.filter { $0.reviewStatus == .confirmed }.count
+        + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .confirmed }.count
+        + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .confirmed }.count
+        + hazardObservations.filter { $0.reviewStatus == .confirmed }.count
+    }
+
+    // MARK: Optional readiness indicators
+
+    /// Returns true when at least one confirmed boundary or opening has been recorded.
+    ///
+    /// Informational only — does not gate the seven completion flags.
+    var hasFabricMeasurements: Bool {
+        fabricRecords.contains { record in
+            record.boundaries.contains { $0.reviewStatus == .confirmed }
+            || record.openings.contains { $0.reviewStatus == .confirmed }
+        }
+    }
+
+    /// Returns true when at least one confirmed hazard observation has been recorded.
+    ///
+    /// Informational only — does not gate the seven completion flags.
+    var hasHazardObservations: Bool {
+        hazardObservations.contains { $0.reviewStatus == .confirmed }
     }
 
     // MARK: Room-scoped helpers
@@ -663,6 +697,245 @@ enum PipeType: String, Codable, CaseIterable, Identifiable {
         case .water:   return "Water"
         case .gas:     return "Gas"
         case .other:   return "Other"
+        }
+    }
+}
+
+// MARK: - CapturedFloorPlanFabricDraft
+
+/// In-app draft of per-room floor-plan fabric evidence.
+///
+/// Stores raw boundary and opening observations for one room.
+/// No U-values, no thermal calculation — those belong in Mind.
+struct CapturedFloorPlanFabricDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// UUID of the room scan this fabric record relates to; nil when unlinked.
+    var roomId: UUID?
+
+    /// Boundary observations recorded for this room.
+    var boundaries: [CapturedBoundaryDraft] = []
+
+    /// Opening observations recorded for this room.
+    var openings: [CapturedOpeningDraft] = []
+}
+
+// MARK: - CapturedBoundaryDraft
+
+/// In-app draft of a single boundary (wall segment) observation.
+struct CapturedBoundaryDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// Classification of this boundary.
+    var boundaryType: BoundaryType = .unknown
+
+    /// Measured length in metres; nil if not recorded.
+    var lengthM: Double?
+
+    /// Measured height in metres; nil if not recorded.
+    var heightM: Double?
+
+    /// Free-text material description (e.g. "solid brick", "cavity wall").
+    var material: String?
+
+    /// Engineer review status.
+    /// Manually entered boundaries default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
+}
+
+// MARK: - BoundaryType
+
+/// Classification of a building boundary (wall segment).
+enum BoundaryType: String, Codable, CaseIterable, Identifiable {
+    case external = "external"
+    case `internal` = "internal"
+    case party    = "party"
+    case unknown  = "unknown"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .external:  return "External"
+        case .internal:  return "Internal"
+        case .party:     return "Party"
+        case .unknown:   return "Unknown"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .external:  return "building.2"
+        case .internal:  return "square.split.2x1"
+        case .party:     return "person.2.square.stack"
+        case .unknown:   return "questionmark.square"
+        }
+    }
+}
+
+// MARK: - CapturedOpeningDraft
+
+/// In-app draft of a single opening (door, window, etc.) observation.
+struct CapturedOpeningDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// Classification of this opening.
+    var openingType: OpeningType = .window
+
+    /// Measured or estimated width in metres; nil if not recorded.
+    var widthM: Double?
+
+    /// Measured or estimated height in metres; nil if not recorded.
+    var heightM: Double?
+
+    /// Free-text material / glazing description.
+    var material: String?
+
+    /// UUID of the boundary this opening belongs to; nil when unlinked.
+    var linkedBoundaryId: UUID?
+
+    /// Engineer review status.
+    /// Manually entered openings default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
+}
+
+// MARK: - OpeningType
+
+/// Classification of a building opening.
+enum OpeningType: String, Codable, CaseIterable, Identifiable {
+    case door      = "door"
+    case window    = "window"
+    case patio     = "patio"
+    case rooflight = "rooflight"
+    case openArch  = "open_arch"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .door:      return "Door"
+        case .window:    return "Window"
+        case .patio:     return "Patio Door"
+        case .rooflight: return "Rooflight"
+        case .openArch:  return "Open Arch"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .door:      return "door.right.hand.open"
+        case .window:    return "window.casement"
+        case .patio:     return "door.sliding.right.hand.open"
+        case .rooflight: return "sun.roof"
+        case .openArch:  return "archivebox"
+        }
+    }
+}
+
+// MARK: - CapturedHazardObservationDraft
+
+/// In-app draft of a site hazard observation.
+///
+/// Raw observation only — no risk score, no remediation recommendation.
+/// Those belong in Mind.
+struct CapturedHazardObservationDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// Hazard category.
+    var category: HazardCategory = .other
+
+    /// Hazard severity.
+    var severity: HazardSeverity = .low
+
+    /// Short title describing the hazard.
+    var title: String = ""
+
+    /// Longer description of the hazard observation.
+    var descriptionText: String = ""
+
+    /// UUIDs of evidence photos linked to this hazard.
+    var linkedPhotoIds: [UUID] = []
+
+    /// UUIDs of object pins linked to this hazard.
+    var linkedObjectPinIds: [UUID] = []
+
+    /// Whether the engineer considers immediate action required.
+    var actionRequired: Bool = false
+
+    /// Engineer review status.
+    /// Manually entered hazards default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
+}
+
+// MARK: - HazardCategory
+
+/// Category of a site hazard observation.
+enum HazardCategory: String, Codable, CaseIterable, Identifiable {
+    case asbestos   = "asbestos"
+    case structural = "structural"
+    case electrical = "electrical"
+    case gas        = "gas"
+    case water      = "water"
+    case slipTrip   = "slip_trip"
+    case other      = "other"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .asbestos:   return "Asbestos / ACM"
+        case .structural: return "Structural"
+        case .electrical: return "Electrical"
+        case .gas:        return "Gas"
+        case .water:      return "Water / Damp"
+        case .slipTrip:   return "Slip / Trip"
+        case .other:      return "Other"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .asbestos:   return "exclamationmark.triangle.fill"
+        case .structural: return "building.columns"
+        case .electrical: return "bolt.fill"
+        case .gas:        return "flame.fill"
+        case .water:      return "drop.fill"
+        case .slipTrip:   return "figure.walk.motion"
+        case .other:      return "exclamationmark.circle"
+        }
+    }
+}
+
+// MARK: - HazardSeverity
+
+/// Severity level for a site hazard observation.
+enum HazardSeverity: String, Codable, CaseIterable, Identifiable {
+    case low      = "low"
+    case medium   = "medium"
+    case high     = "high"
+    case critical = "critical"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .low:      return "Low"
+        case .medium:   return "Medium"
+        case .high:     return "High"
+        case .critical: return "Critical"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .low:      return "green"
+        case .medium:   return "yellow"
+        case .high:     return "orange"
+        case .critical: return "red"
         }
     }
 }

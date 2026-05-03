@@ -38,6 +38,8 @@ struct ReviewEvidenceView: View {
             voiceNotesSection
             objectPinsSection
             floorPlanSection
+            fabricSection
+            hazardsSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Review Evidence")
@@ -212,6 +214,66 @@ struct ReviewEvidenceView: View {
             }
         } header: {
             Text("Floor Plans (\(store.draft.floorPlanSnapshots.count))")
+        }
+    }
+
+    // MARK: - Fabric section
+
+    private var fabricSection: some View {
+        let totalCount = store.draft.fabricRecords.reduce(0) { $0 + $1.boundaries.count + $1.openings.count }
+        return Section {
+            if totalCount == 0 {
+                emptyState("No fabric observations recorded yet", symbol: "square.3.layers.3d")
+            } else {
+                ForEach(store.draft.fabricRecords) { record in
+                    let label = roomLabel(for: record.roomId) ?? "Unlinked room"
+                    ForEach(record.boundaries) { boundary in
+                        EvidenceReviewRow(
+                            title: boundary.boundaryType.displayName + " boundary",
+                            subtitle: label,
+                            provenanceSymbol: "square.3.layers.3d",
+                            status: boundary.reviewStatus
+                        ) { newStatus in
+                            store.updateReviewStatus(id: boundary.id, status: newStatus)
+                        }
+                    }
+                    ForEach(record.openings) { opening in
+                        EvidenceReviewRow(
+                            title: opening.openingType.displayName,
+                            subtitle: label,
+                            provenanceSymbol: opening.openingType.symbolName,
+                            status: opening.reviewStatus
+                        ) { newStatus in
+                            store.updateReviewStatus(id: opening.id, status: newStatus)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Fabric & Openings (\(totalCount))")
+        }
+    }
+
+    // MARK: - Hazards section
+
+    private var hazardsSection: some View {
+        Section {
+            if store.draft.hazardObservations.isEmpty {
+                emptyState("No hazards recorded yet", symbol: "exclamationmark.triangle")
+            } else {
+                ForEach(store.draft.hazardObservations) { hazard in
+                    EvidenceReviewRow(
+                        title: hazard.title.isEmpty ? hazard.category.displayName : hazard.title,
+                        subtitle: hazard.severity.displayName,
+                        provenanceSymbol: hazard.category.symbolName,
+                        status: hazard.reviewStatus
+                    ) { newStatus in
+                        store.updateReviewStatus(id: hazard.id, status: newStatus)
+                    }
+                }
+            }
+        } header: {
+            Text("Hazards (\(store.draft.hazardObservations.count))")
         }
     }
 

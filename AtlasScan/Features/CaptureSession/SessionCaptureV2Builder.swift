@@ -57,6 +57,8 @@ enum SessionCaptureV2Builder {
             voiceNotes: draft.voiceNotes.map(mapVoiceNote),
             objectPins: draft.objectPins.map(mapObjectPin),
             floorPlanSnapshots: draft.floorPlanSnapshots.map(mapFloorPlanSnapshot),
+            floorPlanFabric: mapFloorPlanFabric(draft),
+            hazardObservations: mapHazardObservations(draft),
             qaFlags: buildQAFlags(visit: visit, draft: draft)
         )
     }
@@ -155,6 +157,96 @@ enum SessionCaptureV2Builder {
             captureTimestamp: iso8601.string(from: snapshot.captureTimestamp),
             roomId: snapshot.roomId?.uuidString
         )
+    }
+
+    // MARK: - Floor plan fabric mapping
+
+    /// Maps fabric draft records to the ``FloorPlanFabricCaptureV1`` contract.
+    ///
+    /// Returns nil when no fabric records exist (keeping the payload backward-compatible).
+    private static func mapFloorPlanFabric(_ draft: CaptureSessionDraft) -> FloorPlanFabricCaptureV1? {
+        guard !draft.fabricRecords.isEmpty else { return nil }
+
+        let roomLookup: [UUID: String] = Dictionary(
+            uniqueKeysWithValues: draft.roomScans.compactMap { scan in
+                guard let label = scan.roomLabel else { return nil }
+                return (scan.id, label)
+            }
+        )
+
+        let rooms: [RoomFabricCaptureV1] = draft.fabricRecords.map { record in
+            let boundaries = record.boundaries.map { b in
+                BoundaryCaptureV1(
+                    id: b.id.uuidString,
+                    boundaryType: b.boundaryType.rawValue,
+                    lengthM: b.lengthM,
+                    heightM: b.heightM,
+                    material: b.material,
+                    reviewStatus: b.reviewStatus.rawValue
+                )
+            }
+            let openings = record.openings.map { o in
+                OpeningCaptureV1(
+                    id: o.id.uuidString,
+                    openingType: o.openingType.rawValue,
+                    widthM: o.widthM,
+                    heightM: o.heightM,
+                    material: o.material,
+                    linkedBoundaryId: o.linkedBoundaryId?.uuidString,
+                    reviewStatus: o.reviewStatus.rawValue
+                )
+            }
+
+            // Derive perimeter from confirmed boundary lengths.
+            let perimeterM: Double? = {
+                let confirmedLengths = record.boundaries
+                    .filter { $0.reviewStatus == .confirmed }
+                    .compactMap(\.lengthM)
+                return confirmedLengths.isEmpty ? nil : confirmedLengths.reduce(0, +)
+            }()
+
+            // Carry known room dimensions from the linked room scan.
+            let linkedScan = record.roomId.flatMap { id in
+                draft.roomScans.first(where: { $0.id == id })
+            }
+
+            return RoomFabricCaptureV1(
+                roomId: record.roomId?.uuidString,
+                roomLabel: record.roomId.flatMap { roomLookup[$0] },
+                perimeterM: perimeterM,
+                areaM2: linkedScan?.rawWidthM.flatMap { w in linkedScan?.rawDepthM.map { d in w * d } },
+                heightM: linkedScan?.rawHeightM,
+                boundaries: boundaries,
+                openings: openings
+            )
+        }
+
+        return FloorPlanFabricCaptureV1(rooms: rooms)
+    }
+
+    // MARK: - Hazard observation mapping
+
+    /// Maps hazard observation drafts to ``HazardObservationCaptureV1`` records.
+    ///
+    /// Returns nil when no hazard observations exist.
+    private static func mapHazardObservations(
+        _ draft: CaptureSessionDraft
+    ) -> [HazardObservationCaptureV1]? {
+        guard !draft.hazardObservations.isEmpty else { return nil }
+
+        return draft.hazardObservations.map { h in
+            HazardObservationCaptureV1(
+                id: h.id.uuidString,
+                category: h.category.rawValue,
+                severity: h.severity.rawValue,
+                title: h.title,
+                description: h.descriptionText.isEmpty ? nil : h.descriptionText,
+                linkedPhotoIds: h.linkedPhotoIds.map(\.uuidString),
+                linkedObjectPinIds: h.linkedObjectPinIds.map(\.uuidString),
+                actionRequired: h.actionRequired,
+                reviewStatus: h.reviewStatus.rawValue
+            )
+        }
     }
 
     // MARK: - QA flags
