@@ -54,6 +54,10 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Site hazard observations recorded during the visit.
     var hazardObservations: [CapturedHazardObservationDraft] = []
 
+    /// Candidate quote-planner location anchors recorded during the visit.
+    /// Evidence only — no pricing, no scope. Atlas Mind owns interpretation.
+    var quotePlannerAnchors: [CapturedQuotePlannerAnchorDraft] = []
+
     /// Export lifecycle state.
     var exportState: CaptureExportState = .draft
 
@@ -551,6 +555,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .pending }.count
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .pending }.count
         + hazardObservations.filter { $0.reviewStatus == .pending }.count
+        + quotePlannerAnchors.filter { $0.reviewStatus == .pending }.count
     }
 
     /// Number of artefacts across all categories that have been rejected.
@@ -563,6 +568,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .rejected }.count
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .rejected }.count
         + hazardObservations.filter { $0.reviewStatus == .rejected }.count
+        + quotePlannerAnchors.filter { $0.reviewStatus == .rejected }.count
     }
 
     /// Number of artefacts across all categories that have been confirmed.
@@ -575,6 +581,7 @@ extension CaptureSessionDraft {
         + fabricRecords.flatMap { $0.boundaries }.filter { $0.reviewStatus == .confirmed }.count
         + fabricRecords.flatMap { $0.openings   }.filter { $0.reviewStatus == .confirmed }.count
         + hazardObservations.filter { $0.reviewStatus == .confirmed }.count
+        + quotePlannerAnchors.filter { $0.reviewStatus == .confirmed }.count
     }
 
     // MARK: Optional readiness indicators
@@ -594,6 +601,13 @@ extension CaptureSessionDraft {
     /// Informational only — does not gate the seven completion flags.
     var hasHazardObservations: Bool {
         hazardObservations.contains { $0.reviewStatus == .confirmed }
+    }
+
+    /// Returns true when at least one confirmed quote-planner anchor has been recorded.
+    ///
+    /// Informational only — does not gate completion flags.
+    var hasQuotePlannerAnchors: Bool {
+        quotePlannerAnchors.contains { $0.reviewStatus == .confirmed }
     }
 
     // MARK: Room-scoped helpers
@@ -936,6 +950,174 @@ enum HazardSeverity: String, Codable, CaseIterable, Identifiable {
         case .medium:   return "yellow"
         case .high:     return "orange"
         case .critical: return "red"
+        }
+    }
+}
+
+// MARK: - CapturedQuotePlannerAnchorDraft
+
+/// In-app draft of a candidate quote-planner location anchor.
+///
+/// Raw observation only — no pricing, no scope, no recommendations.
+/// Atlas Mind derives those downstream.
+struct CapturedQuotePlannerAnchorDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// The kind of install/service location being tagged.
+    var kind: QuoteAnchorKind = .other
+
+    /// Optional free-text label set by the engineer.
+    var label: String?
+
+    /// UUID of the room this anchor is associated with; nil when unlinked.
+    var roomId: UUID?
+
+    /// Approximate 3-D position X component; nil when not captured.
+    var coordinateX: Double?
+
+    /// Approximate 3-D position Y component; nil when not captured.
+    var coordinateY: Double?
+
+    /// Approximate 3-D position Z component; nil when not captured.
+    var coordinateZ: Double?
+
+    /// UUIDs of evidence photos linked to this anchor.
+    var linkedPhotoIds: [UUID] = []
+
+    /// UUIDs of object pins linked to this anchor.
+    var linkedObjectPinIds: [UUID] = []
+
+    /// How the anchor was placed (determines default confidence).
+    var provenance: QuoteAnchorProvenance = .manual
+
+    /// Engineer review status.
+    /// Manually created anchors default to `.confirmed`.
+    var reviewStatus: EvidenceReviewStatus = .confirmed
+}
+
+// MARK: - QuoteAnchorKind
+
+/// The type of install or service location being tagged as a quote-planner anchor.
+enum QuoteAnchorKind: String, Codable, CaseIterable, Identifiable {
+
+    // Heating plant
+    case existingBoiler     = "existing_boiler"
+    case proposedBoiler     = "proposed_boiler"
+    case existingCylinder   = "existing_cylinder"
+    case proposedCylinder   = "proposed_cylinder"
+
+    // Utilities
+    case gasMeter           = "gas_meter"
+    case stopTap            = "stop_tap"
+    case consumerUnit       = "consumer_unit"
+
+    // Flue
+    case existingFlueTerminal = "existing_flue_terminal"
+    case proposedFlueTerminal = "proposed_flue_terminal"
+
+    // Drainage
+    case internalWaste      = "internal_waste"
+    case soilStack          = "soil_stack"
+    case gully              = "gully"
+    case soakawayCandidate  = "soakaway_candidate"
+
+    // Access
+    case airingCupboard     = "airing_cupboard"
+    case loftHatch          = "loft_hatch"
+
+    // Fallback
+    case other              = "other"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .existingBoiler:       return "Existing Boiler"
+        case .proposedBoiler:       return "Proposed Boiler"
+        case .existingCylinder:     return "Existing Cylinder"
+        case .proposedCylinder:     return "Proposed Cylinder"
+        case .gasMeter:             return "Gas Meter"
+        case .stopTap:              return "Stop Tap"
+        case .consumerUnit:         return "Consumer Unit"
+        case .existingFlueTerminal: return "Existing Flue Terminal"
+        case .proposedFlueTerminal: return "Proposed Flue Terminal"
+        case .internalWaste:        return "Internal Waste"
+        case .soilStack:            return "Soil Stack"
+        case .gully:                return "Gully"
+        case .soakawayCandidate:    return "Soakaway Candidate"
+        case .airingCupboard:       return "Airing Cupboard"
+        case .loftHatch:            return "Loft Hatch"
+        case .other:                return "Other"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .existingBoiler:       return "flame"
+        case .proposedBoiler:       return "flame.fill"
+        case .existingCylinder:     return "cylinder"
+        case .proposedCylinder:     return "cylinder.fill"
+        case .gasMeter:             return "gauge"
+        case .stopTap:              return "drop.circle"
+        case .consumerUnit:         return "bolt.circle"
+        case .existingFlueTerminal: return "arrow.up.to.line"
+        case .proposedFlueTerminal: return "arrow.up.to.line.circle"
+        case .internalWaste:        return "arrow.down.to.line"
+        case .soilStack:            return "pipe.and.drop"
+        case .gully:                return "water.waves"
+        case .soakawayCandidate:    return "drop.triangle"
+        case .airingCupboard:       return "cabinet"
+        case .loftHatch:            return "square.topthird.inset.filled"
+        case .other:                return "mappin"
+        }
+    }
+}
+
+// MARK: - QuoteAnchorProvenance
+
+/// How a quote-planner anchor was placed.
+///
+/// Used to derive the default confidence for a new anchor.
+enum QuoteAnchorProvenance: String, Codable, CaseIterable, Identifiable {
+
+    /// Manually entered by the engineer (list item or direct placement).
+    case manual             = "manual"
+    /// Placed from an AR / world-locked pin in the live capture view.
+    case arPin              = "ar_pin"
+    /// Inferred from a LiDAR / RoomPlan room-scan object.
+    case roomScanObject     = "room_scan_object"
+    /// Tagged from a photo annotation.
+    case photoAnnotation    = "photo_annotation"
+    /// Tapped on a floor-plan canvas (screen-only position, no spatial lock).
+    case floorPlanTap       = "floor_plan_tap"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .manual:           return "Manual"
+        case .arPin:            return "AR Pin"
+        case .roomScanObject:   return "Room Scan Object"
+        case .photoAnnotation:  return "Photo Annotation"
+        case .floorPlanTap:     return "Floor Plan Tap"
+        }
+    }
+
+    /// Default confidence level derived from how the anchor was placed.
+    ///
+    /// Rules:
+    ///   - Manual placement → "confirmed"
+    ///   - AR / world-locked → "measured"
+    ///   - LiDAR / room-scan inferred → "needs_verification"
+    ///   - Screen-only (photo annotation, floor-plan tap) → "estimated"
+    var defaultConfidence: String {
+        switch self {
+        case .manual:           return "confirmed"
+        case .arPin:            return "measured"
+        case .roomScanObject:   return "needs_verification"
+        case .photoAnnotation:  return "estimated"
+        case .floorPlanTap:     return "estimated"
         }
     }
 }

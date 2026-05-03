@@ -100,6 +100,13 @@ public struct SessionCaptureV2: Codable, Sendable {
     /// Nil or empty when no hazards were observed.  Not required for session validity.
     public let hazardObservations: [HazardObservationCaptureV1]?
 
+    /// Candidate quote-planner location anchors recorded during the visit.
+    ///
+    /// Nil when no quote-planner anchors were captured.  Not required for session
+    /// validity — existing sessions without this field remain valid.
+    /// Atlas Mind consumes these anchors for quote planning; Scan is capture-only.
+    public let quotePlannerEvidence: QuotePlannerEvidenceV1?
+
     // MARK: Quality signals
 
     /// QA flags raised during capture. Capture-layer warnings only.
@@ -124,6 +131,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         floorPlanSnapshots: [CapturedFloorPlanSnapshotV2],
         floorPlanFabric: FloorPlanFabricCaptureV1? = nil,
         hazardObservations: [HazardObservationCaptureV1]? = nil,
+        quotePlannerEvidence: QuotePlannerEvidenceV1? = nil,
         qaFlags: [ScanQAFlag]
     ) {
         self.schemaVersion = schemaVersion
@@ -142,6 +150,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         self.floorPlanSnapshots = floorPlanSnapshots
         self.floorPlanFabric = floorPlanFabric
         self.hazardObservations = hazardObservations
+        self.quotePlannerEvidence = quotePlannerEvidence
         self.qaFlags = qaFlags
     }
 }
