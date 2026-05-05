@@ -612,8 +612,8 @@ private struct BoundaryEditSheet: View {
 
                 Section {
                     Picker("Review Status", selection: $boundary.reviewStatus) {
-                        ForEach(EvidenceReviewStatus.allCases, id: \.self) { s in
-                            Text(s.displayName).tag(s)
+                        ForEach(EvidenceReviewStatus.allCases, id: \.self) { status in
+                            Text(status.displayName).tag(status)
                         }
                     }
                 } header: {
@@ -702,9 +702,9 @@ private struct OpeningEditSheet: View {
                 Section {
                     Picker("Wall", selection: $opening.linkedBoundaryId) {
                         Text("None").tag(Optional<UUID>.none)
-                        ForEach(availableBoundaries) { b in
-                            let label = b.wallIndex.map { "Wall \($0)" } ?? b.boundaryType.displayName
-                            Text(label).tag(Optional(b.id))
+                        ForEach(availableBoundaries) { boundary in
+                            let label = boundary.wallIndex.map { "Wall \($0)" } ?? boundary.boundaryType.displayName
+                            Text(label).tag(Optional(boundary.id))
                         }
                     }
                 } header: {
@@ -716,8 +716,8 @@ private struct OpeningEditSheet: View {
 
                 Section {
                     Picker("Review Status", selection: $opening.reviewStatus) {
-                        ForEach(EvidenceReviewStatus.allCases, id: \.self) { s in
-                            Text(s.displayName).tag(s)
+                        ForEach(EvidenceReviewStatus.allCases, id: \.self) { status in
+                            Text(status.displayName).tag(status)
                         }
                     }
                 } header: {
