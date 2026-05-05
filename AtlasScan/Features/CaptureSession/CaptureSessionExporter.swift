@@ -104,8 +104,156 @@ enum CaptureSessionExporter {
             voiceNotes: draft.voiceNotes.map(mapVoiceNote),
             objectPins: draft.objectPins.map(mapObjectPin),
             floorPlanSnapshots: draft.floorPlanSnapshots.map(mapFloorPlanSnapshot),
+            floorPlanFabric: mapFloorPlanFabric(from: draft),
+            hazardObservations: mapHazardObservations(from: draft),
+            quotePlannerEvidence: mapQuotePlannerEvidence(from: draft),
             qaFlags: buildQAFlags(from: draft)
         )
+    }
+
+    // MARK: - Floor plan fabric mapping
+
+    /// Maps fabric draft records to ``FloorPlanFabricCaptureV1``.
+    /// Returns nil when no fabric records exist (backward-compatible).
+    private static func mapFloorPlanFabric(from draft: CaptureSessionDraft) -> FloorPlanFabricCaptureV1? {
+        guard !draft.fabricRecords.isEmpty else { return nil }
+
+        let roomLookup: [UUID: String] = Dictionary(
+            uniqueKeysWithValues: draft.roomScans.compactMap { scan in
+                guard let label = scan.roomLabel else { return nil }
+                return (scan.id, label)
+            }
+        )
+
+        let rooms: [RoomFabricCaptureV1] = draft.fabricRecords.map { record in
+            let boundaries = record.boundaries.map { b in
+                BoundaryCaptureV1(
+                    id: b.id.uuidString,
+                    boundaryType: b.boundaryType.rawValue,
+                    lengthM: b.lengthM,
+                    heightM: b.heightM,
+                    material: b.material,
+                    reviewStatus: b.reviewStatus.rawValue
+                )
+            }
+            let openings = record.openings.map { o in
+                OpeningCaptureV1(
+                    id: o.id.uuidString,
+                    openingType: o.openingType.rawValue,
+                    widthM: o.widthM,
+                    heightM: o.heightM,
+                    material: o.material,
+                    linkedBoundaryId: o.linkedBoundaryId?.uuidString,
+                    reviewStatus: o.reviewStatus.rawValue
+                )
+            }
+
+            let perimeterM: Double? = {
+                let confirmedLengths = record.boundaries
+                    .filter { $0.reviewStatus == .confirmed }
+                    .compactMap(\.lengthM)
+                return confirmedLengths.isEmpty ? nil : confirmedLengths.reduce(0, +)
+            }()
+
+            let linkedScan = record.roomId.flatMap { id in
+                draft.roomScans.first(where: { $0.id == id })
+            }
+
+            return RoomFabricCaptureV1(
+                roomId: record.roomId?.uuidString,
+                roomLabel: record.roomId.flatMap { roomLookup[$0] },
+                perimeterM: perimeterM,
+                areaM2: linkedScan?.rawWidthM.flatMap { w in linkedScan?.rawDepthM.map { d in w * d } },
+                heightM: linkedScan?.rawHeightM,
+                boundaries: boundaries,
+                openings: openings
+            )
+        }
+
+        return FloorPlanFabricCaptureV1(rooms: rooms)
+    }
+
+    // MARK: - Hazard observation mapping
+
+    /// Maps hazard observation drafts to ``HazardObservationCaptureV1`` records.
+    /// Returns nil when no observations exist.
+    private static func mapHazardObservations(from draft: CaptureSessionDraft) -> [HazardObservationCaptureV1]? {
+        guard !draft.hazardObservations.isEmpty else { return nil }
+
+        return draft.hazardObservations.map { h in
+            HazardObservationCaptureV1(
+                id: h.id.uuidString,
+                category: h.category.rawValue,
+                severity: h.severity.rawValue,
+                title: h.title,
+                description: h.descriptionText.isEmpty ? nil : h.descriptionText,
+                linkedPhotoIds: h.linkedPhotoIds.map(\.uuidString),
+                linkedObjectPinIds: h.linkedObjectPinIds.map(\.uuidString),
+                actionRequired: h.actionRequired,
+                reviewStatus: h.reviewStatus.rawValue
+            )
+        }
+    }
+
+    // MARK: - Quote planner evidence mapping
+
+    /// Maps quote-planner anchor and route drafts to ``QuotePlannerEvidenceV1``.
+    /// Returns nil when no anchors or routes exist (backward-compatible).
+    private static func mapQuotePlannerEvidence(from draft: CaptureSessionDraft) -> QuotePlannerEvidenceV1? {
+        guard !draft.quotePlannerAnchors.isEmpty || !draft.candidateRoutes.isEmpty else { return nil }
+
+        let locations = draft.quotePlannerAnchors.map { anchor -> CandidateLocationAnchorV1 in
+            var coordinates: ScanPoint3D?
+            if let x = anchor.coordinateX,
+               let y = anchor.coordinateY,
+               let z = anchor.coordinateZ {
+                coordinates = ScanPoint3D(x: x, y: y, z: z)
+            }
+
+            return CandidateLocationAnchorV1(
+                id: anchor.id.uuidString,
+                kind: anchor.kind.rawValue,
+                label: anchor.label,
+                roomId: anchor.roomId?.uuidString,
+                coordinates: coordinates,
+                linkedPhotoIds: anchor.linkedPhotoIds.map(\.uuidString),
+                linkedObjectPinIds: anchor.linkedObjectPinIds.map(\.uuidString),
+                confidence: anchor.provenance.defaultConfidence,
+                provenance: anchor.provenance.rawValue
+            )
+        }
+
+        let routes = draft.candidateRoutes.map { route -> CandidateRouteV1 in
+            let waypoints = route.waypoints.map { wp -> RouteWaypointV1 in
+                var coordinates: ScanPoint3D?
+                if let x = wp.coordinateX, let y = wp.coordinateY, let z = wp.coordinateZ {
+                    coordinates = ScanPoint3D(x: x, y: y, z: z)
+                }
+                return RouteWaypointV1(
+                    id: wp.id.uuidString,
+                    coordinates: coordinates,
+                    planX: wp.planX,
+                    planY: wp.planY,
+                    label: wp.label
+                )
+            }
+            return CandidateRouteV1(
+                id: route.id.uuidString,
+                routeType: route.routeType.rawValue,
+                status: route.status.rawValue,
+                installMethod: route.installMethod?.rawValue,
+                startAnchorId: route.startAnchorId?.uuidString,
+                endAnchorId: route.endAnchorId?.uuidString,
+                waypoints: waypoints,
+                notes: route.notes.isEmpty ? nil : route.notes,
+                confidence: route.provenance.defaultConfidence,
+                provenance: route.provenance.rawValue,
+                linkedPhotoIds: route.linkedPhotoIds.map(\.uuidString),
+                reviewStatus: route.reviewStatus.rawValue
+            )
+        }
+
+        return QuotePlannerEvidenceV1(candidateLocations: locations, candidateRoutes: routes)
     }
 
     // MARK: - Room scan mapping

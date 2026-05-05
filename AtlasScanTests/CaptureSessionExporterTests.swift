@@ -385,6 +385,96 @@ final class CaptureSessionExporterTests: XCTestCase {
         let result = try CaptureSessionExporter.export(draft)
         XCTAssertFalse(result.payload.qaFlags.contains(where: { $0.code == "VOICE_NOTE_NO_TRANSCRIPT" }))
     }
+
+    // MARK: - quotePlannerEvidence export
+
+    func test_export_quotePlannerAnchor_isIncludedInPayload() throws {
+        var draft = draftWithRoomScan()
+        var anchor = CapturedQuotePlannerAnchorDraft()
+        anchor.kind = .existingBoiler
+        anchor.label = "Kitchen boiler"
+        anchor.provenance = .manual
+        draft.quotePlannerAnchors.append(anchor)
+
+        let result = try CaptureSessionExporter.export(draft)
+
+        XCTAssertNotNil(result.payload.quotePlannerEvidence,
+                        "quotePlannerEvidence must be present when anchors are captured")
+        XCTAssertEqual(result.payload.quotePlannerEvidence?.candidateLocations.count, 1)
+        let loc = result.payload.quotePlannerEvidence?.candidateLocations.first
+        XCTAssertEqual(loc?.kind, "existing_boiler")
+        XCTAssertEqual(loc?.label, "Kitchen boiler")
+        XCTAssertEqual(loc?.confidence, "confirmed")
+    }
+
+    func test_export_noAnchors_quotePlannerEvidenceIsNil() throws {
+        let draft = draftWithRoomScan()
+        let result = try CaptureSessionExporter.export(draft)
+        XCTAssertNil(result.payload.quotePlannerEvidence,
+                     "quotePlannerEvidence must be nil when no anchors or routes recorded")
+    }
+
+    func test_export_candidateRoute_isIncludedInPayload() throws {
+        var draft = draftWithRoomScan()
+        var route = CapturedCandidateRouteDraft()
+        route.routeType = .gas
+        route.status = .proposed
+        route.provenance = .manual
+        draft.candidateRoutes.append(route)
+
+        let result = try CaptureSessionExporter.export(draft)
+
+        XCTAssertNotNil(result.payload.quotePlannerEvidence)
+        XCTAssertEqual(result.payload.quotePlannerEvidence?.candidateRoutes.count, 1)
+        let exported = result.payload.quotePlannerEvidence?.candidateRoutes.first
+        XCTAssertEqual(exported?.routeType, "gas")
+        XCTAssertEqual(exported?.status, "proposed")
+    }
+
+    func test_export_routeWithEmptyNotes_notesIsNil() throws {
+        var draft = draftWithRoomScan()
+        var route = CapturedCandidateRouteDraft()
+        route.routeType = .condensate
+        route.notes = ""
+        draft.candidateRoutes.append(route)
+
+        let result = try CaptureSessionExporter.export(draft)
+
+        XCTAssertNil(result.payload.quotePlannerEvidence?.candidateRoutes.first?.notes,
+                     "Empty notes must export as nil")
+    }
+
+    func test_export_anchorsAndRoutes_bothExported() throws {
+        var draft = draftWithRoomScan()
+        var anchor = CapturedQuotePlannerAnchorDraft()
+        anchor.kind = .gasMeter
+        draft.quotePlannerAnchors.append(anchor)
+
+        var route = CapturedCandidateRouteDraft()
+        route.routeType = .gas
+        draft.candidateRoutes.append(route)
+
+        let result = try CaptureSessionExporter.export(draft)
+
+        XCTAssertNotNil(result.payload.quotePlannerEvidence)
+        XCTAssertEqual(result.payload.quotePlannerEvidence?.candidateLocations.count, 1)
+        XCTAssertEqual(result.payload.quotePlannerEvidence?.candidateRoutes.count, 1)
+    }
+
+    func test_export_quotePlannerEvidence_roundTripsJSON() throws {
+        var draft = draftWithRoomScan()
+        var anchor = CapturedQuotePlannerAnchorDraft()
+        anchor.kind = .proposedBoiler
+        anchor.provenance = .arPin
+        draft.quotePlannerAnchors.append(anchor)
+
+        let result = try CaptureSessionExporter.export(draft)
+        let decoded = try JSONDecoder().decode(SessionCaptureV2.self, from: result.jsonData)
+
+        XCTAssertNotNil(decoded.quotePlannerEvidence)
+        XCTAssertEqual(decoded.quotePlannerEvidence?.candidateLocations.first?.kind, "proposed_boiler")
+        XCTAssertEqual(decoded.quotePlannerEvidence?.candidateLocations.first?.confidence, "measured")
+    }
 }
 
 // MARK: - VoiceNoteRecorderViewModelTests
