@@ -2,13 +2,22 @@ import SwiftUI
 
 // MARK: - QuotePlannerCaptureView
 //
-// Quote-planner anchor capture UI.
+// Quote-planner anchor and route capture UI.
 //
-// Lets the engineer tag candidate install/service locations during a visit:
+// Lets the engineer tag candidate install/service locations and lightweight
+// pipe/service route evidence during a visit:
+//
+// Anchors:
 //   • Kind (existing_boiler, proposed_boiler, gas_meter, …)
 //   • Optional free-text label
 //   • Optional links to photos or object pins
 //   • Provenance (how the anchor was placed)
+//
+// Routes:
+//   • Route type (gas, condensate, heating_flow, …)
+//   • Status (existing, proposed, reused_existing, assumed)
+//   • Optional install method, start/end anchor links, notes
+//   • Provenance
 //
 // Design rules:
 //   • Raw observation only — no pricing, no scope, no recommendations.
@@ -20,42 +29,43 @@ struct QuotePlannerCaptureView: View {
 
     @ObservedObject var store: CaptureSessionStore
 
+    // MARK: - Anchor state
+
     @State private var editingAnchor: CapturedQuotePlannerAnchorDraft?
     @State private var showingAddAnchor = false
 
+    // MARK: - Route state
+
+    @State private var editingRoute: CapturedCandidateRouteDraft?
+    @State private var showingAddRoute = false
+
     var body: some View {
         List {
-            if store.draft.quotePlannerAnchors.isEmpty {
-                Section {
-                    Label("No quote points recorded. Tap + to add an anchor.",
-                          systemImage: "mappin.and.ellipse")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 4)
-                }
-            } else {
-                ForEach(store.draft.quotePlannerAnchors) { anchor in
-                    anchorRow(anchor)
-                }
-                .onDelete { indexSet in
-                    for idx in indexSet {
-                        store.removeQuotePlannerAnchor(id: store.draft.quotePlannerAnchors[idx].id)
-                    }
-                }
-            }
+            anchorsSection
+            routesSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Quote Points")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingAddAnchor = true
+                Menu {
+                    Button {
+                        showingAddAnchor = true
+                    } label: {
+                        Label("Add Quote Point", systemImage: "mappin.circle")
+                    }
+                    Button {
+                        showingAddRoute = true
+                    } label: {
+                        Label("Add Route", systemImage: "arrow.triangle.branch")
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
             }
         }
+        // Add anchor sheet
         .sheet(isPresented: $showingAddAnchor) {
             QuotePlannerAnchorEditSheet(
                 anchor: CapturedQuotePlannerAnchorDraft(),
@@ -66,6 +76,7 @@ struct QuotePlannerCaptureView: View {
                 showingAddAnchor = false
             }
         }
+        // Edit anchor sheet
         .sheet(item: $editingAnchor) { anchor in
             QuotePlannerAnchorEditSheet(
                 anchor: anchor,
@@ -75,6 +86,76 @@ struct QuotePlannerCaptureView: View {
                 store.updateQuotePlannerAnchor(saved)
                 editingAnchor = nil
             }
+        }
+        // Add route sheet
+        .sheet(isPresented: $showingAddRoute) {
+            CandidateRouteEditSheet(
+                route: CapturedCandidateRouteDraft(),
+                availableAnchors: store.draft.quotePlannerAnchors
+            ) { saved in
+                store.addCandidateRoute(saved)
+                showingAddRoute = false
+            }
+        }
+        // Edit route sheet
+        .sheet(item: $editingRoute) { route in
+            CandidateRouteEditSheet(
+                route: route,
+                availableAnchors: store.draft.quotePlannerAnchors
+            ) { saved in
+                store.updateCandidateRoute(saved)
+                editingRoute = nil
+            }
+        }
+    }
+
+    // MARK: - Anchors section
+
+    private var anchorsSection: some View {
+        Section {
+            if store.draft.quotePlannerAnchors.isEmpty {
+                Label("No quote points recorded. Tap + to add an anchor.",
+                      systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } else {
+                ForEach(store.draft.quotePlannerAnchors) { anchor in
+                    anchorRow(anchor)
+                }
+                .onDelete { indexSet in
+                    for idx in indexSet {
+                        store.removeQuotePlannerAnchor(id: store.draft.quotePlannerAnchors[idx].id)
+                    }
+                }
+            }
+        } header: {
+            Text("Quote Points (\(store.draft.quotePlannerAnchors.count))")
+        }
+    }
+
+    // MARK: - Routes section
+
+    private var routesSection: some View {
+        Section {
+            if store.draft.candidateRoutes.isEmpty {
+                Label("No routes recorded. Tap + to add a route.",
+                      systemImage: "arrow.triangle.branch")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } else {
+                ForEach(store.draft.candidateRoutes) { route in
+                    routeRow(route)
+                }
+                .onDelete { indexSet in
+                    for idx in indexSet {
+                        store.removeCandidateRoute(id: store.draft.candidateRoutes[idx].id)
+                    }
+                }
+            }
+        } header: {
+            Text("Candidate Routes (\(store.draft.candidateRoutes.count))")
         }
     }
 
@@ -119,6 +200,55 @@ struct QuotePlannerCaptureView: View {
             }
         }
     }
+
+    // MARK: - Route row
+
+    private func routeRow(_ route: CapturedCandidateRouteDraft) -> some View {
+        Button {
+            editingRoute = route
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: route.reviewStatus.symbolName)
+                    .foregroundStyle(statusColor(route.reviewStatus))
+                    .frame(width: 22)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(route.routeType.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+
+                    HStack(spacing: 6) {
+                        Text(route.status.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        if let method = route.installMethod {
+                            Text(method.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        provenanceBadge(route.provenance)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: route.routeType.symbolName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                store.removeCandidateRoute(id: route.id)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Shared helpers
 
     private func provenanceBadge(_ provenance: QuoteAnchorProvenance) -> some View {
         Text(provenance.displayName)
@@ -327,6 +457,177 @@ private struct QuotePlannerAnchorEditSheet: View {
             anchor.linkedObjectPinIds.remove(at: idx)
         } else {
             anchor.linkedObjectPinIds.append(id)
+        }
+    }
+}
+
+// MARK: - CandidateRouteEditSheet
+
+private struct CandidateRouteEditSheet: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var route: CapturedCandidateRouteDraft
+    let availableAnchors: [CapturedQuotePlannerAnchorDraft]
+    let onSave: (CapturedCandidateRouteDraft) -> Void
+
+    init(
+        route: CapturedCandidateRouteDraft,
+        availableAnchors: [CapturedQuotePlannerAnchorDraft],
+        onSave: @escaping (CapturedCandidateRouteDraft) -> Void
+    ) {
+        _route = State(initialValue: route)
+        self.availableAnchors = availableAnchors
+        self.onSave = onSave
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                routeTypeSection
+                statusSection
+                installMethodSection
+                anchorLinksSection
+                notesSection
+                provenanceSection
+                reviewSection
+            }
+            .navigationTitle("Route")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { onSave(route) }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    // MARK: - Route type
+
+    private var routeTypeSection: some View {
+        Section {
+            Picker("Route Type", selection: $route.routeType) {
+                ForEach(CandidateRouteType.allCases) { type in
+                    Label(type.displayName, systemImage: type.symbolName).tag(type)
+                }
+            }
+        } header: {
+            Text("Route Type")
+        }
+    }
+
+    // MARK: - Status
+
+    private var statusSection: some View {
+        Section {
+            Picker("Status", selection: $route.status) {
+                ForEach(CandidateRouteStatus.allCases) { status in
+                    Label(status.displayName, systemImage: status.symbolName).tag(status)
+                }
+            }
+        } header: {
+            Text("Route Status")
+        }
+    }
+
+    // MARK: - Install method
+
+    private var installMethodSection: some View {
+        Section {
+            Picker("Install Method", selection: Binding(
+                get: { route.installMethod ?? .unknown },
+                set: { route.installMethod = $0 == .unknown ? nil : $0 }
+            )) {
+                Text("Not specified").tag(CandidateRouteInstallMethod.unknown)
+                ForEach(CandidateRouteInstallMethod.allCases.filter { $0 != .unknown }) { method in
+                    Text(method.displayName).tag(method)
+                }
+            }
+        } header: {
+            Text("Install Method")
+        } footer: {
+            Text("Optional — record how the pipe or service would be routed.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Anchor links (start / end)
+
+    private var anchorLinksSection: some View {
+        Section {
+            if availableAnchors.isEmpty {
+                Text("No quote points captured yet. Add anchors first to link start/end points.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                // Start anchor picker
+                Picker("Start Point", selection: $route.startAnchorId) {
+                    Text("None").tag(nil as UUID?)
+                    ForEach(availableAnchors) { anchor in
+                        Text(anchor.label ?? anchor.kind.displayName).tag(anchor.id as UUID?)
+                    }
+                }
+
+                // End anchor picker
+                Picker("End Point", selection: $route.endAnchorId) {
+                    Text("None").tag(nil as UUID?)
+                    ForEach(availableAnchors) { anchor in
+                        Text(anchor.label ?? anchor.kind.displayName).tag(anchor.id as UUID?)
+                    }
+                }
+            }
+        } header: {
+            Text("Start & End Anchors")
+        } footer: {
+            Text("Link to quote points to describe where this route runs.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Notes
+
+    private var notesSection: some View {
+        Section {
+            TextField("Notes (optional)", text: $route.notes, axis: .vertical)
+                .lineLimit(3...6)
+        } header: {
+            Text("Notes")
+        } footer: {
+            Text("Routing constraints, pipe sizing observations, etc.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Provenance
+
+    private var provenanceSection: some View {
+        Section {
+            Picker("Recorded via", selection: $route.provenance) {
+                ForEach(QuoteAnchorProvenance.allCases) { provenance in
+                    Text(provenance.displayName).tag(provenance)
+                }
+            }
+        } header: {
+            Text("Provenance")
+        } footer: {
+            Text("How this route evidence was recorded determines its default confidence for Atlas Mind.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Review
+
+    private var reviewSection: some View {
+        Section {
+            Picker("Review Status", selection: $route.reviewStatus) {
+                ForEach(EvidenceReviewStatus.allCases, id: \.self) { status in
+                    Text(status.displayName).tag(status)
+                }
+            }
+        } header: {
+            Text("Review Status")
         }
     }
 }
