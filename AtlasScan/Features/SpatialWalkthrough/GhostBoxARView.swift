@@ -234,6 +234,10 @@ extension GhostBoxARView {
 
         // MARK: - Mesh ray casting (Möller–Trumbore)
 
+        /// Maximum ray cast distance in metres.
+        ///
+        /// 8 m is large enough to cover a typical domestic room (≤ 6 m) while
+        /// bounding the per-face iteration and keeping frame-rate impact low.
         private let maxRay: Float = 8.0
 
         private func nearestHit(
@@ -251,6 +255,10 @@ extension GhostBoxARView {
 
             return nearest < maxRay ? Double(nearest) : nil
         }
+
+        /// Minimum hit distance in metres to discard intersections that are effectively
+        /// on the ray origin's own surface (self-intersection due to floating-point precision).
+        private let minimumHitDistanceM: Float = 0.02
 
         private func rayVsMeshAnchor(
             anchor: ARMeshAnchor,
@@ -278,7 +286,7 @@ extension GhostBoxARView {
                 let currentCap = best ?? cap
                 if let t = MollerTrumboreIntersection.intersect(
                     rayOrigin: lo, rayDirection: ld, v0: v0, v1: v1, v2: v2
-                ), t > 0.02, t < currentCap {
+                ), t > minimumHitDistanceM, t < currentCap {
                     best = t
                 }
             }
@@ -434,11 +442,17 @@ struct GhostBoxCollisionResult: Sendable {
 
 #if DEBUG
 struct GhostBoxARView_Preview: View {
+    // Use the well-known "combi_generic" entry from MasterHardwareRegistry.
+    // If the registry is ever trimmed and this ID removed, the preview gracefully
+    // falls back to the ClearanceEngine generic rule via `fallbackRule`.
+    private let previewDefinition = MasterHardwareRegistry.registry.definition(for: "combi_generic")
+    private let previewFallback   = ClearanceEngine.rule(for: .boiler)
+
     var body: some View {
         VStack(spacing: 0) {
             GhostBoxARView(
-                definition: MasterHardwareRegistry.registry.definition(for: "combi_generic"),
-                fallbackRule: nil
+                definition: previewDefinition,
+                fallbackRule: previewFallback
             )
             .frame(height: 400)
 

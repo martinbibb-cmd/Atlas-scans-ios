@@ -108,7 +108,12 @@ enum ApplianceProfileLibrary {
         let built = currentRegistry.definitions.values.compactMap { def -> ApplianceProfile? in
             guard let cat = ServiceObjectCategory(rawValue: def.category) else { return nil }
             return ApplianceProfile(definition: def, category: cat)
-        }.sorted { $0.displayName < $1.displayName }
+        }.sorted { lhs, rhs in
+            // Sort by family first, then by displayName — matches profiles(for:).
+            lhs.family == rhs.family
+                ? lhs.displayName < rhs.displayName
+                : lhs.family < rhs.family
+        }
         _cachedAll = built
         return built
     }
