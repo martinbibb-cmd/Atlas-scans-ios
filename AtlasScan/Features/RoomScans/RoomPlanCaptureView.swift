@@ -21,6 +21,10 @@ struct RoomPlanCaptureView: View {
 
     @StateObject private var service = RoomPlanCaptureService()
 
+    /// The visit UUID used to locate the USDZ save directory.
+    /// Pass `store.draft.id` from the parent view.
+    let visitId: UUID
+
     /// 1-based index used to generate the default room label (e.g. "Room 2").
     let roomIndex: Int
 
@@ -44,6 +48,9 @@ struct RoomPlanCaptureView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .task {
+            service.configure(visitId: visitId)
+        }
     }
 
     // MARK: - Supported (LiDAR device) body
@@ -273,6 +280,6 @@ private struct RoomCaptureRepresentable: UIViewRepresentable {
 
 #if DEBUG
 #Preview {
-    RoomPlanCaptureView(roomIndex: 1, onAccept: { _, _, _ in }, onCancel: {})
+    RoomPlanCaptureView(visitId: UUID(), roomIndex: 1, onAccept: { _, _, _ in }, onCancel: {})
 }
 #endif

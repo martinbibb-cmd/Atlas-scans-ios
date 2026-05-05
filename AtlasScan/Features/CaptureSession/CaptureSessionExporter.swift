@@ -373,6 +373,14 @@ enum CaptureSessionExporter {
             ))
         }
 
+        if draft.hasClearanceConflicts {
+            flags.append(ScanQAFlag(
+                code: "CLEARANCE_CONFLICT",
+                message: "One or more appliances have insufficient clearance based on scanned room geometry.",
+                severity: "warning"
+            ))
+        }
+
         return flags
     }
 

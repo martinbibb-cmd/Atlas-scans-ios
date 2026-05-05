@@ -1,4 +1,5 @@
 import Foundation
+import AtlasContracts
 
 // MARK: - CaptureSessionDraft
 //
@@ -1611,4 +1612,89 @@ struct ExternalMeasurementLineDraft: Identifiable, Codable {
 
     /// Engineer-entered distance in metres; nil when not yet measured.
     var lengthM: Double?
+}
+
+// MARK: - CaptureSessionDraft + FieldSurvey
+
+extension CaptureSessionDraft {
+
+    /// Converts the draft to a ``FieldSurveyV1`` for contract-based readiness derivation.
+    ///
+    /// All artefacts (confirmed or not) are included. The caller may filter
+    /// by review status before passing to ``deriveVisitReadinessFromFieldSurvey(_:)``.
+    func toFieldSurvey() -> FieldSurveyV1 {
+        let rooms: [FieldSurveyRoomV1] = roomScans.map { scan in
+            FieldSurveyRoomV1(
+                id: scan.id.uuidString,
+                name: scan.roomLabel ?? "Room",
+                photoCount: photos.filter { $0.roomId == scan.id }.count,
+                voiceNoteCount: voiceNotes.filter { $0.roomId == scan.id }.count
+            )
+        }
+        let pinTypes = objectPins.map(\.type)
+        let hasBoiler = pinTypes.contains(.boiler) || pinTypes.contains(.heatPump)
+        let hasFlue   = pinTypes.contains(.flue)
+
+        return FieldSurveyV1(
+            rooms: rooms,
+            totalPhotoCount: photos.count,
+            totalVoiceNoteCount: voiceNotes.count,
+            hasBoiler: hasBoiler,
+            hasFlue: hasFlue,
+            hasHotWaterSystem: pinTypes.contains(.cylinder) || hasBoiler,
+            hasHeatingSystem: hasBoiler || pinTypes.contains(.radiator)
+        )
+    }
+
+    /// Returns `true` if any pinned appliance in any room scan has a 2-D clearance
+    /// conflict (service-access zone exceeds the scanned room boundary).
+    ///
+    /// Uses the same positional heuristic as ``ClearanceCubeOverlayView`` — pins are
+    /// evenly spaced near the north wall in normalised room coordinates.  This is
+    /// deterministic from the draft data and suitable for export-gate decisions and
+    /// QA flag generation without a live AR session.
+    var hasClearanceConflicts: Bool {
+        for scan in roomScans {
+            guard let roomW = scan.rawWidthM, roomW > 0,
+                  let roomD = scan.rawDepthM, roomD > 0 else { continue }
+
+            let pinsInRoom = objectPins.filter { $0.roomId == scan.id }
+            guard !pinsInRoom.isEmpty else { continue }
+
+            for (idx, pin) in pinsInRoom.enumerated() {
+                guard let rule = ClearanceEngine.rule(for: pin.type.serviceCategory) else { continue }
+
+                let nx   = (Double(idx) + 0.5) / Double(pinsInRoom.count)
+                let nz   = 0.1   // near north wall, matching ClearanceCubeOverlayView
+                let servW = (rule.footprintWidthMetres  + rule.sideClearanceMetres * 2) / roomW
+                let servD = (rule.footprintDepthMetres
+                             + rule.frontClearanceMetres
+                             + rule.rearClearanceMetres) / roomD
+
+                let conflict = (nx - servW / 2) < 0 || (nx + servW / 2) > 1
+                            || (nz - servD / 2) < 0 || (nz + servD / 2) > 1
+                if conflict { return true }
+            }
+        }
+        return false
+    }
+}
+
+// MARK: - ObjectPinType + serviceCategory
+
+extension ObjectPinType {
+
+    /// Maps the pin type to the ``ServiceObjectCategory`` used by ``ClearanceEngine``.
+    var serviceCategory: ServiceObjectCategory {
+        switch self {
+        case .boiler:        return .boiler
+        case .heatPump:      return .heatPump
+        case .cylinder:      return .cylinder
+        case .pump:          return .pump
+        case .radiator:      return .radiator
+        case .towelRail:     return .towelRail
+        case .fanConvector:  return .fanConvector
+        default:             return .other
+        }
+    }
 }

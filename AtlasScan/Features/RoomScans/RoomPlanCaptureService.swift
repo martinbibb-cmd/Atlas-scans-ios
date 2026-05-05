@@ -12,6 +12,9 @@ import Combine
 //   • Publishes sessionState and capturedResult for the SwiftUI layer.
 //   • Does NOT persist or export — the caller maps the result into the
 //     existing CaptureSessionDraft via RoomPlanMapper.
+//   • If a visitId is configured via configure(visitId:), the scan's USDZ is
+//     exported (best-effort) to <AppSupport>/captures/<visitId>/<scanId>.usdz
+//     and the relative path is stored in RoomPlanScanResult.rawScanAssetRef.
 //
 // LiDAR hardware support:
 //   • isSupported returns false on devices without LiDAR.
@@ -53,12 +56,31 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
     let roomCaptureView: RoomCaptureView
     private var captureConfig = RoomCaptureSession.Configuration()
 
+    // MARK: - USDZ persistence state
+
+    /// The visit UUID used to build the captures directory path.
+    private var visitId: UUID?
+
+    /// A fresh UUID is assigned each time startScan() is called so that
+    /// parallel invocations never collide on the file system.
+    private var currentScanId: UUID = UUID()
+
     // MARK: - Init
 
     override init() {
         roomCaptureView = RoomCaptureView(frame: .zero)
         super.init()
         roomCaptureView.captureSession.delegate = self
+    }
+
+    // MARK: - Configuration
+
+    /// Configures the service with the visit UUID so that the captured USDZ can be
+    /// saved to the correct `captures/<visitId>/` directory.
+    ///
+    /// Call this before `startScan()`. It is safe to call multiple times.
+    func configure(visitId: UUID) {
+        self.visitId = visitId
     }
 
     // MARK: - Lifecycle
@@ -70,7 +92,8 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
             return
         }
         capturedResult = nil
-        sessionState = .scanning
+        currentScanId  = UUID()   // fresh ID for each scan attempt
+        sessionState   = .scanning
         roomCaptureView.captureSession.run(configuration: captureConfig)
     }
 
@@ -91,6 +114,28 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
     /// Pauses the AR session (call when the view disappears).
     func pauseSession() {
         roomCaptureView.captureSession.stop(pauseARSession: true)
+    }
+
+    // MARK: - USDZ save URL helpers
+
+    /// Constructs the destination URL for the USDZ export.
+    ///
+    /// Creates the intermediate directory if it does not yet exist.
+    /// Returns `nil` when no `visitId` has been configured.
+    private func makeUSDZSaveURL() -> URL? {
+        guard let visitId else { return nil }
+        let appSupport = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let dir = appSupport
+            .appendingPathComponent("captures", isDirectory: true)
+            .appendingPathComponent(visitId.uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("\(currentScanId.uuidString).usdz")
+    }
+
+    /// The relative asset reference stored in `RoomPlanScanResult.rawScanAssetRef`.
+    private func rawScanAssetRef(for visitId: UUID) -> String {
+        "captures/\(visitId.uuidString)/\(currentScanId.uuidString).usdz"
     }
 }
 
@@ -116,9 +161,18 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
             return
         }
         // Build the plain-struct result asynchronously via RoomBuilder.
+        // Capture the USDZ save state on the main actor before leaving.
         Task {
+            // Capture main-actor-isolated state needed for USDZ persistence.
+            let (saveURL, assetRef) = await MainActor.run {
+                (self.makeUSDZSaveURL(), self.visitId.map { self.rawScanAssetRef(for: $0) })
+            }
             do {
-                let result = try await RoomPlanCaptureService.buildResult(from: data)
+                let result = try await RoomPlanCaptureService.buildResult(
+                    from: data,
+                    saveUSDZAt: saveURL,
+                    rawScanAssetRef: assetRef
+                )
                 await MainActor.run {
                     // Ignore completion if the user cancelled while processing.
                     guard self.sessionState == .processing else { return }
@@ -134,9 +188,33 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
 
     // MARK: - Private: build RoomPlanScanResult
 
-    private nonisolated static func buildResult(from data: CapturedRoomData) async throws -> RoomPlanScanResult {
+    /// Builds the `RoomPlanScanResult` from captured data.
+    ///
+    /// - Parameters:
+    ///   - data:             The raw RoomPlan capture data.
+    ///   - saveUSDZAt:       Optional destination URL.  When non-nil the method
+    ///                       exports the room geometry as a USDZ file (best-effort;
+    ///                       a failure does not propagate as an error).
+    ///   - rawScanAssetRef:  The pre-computed relative path to store in the result
+    ///                       when the USDZ export succeeds.
+    private nonisolated static func buildResult(
+        from data: CapturedRoomData,
+        saveUSDZAt saveURL: URL?,
+        rawScanAssetRef: String?
+    ) async throws -> RoomPlanScanResult {
         let roomBuilder = RoomBuilder(options: [])
         let room = try await roomBuilder.capturedRoom(from: data)
+
+        // Best-effort USDZ export — never fails the whole build.
+        var resolvedAssetRef: String? = nil
+        if let saveURL, let rawScanAssetRef {
+            do {
+                try await room.export(to: saveURL)
+                resolvedAssetRef = rawScanAssetRef
+            } catch {
+                // Non-fatal: continue without persisting the USDZ asset.
+            }
+        }
 
         // Compute axis-aligned bounding box from wall surface transforms + dimensions.
         var minX: Float = .greatestFiniteMagnitude
@@ -191,7 +269,8 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
             heightM: height,
             outlinePoints: outlinePoints,
             detectedObjects: detectedObjects,
-            rawJSON: nil
+            rawJSON: nil,
+            rawScanAssetRef: resolvedAssetRef
         )
     }
 }

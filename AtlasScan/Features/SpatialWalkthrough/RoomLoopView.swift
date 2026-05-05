@@ -122,6 +122,7 @@ struct RoomLoopView: View {
         // LiDAR room capture
         .fullScreenCover(isPresented: $showingLiDARCapture) {
             RoomPlanCaptureView(
+                visitId: store.draft.id,
                 roomIndex: store.draft.roomScans.count
             ) { scan, pins, snapshot in
                 store.updateRoomScan(scan)
