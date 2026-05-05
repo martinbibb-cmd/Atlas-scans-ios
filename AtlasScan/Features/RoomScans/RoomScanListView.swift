@@ -37,6 +37,7 @@ struct RoomScanListView: View {
         // LiDAR capture fullscreen modal
         .fullScreenCover(isPresented: $showingLiDARCapture) {
             RoomPlanCaptureView(
+                visitId: store.draft.id,
                 roomIndex: store.draft.roomScans.count + 1
             ) { scan, pins, snapshot in
                 store.addRoomScan(scan)

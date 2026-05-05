@@ -98,6 +98,7 @@ struct PropertyNavigatorView: View {
             // LiDAR capture for new room
             .fullScreenCover(isPresented: $showingLiDARCapture) {
                 RoomPlanCaptureView(
+                    visitId: store.draft.id,
                     roomIndex: store.draft.roomScans.count + 1
                 ) { scan, pins, snapshot in
                     store.addRoomScan(scan)
@@ -426,7 +427,8 @@ struct PropertyNavigatorView: View {
 
     private var exportFooter: some View {
         let readiness = VisitReadinessBuilder.build(from: store.draft)
-        let isReady = readiness.hasRooms && readiness.hasPhotos && readiness.hasBoiler && readiness.hasFlue
+        let noConflicts = !store.draft.hasClearanceConflicts
+        let isReady = readiness.hasRooms && readiness.hasPhotos && readiness.hasBoiler && readiness.hasFlue && noConflicts
 
         return VStack(spacing: 8) {
             if !isReady {
@@ -434,7 +436,7 @@ struct PropertyNavigatorView: View {
                     Image(systemName: "lock.fill")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Complete rooms, photos, boiler tag, and flue tag to unlock export.")
+                    Text("Complete rooms, photos, boiler tag, flue tag, and clearance verification to unlock export.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

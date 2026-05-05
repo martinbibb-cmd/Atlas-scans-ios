@@ -27,13 +27,21 @@ struct RoomPlanScanResult {
     /// Raw RoomPlan metadata serialised to JSON. Nil when unavailable.
     var rawJSON: String?
 
+    /// Relative path to the exported USDZ scan asset, when saved during capture.
+    ///
+    /// Format: `captures/<visitId>/<scanId>.usdz` — resolved against the app's
+    /// Application Support directory.  Nil when the capture was manual or when
+    /// the USDZ export failed.
+    var rawScanAssetRef: String?
+
     init(
         widthM: Double? = nil,
         depthM: Double? = nil,
         heightM: Double? = nil,
         outlinePoints: [NormalisedPoint] = [],
         detectedObjects: [RoomPlanDetectedObject] = [],
-        rawJSON: String? = nil
+        rawJSON: String? = nil,
+        rawScanAssetRef: String? = nil
     ) {
         self.widthM = widthM
         self.depthM = depthM
@@ -41,6 +49,7 @@ struct RoomPlanScanResult {
         self.outlinePoints = outlinePoints
         self.detectedObjects = detectedObjects
         self.rawJSON = rawJSON
+        self.rawScanAssetRef = rawScanAssetRef
     }
 }
 
@@ -146,6 +155,7 @@ enum RoomPlanMapper {
         scan.rawWidthM     = result.widthM
         scan.rawDepthM     = result.depthM
         scan.rawHeightM    = result.heightM
+        scan.rawScanAssetRef = result.rawScanAssetRef
         scan.confidence    = .high
         scan.captureSource = .lidar
         scan.lidarMetadata = result.rawJSON
