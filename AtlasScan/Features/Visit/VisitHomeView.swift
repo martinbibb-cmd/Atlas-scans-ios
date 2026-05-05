@@ -519,7 +519,8 @@ struct VisitHomeView: View {
         showingHandoffValidation = true
     }
 
-    private func performExit() {        captureStore.saveNow()
+    private func performExit() {
+        captureStore.saveNow()
         visitStore.clearActiveVisit()
         onExit()
     }

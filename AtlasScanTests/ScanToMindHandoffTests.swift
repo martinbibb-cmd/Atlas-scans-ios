@@ -97,7 +97,7 @@ final class ScanToMindHandoffTests: XCTestCase {
 
     // MARK: - buildHandoffFromDraft
 
-    func test_buildHandoffFromDraft_visitIdEqualsCaptureSesionId() {
+    func test_buildHandoffFromDraft_visitIdEqualsCaptureSessionId() {
         let draft = makeDraft()
         let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
             visit: makeVisit(),
