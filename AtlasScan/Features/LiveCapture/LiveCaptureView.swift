@@ -717,7 +717,7 @@ struct ObjectTypePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let categories: [(String, [ObjectPinType])] = [
-        ("Plant", [.boiler, .heatPump, .cylinder, .pump]),
+        ("Heating equipment", [.boiler, .heatPump, .cylinder, .pump]),
         ("Emitters", [.radiator, .towelRail]),
         ("Services", [.flue, .gasMeter, .stopTap]),
         ("Controls", [.thermostat, .control, .valve]),

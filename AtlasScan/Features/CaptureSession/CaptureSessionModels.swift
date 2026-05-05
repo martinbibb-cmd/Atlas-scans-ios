@@ -299,7 +299,7 @@ enum CapturePhotoKind: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .overview:  return "Overview"
-        case .plant:     return "Plant"
+        case .plant:     return "Heating equipment"
         case .emitter:   return "Emitter"
         case .flue:      return "Flue"
         case .cupboard:  return "Cupboard"
