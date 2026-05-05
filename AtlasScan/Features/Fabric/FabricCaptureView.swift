@@ -253,34 +253,16 @@ private struct FabricWallReviewView: View {
                         Text(String(format: "%.2f m", h))
                     }
                 }
+            }
 
-                // Allow room re-linking
-                Picker("Room", selection: $localRecord.roomId) {
-                    Text("None").tag(Optional<UUID>.none)
-                    ForEach(store.draft.roomScans) { s in
-                        Text(s.roomLabel ?? "Unnamed Room").tag(Optional(s.id))
-                    }
+            Picker("Room", selection: $localRecord.roomId) {
+                Text("None").tag(Optional<UUID>.none)
+                ForEach(store.draft.roomScans) { scan in
+                    Text(scan.roomLabel ?? "Unnamed Room").tag(Optional(scan.id))
                 }
-                .onChange(of: localRecord.roomId) { _, newId in
-                    // Derive walls when a new room is linked and no walls exist yet.
-                    if let id = newId,
-                       let scan = store.draft.roomScans.first(where: { $0.id == id }) {
-                        localRecord.applyDerivedWalls(from: scan)
-                    }
-                }
-            } else {
-                Picker("Room", selection: $localRecord.roomId) {
-                    Text("None").tag(Optional<UUID>.none)
-                    ForEach(store.draft.roomScans) { s in
-                        Text(s.roomLabel ?? "Unnamed Room").tag(Optional(s.id))
-                    }
-                }
-                .onChange(of: localRecord.roomId) { _, newId in
-                    if let id = newId,
-                       let scan = store.draft.roomScans.first(where: { $0.id == id }) {
-                        localRecord.applyDerivedWalls(from: scan)
-                    }
-                }
+            }
+            .onChange(of: localRecord.roomId) { _, newId in
+                applyDerivedWallsIfNeeded(for: newId)
             }
         } header: {
             Text("Room")
@@ -290,6 +272,13 @@ private struct FabricWallReviewView: View {
                     .font(.caption2)
             }
         }
+    }
+
+    /// Derives walls from the newly selected room scan when no walls exist yet.
+    private func applyDerivedWallsIfNeeded(for roomId: UUID?) {
+        guard let id = roomId,
+              let scan = store.draft.roomScans.first(where: { $0.id == id }) else { return }
+        localRecord.applyDerivedWalls(from: scan)
     }
 
     // MARK: - Walls section

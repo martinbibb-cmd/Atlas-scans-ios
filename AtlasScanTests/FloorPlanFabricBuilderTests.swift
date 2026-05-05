@@ -422,7 +422,7 @@ final class FloorPlanFabricBuilderTests: XCTestCase {
                       "All scan-derived walls must default to .pending review status")
     }
 
-    func test_derivedWallDrafts_walledMarkedScanDerived() {
+    func test_derivedWallDrafts_wallsMarkedScanDerived() {
         var scan = CapturedRoomScanDraft()
         scan.rawWidthM = 4.0
         scan.rawDepthM = 3.0
