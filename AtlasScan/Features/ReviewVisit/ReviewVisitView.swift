@@ -370,6 +370,7 @@ struct ReviewVisitView: View {
 
     private func performAtlasMindExport() {
         atlasMindExportError = nil
+        do {
             let result = try CaptureSessionExporter.export(store.draft)
             let package = try WorkspaceExporter.exportPackage(store.draft, jsonData: result.jsonData)
             atlasVisitURL = package.atlasVisitURL
