@@ -4,18 +4,23 @@ import AtlasContracts
 
 // MARK: - ScanToMindHandoffTests
 //
-// Tests for the quote-planner handoff feature.
+// Tests for the Scan → Mind handoff feature.
 //
 // Covers:
-//   - Completed visit creates a handoff with reason .quotePlanner
-//   - Handoff includes quotePlannerEvidence when anchors are present
-//   - buildHandoffFromDraft produces visitId == sessionId
+//   - Canonical payload shape: kind, schemaVersion (Int), visit, capture
+//   - buildHandoffFromDraft: visit.visitId == capture.sessionId
+//   - buildHandoffFromDraft: has expected reason
+//   - buildHandoffFromDraft: visit.visitId matches draft.id.uuidString
+//   - quotePlannerEvidence is included in the handoff when anchors present
+//   - quotePlannerEvidence is nil when no anchors
+//   - buildHandoff (visit-based) with quotePlanner reason succeeds
 //   - makeQuotePlannerURL contains sessionRef
 //   - makeQuotePlannerURL contains percent-encoded payload for small sessions
-//   - makeQuotePlannerURL falls back to sessionRef-only when payload is too large
-//   - The quote-planner URL is not a raw JSON dump — it is properly percent-encoded
-//   - Payload round-trips: decoded handoff has matching visitId and sessionId
+//   - makeQuotePlannerURL falls back to sessionRef-only when payload too large
+//   - The quote-planner URL is not a raw JSON dump
+//   - Payload round-trips: decoded handoff has matching visit.visitId
 //   - quotePlanner reason raw value is "quote_planner"
+//   - JSON fixture round-trip using canonical payload
 
 final class ScanToMindHandoffTests: XCTestCase {
 
@@ -42,7 +47,7 @@ final class ScanToMindHandoffTests: XCTestCase {
         return anchor
     }
 
-    // MARK: - ScanToMindHandoffReasonV1.quotePlanner raw value
+    // MARK: - ScanToMindHandoffReasonV1 raw values
 
     func test_quotePlannerReason_hasCorrectRawValue() {
         XCTAssertEqual(ScanToMindHandoffReasonV1.quotePlanner.rawValue, "quote_planner")
@@ -52,9 +57,47 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertTrue(ScanToMindHandoffReasonV1.allCases.contains(.quotePlanner))
     }
 
+    // MARK: - Canonical payload shape
+
+    func test_handoff_kind_isCorrect() {
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: makeVisit(), draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(draft, capture: capture, reason: .reviewInMind)
+        XCTAssertEqual(handoff.kind, "scan-to-mind-handoff")
+    }
+
+    func test_handoff_schemaVersion_isNumericOne() {
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: makeVisit(), draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(draft, capture: capture, reason: .reviewInMind)
+        XCTAssertEqual(handoff.schemaVersion, 1)
+    }
+
+    func test_handoff_sourceApp_isScanIOS() {
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: makeVisit(), draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(draft, capture: capture, reason: .quotePlanner)
+        XCTAssertEqual(handoff.sourceApp, "scan_ios")
+        XCTAssertEqual(handoff.targetApp, "mind_pwa")
+    }
+
+    func test_handoff_visit_hasVersionOne() {
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: makeVisit(), draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(draft, capture: capture, reason: .reviewInMind)
+        XCTAssertEqual(handoff.visit.version, "1.0")
+    }
+
+    func test_handoff_visit_hasStatus() {
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: makeVisit(), draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(draft, capture: capture, reason: .reviewInMind)
+        XCTAssertFalse(handoff.visit.status.isEmpty, "visit.status must be non-empty")
+    }
+
     // MARK: - buildHandoffFromDraft
 
-    func test_buildHandoffFromDraft_visitIdEqualsSessionId() {
+    func test_buildHandoffFromDraft_visitIdEqualsCaptureSesionId() {
         let draft = makeDraft()
         let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
             visit: makeVisit(),
@@ -65,8 +108,8 @@ final class ScanToMindHandoffTests: XCTestCase {
             capture: capture,
             reason: .quotePlanner
         )
-        XCTAssertEqual(handoff.visitId, handoff.sessionId,
-                       "buildHandoffFromDraft must produce matching visitId and sessionId")
+        XCTAssertEqual(handoff.visit.visitId, handoff.capture.sessionId,
+                       "visit.visitId must equal capture.sessionId")
     }
 
     func test_buildHandoffFromDraft_hasQuotePlannerReason() {
@@ -83,7 +126,7 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertEqual(handoff.reason, .quotePlanner)
     }
 
-    func test_buildHandoffFromDraft_sessionIdMatchesDraftId() {
+    func test_buildHandoffFromDraft_visitIdMatchesDraftId() {
         let draft = makeDraft()
         let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
             visit: makeVisit(),
@@ -94,8 +137,8 @@ final class ScanToMindHandoffTests: XCTestCase {
             capture: capture,
             reason: .quotePlanner
         )
-        XCTAssertEqual(handoff.sessionId, draft.id.uuidString,
-                       "sessionId must equal draft.id.uuidString")
+        XCTAssertEqual(handoff.visit.visitId, draft.id.uuidString,
+                       "visit.visitId must equal draft.id.uuidString")
     }
 
     // MARK: - quotePlannerEvidence is included in the handoff
@@ -150,6 +193,22 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertNotNil(handoff.capture.quotePlannerEvidence)
     }
 
+    func test_buildHandoff_visitSnapshot_matchesVisitFields() throws {
+        var visit = makeVisit(visitNumber: "JOB-SNAP-001")
+        visit.brandId = "BRAND-A"
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = try ScanToMindHandoffBuilder.buildHandoff(
+            visit: visit,
+            capture: capture,
+            reason: .completedCapture
+        )
+        XCTAssertEqual(handoff.visit.visitId, visit.visitId)
+        XCTAssertEqual(handoff.visit.visitNumber, "JOB-SNAP-001")
+        XCTAssertEqual(handoff.visit.brandId, "BRAND-A")
+        XCTAssertEqual(handoff.visit.status, visit.status.rawValue)
+    }
+
     // MARK: - makeQuotePlannerURL
 
     func test_makeQuotePlannerURL_containsSessionRef() {
@@ -169,7 +228,7 @@ final class ScanToMindHandoffTests: XCTestCase {
 
         XCTAssertTrue(urlString.contains("sessionRef="),
                       "Quote planner URL must contain sessionRef parameter")
-        XCTAssertTrue(urlString.contains(handoff.visitId),
+        XCTAssertTrue(urlString.contains(handoff.visit.visitId),
                       "Quote planner URL must contain the visitId as sessionRef value")
     }
 
@@ -243,7 +302,7 @@ final class ScanToMindHandoffTests: XCTestCase {
         // The sessionRef must still be present even when payload is omitted.
         XCTAssertTrue(urlString.contains("sessionRef="),
                       "sessionRef must be present in the fallback URL")
-        XCTAssertTrue(urlString.contains(handoff.visitId),
+        XCTAssertTrue(urlString.contains(handoff.visit.visitId),
                       "visitId must be the sessionRef value in the fallback URL")
     }
 
@@ -264,28 +323,51 @@ final class ScanToMindHandoffTests: XCTestCase {
         let encoded = try ScanToMindPayloadEncoder.encodeForURL(handoff)
         let decoded = try ScanToMindPayloadEncoder.decodeFromURLPayload(encoded)
 
-        XCTAssertEqual(decoded.visitId, handoff.visitId)
-        XCTAssertEqual(decoded.sessionId, handoff.sessionId)
+        XCTAssertEqual(decoded.visit.visitId, handoff.visit.visitId)
+        XCTAssertEqual(decoded.capture.sessionId, handoff.capture.sessionId)
         XCTAssertEqual(decoded.reason, .quotePlanner)
         XCTAssertNotNil(decoded.capture.quotePlannerEvidence)
         XCTAssertEqual(decoded.capture.quotePlannerEvidence?.candidateLocations.first?.kind,
                        QuoteAnchorKind.proposedBoiler.rawValue)
     }
 
-    // MARK: - sourceApp / targetApp identity
+    // MARK: - JSON fixture round-trip (canonical shape)
 
-    func test_quotePlannerHandoff_sourceApp_isScanIOS() {
+    func test_canonicalPayload_encodesAndDecodes() throws {
+        let visit = makeVisit(visitNumber: "JOB-FIXTURE-001")
         let draft = makeDraft()
-        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(
-            visit: makeVisit(),
-            draft: draft
-        )
-        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(
-            draft,
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = try ScanToMindHandoffBuilder.buildHandoff(
+            visit: visit,
             capture: capture,
-            reason: .quotePlanner
+            reason: .completedCapture
         )
-        XCTAssertEqual(handoff.sourceApp, "scan_ios")
-        XCTAssertEqual(handoff.targetApp, "mind_pwa")
+
+        // Encode to JSON.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let jsonData = try encoder.encode(handoff)
+        let jsonString = try XCTUnwrap(String(data: jsonData, encoding: .utf8))
+
+        // Top-level keys must be present.
+        XCTAssertTrue(jsonString.contains("\"kind\""), "JSON must contain 'kind' key")
+        XCTAssertTrue(jsonString.contains("\"schemaVersion\""), "JSON must contain 'schemaVersion' key")
+        XCTAssertTrue(jsonString.contains("\"visit\""), "JSON must contain 'visit' key")
+        XCTAssertTrue(jsonString.contains("\"capture\""), "JSON must contain 'capture' key")
+
+        // schemaVersion must be encoded as a number, not a quoted string.
+        XCTAssertTrue(jsonString.contains("\"schemaVersion\":1"),
+                      "schemaVersion must be encoded as numeric 1, not a string")
+
+        // kind must be the discriminator.
+        XCTAssertTrue(jsonString.contains("\"kind\":\"scan-to-mind-handoff\""),
+                      "kind must equal 'scan-to-mind-handoff'")
+
+        // Round-trip decode.
+        let decoded = try JSONDecoder().decode(ScanToMindHandoffV1.self, from: jsonData)
+        XCTAssertEqual(decoded.kind, "scan-to-mind-handoff")
+        XCTAssertEqual(decoded.schemaVersion, 1)
+        XCTAssertEqual(decoded.visit.visitId, handoff.visit.visitId)
+        XCTAssertEqual(decoded.capture.sessionId, handoff.capture.sessionId)
     }
 }

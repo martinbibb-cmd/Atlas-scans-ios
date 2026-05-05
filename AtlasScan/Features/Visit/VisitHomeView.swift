@@ -42,6 +42,8 @@ struct VisitHomeView: View {
     @State private var showingPhotoCapture     = false
     @State private var showingTextNote         = false
     @State private var showingCaptureV2Debug   = false
+    @State private var handoffValidationMessage: String?
+    @State private var showingHandoffValidation = false
 
     /// Pre-built handoff delivered to VisitCompleteView on successful completion.
     @State private var completionHandoff: ScanToMindHandoffV1?
@@ -117,6 +119,11 @@ struct VisitHomeView: View {
                 if let visit = visitStore.activeVisit {
                     SessionCaptureV2DebugView(visit: visit, draft: captureStore.draft)
                 }
+            }
+            .alert("Handoff Validation", isPresented: $showingHandoffValidation) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(handoffValidationMessage ?? "")
             }
         }
         .onAppear { syncReadiness() }
@@ -204,6 +211,13 @@ struct VisitHomeView: View {
             } label: {
                 captureRow("Hazard Observations", symbol: "exclamationmark.triangle",
                            badge: captureStore.draft.hazardObservations.count)
+            }
+
+            NavigationLink {
+                ExternalScanView(store: captureStore)
+            } label: {
+                captureRow("External / Flue Scan", symbol: "binoculars",
+                           badge: captureStore.draft.externalAreaScans.count)
             }
 
             NavigationLink {
@@ -340,6 +354,13 @@ struct VisitHomeView: View {
                             Label("View SessionCaptureV2", systemImage: "doc.text.magnifyingglass")
                                 .foregroundStyle(.orange)
                         }
+
+                        Button {
+                            validateHandoff()
+                        } label: {
+                            Label("Validate Handoff Before Opening Mind", systemImage: "checkmark.shield")
+                                .foregroundStyle(.orange)
+                        }
                     } header: {
                         Text("Developer Tools")
                     } footer: {
@@ -447,8 +468,58 @@ struct VisitHomeView: View {
         }
     }
 
-    private func performExit() {
-        captureStore.saveNow()
+    /// Developer diagnostic: builds the handoff and validates its canonical shape.
+    ///
+    /// Encodes the payload to JSON and checks for required fields.  Results
+    /// are shown in an alert so developers can spot contract mismatches before
+    /// opening Mind.  Only available when Developer Mode is enabled.
+    private func validateHandoff() {
+        guard let handoff = buildCompletionHandoff(reason: .reviewInMind) else {
+            handoffValidationMessage = "❌ Could not build handoff — active visit is missing."
+            showingHandoffValidation = true
+            return
+        }
+
+        do {
+            let encoded = try ScanToMindPayloadEncoder.encodeForURL(handoff)
+            let decoded = try ScanToMindPayloadEncoder.decodeFromURLPayload(encoded)
+
+            var issues: [String] = []
+            if decoded.kind != "scan-to-mind-handoff" {
+                issues.append("kind mismatch: '\(decoded.kind)'")
+            }
+            if decoded.schemaVersion != 1 {
+                issues.append("schemaVersion mismatch: \(decoded.schemaVersion)")
+            }
+            if decoded.visit.visitId.isEmpty {
+                issues.append("visit.visitId is empty")
+            }
+            if decoded.capture.sessionId.isEmpty {
+                issues.append("capture.sessionId is empty")
+            }
+            if decoded.visit.visitId != decoded.capture.sessionId {
+                issues.append("visit.visitId ≠ capture.sessionId")
+            }
+
+            if issues.isEmpty {
+                handoffValidationMessage = """
+                    ✅ Handoff is valid.
+                    kind: \(decoded.kind)
+                    schemaVersion: \(decoded.schemaVersion)
+                    visitId: \(decoded.visit.visitId)
+                    reason: \(decoded.reason.rawValue)
+                    payload size: \(encoded.count) chars
+                    """
+            } else {
+                handoffValidationMessage = "❌ Handoff issues:\n" + issues.joined(separator: "\n")
+            }
+        } catch {
+            handoffValidationMessage = "❌ Encoding failed: \(error.localizedDescription)"
+        }
+        showingHandoffValidation = true
+    }
+
+    private func performExit() {        captureStore.saveNow()
         visitStore.clearActiveVisit()
         onExit()
     }

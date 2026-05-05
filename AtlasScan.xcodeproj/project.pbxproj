@@ -136,6 +136,9 @@
 		AA010703 /* QuotePlannerCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020703 /* QuotePlannerCaptureView.swift */; };
 		AA010704 /* QuotePlannerEvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020704 /* QuotePlannerEvidenceTests.swift */; };
 		AA010705 /* ScanToMindHandoffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020705 /* ScanToMindHandoffTests.swift */; };
+
+		AA010900 /* ExternalScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020900 /* ExternalScanView.swift */; };
+		AA010901 /* ExternalScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020901 /* ExternalScanCaptureView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -272,6 +275,9 @@
 		AA020704 /* QuotePlannerEvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotePlannerEvidenceTests.swift; sourceTree = "<group>"; };
 		AA020705 /* ScanToMindHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffTests.swift; sourceTree = "<group>"; };
 
+		AA020900 /* ExternalScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanView.swift; sourceTree = "<group>"; };
+		AA020901 /* ExternalScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanCaptureView.swift; sourceTree = "<group>"; };
+
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -347,6 +353,7 @@
 				AA050080 /* Fabric */,
 				AA050081 /* Hazards */,
 				AA050082 /* QuotePlanner */,
+				AA050090 /* ExternalScan */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -597,6 +604,15 @@
 				AA020703 /* QuotePlannerCaptureView.swift */,
 			);
 			path = QuotePlanner;
+			sourceTree = "<group>";
+		};
+		AA050090 /* ExternalScan */ = {
+			isa = PBXGroup;
+			children = (
+				AA020900 /* ExternalScanView.swift */,
+				AA020901 /* ExternalScanCaptureView.swift */,
+			);
+			path = ExternalScan;
 			sourceTree = "<group>";
 		};
 		AA050036 /* AtlasRecommendations */ = {
@@ -922,6 +938,9 @@
 				AA010700 /* FabricCaptureView.swift in Sources */,
 				AA010701 /* HazardCaptureView.swift in Sources */,
 				AA010703 /* QuotePlannerCaptureView.swift in Sources */,
+
+				AA010900 /* ExternalScanView.swift in Sources */,
+				AA010901 /* ExternalScanCaptureView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
