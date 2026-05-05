@@ -1,20 +1,24 @@
 import SwiftUI
+import UIKit
 
 // MARK: - HazardCaptureView
 //
 // Hazard observation capture UI.
 //
 // Lets the engineer record site hazard observations:
-//   • Category (asbestos, structural, electrical, gas, water, slip/trip, other)
+//   • Category (expanded domain-specific categories)
 //   • Severity (low, medium, high, critical)
 //   • Title and description
-//   • Optional links to photos or object pins
+//   • Photo evidence — taken in-form or linked from existing session photos
+//   • Optional links to object pins
 //   • Action required flag
 //
 // Design rules:
 //   • Raw observation only — no risk-assessment score, no action plan.
 //   • All items default to .confirmed (manually created).
 //   • Completion flags are NOT altered by this view.
+//   • Save is allowed when title is non-empty OR a photo is linked OR
+//     category is not .other (photo-first workflow for site safety).
 
 struct HazardCaptureView: View {
 
@@ -57,17 +61,19 @@ struct HazardCaptureView: View {
             }
         }
         .sheet(isPresented: $showingAddHazard) {
-            HazardEditSheet(hazard: CapturedHazardObservationDraft(),
-                            availablePhotos: store.draft.photos,
-                            availablePins: store.draft.objectPins) { saved in
+            HazardEditSheet(
+                hazard: CapturedHazardObservationDraft(),
+                store: store
+            ) { saved in
                 store.addHazardObservation(saved)
                 showingAddHazard = false
             }
         }
         .sheet(item: $editingHazard) { hazard in
-            HazardEditSheet(hazard: hazard,
-                            availablePhotos: store.draft.photos,
-                            availablePins: store.draft.objectPins) { saved in
+            HazardEditSheet(
+                hazard: hazard,
+                store: store
+            ) { saved in
                 store.updateHazardObservation(saved)
                 editingHazard = nil
             }
@@ -95,6 +101,11 @@ struct HazardCaptureView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                         severityBadge(hazard.severity)
+                        if !hazard.linkedPhotoIds.isEmpty {
+                            Label("\(hazard.linkedPhotoIds.count)", systemImage: "camera.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     if hazard.actionRequired {
@@ -155,20 +166,31 @@ struct HazardCaptureView: View {
 private struct HazardEditSheet: View {
 
     @State private var hazard: CapturedHazardObservationDraft
-    let availablePhotos: [CapturedPhotoDraft]
-    let availablePins:   [CapturedObjectPinDraft]
+    @ObservedObject var store: CaptureSessionStore
     let onSave: (CapturedHazardObservationDraft) -> Void
+
+    @State private var showingCamera = false
+    @State private var showingLibrary = false
+    @State private var photoSaveError: String?
 
     init(
         hazard: CapturedHazardObservationDraft,
-        availablePhotos: [CapturedPhotoDraft],
-        availablePins: [CapturedObjectPinDraft],
+        store: CaptureSessionStore,
         onSave: @escaping (CapturedHazardObservationDraft) -> Void
     ) {
         _hazard = State(initialValue: hazard)
-        self.availablePhotos = availablePhotos
-        self.availablePins   = availablePins
+        self.store = store
         self.onSave = onSave
+    }
+
+    // Save is enabled when:
+    //   - a title has been entered, OR
+    //   - at least one photo is linked, OR
+    //   - a specific category (not .other) is selected
+    private var canSave: Bool {
+        !hazard.title.trimmingCharacters(in: .whitespaces).isEmpty
+        || !hazard.linkedPhotoIds.isEmpty
+        || hazard.category != .other
     }
 
     var body: some View {
@@ -176,7 +198,8 @@ private struct HazardEditSheet: View {
             Form {
                 classificationSection
                 detailSection
-                linksSection
+                evidenceSection
+                existingPhotosSection
                 reviewSection
             }
             .navigationTitle("Hazard Observation")
@@ -184,7 +207,19 @@ private struct HazardEditSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { onSave(hazard) }
-                        .disabled(hazard.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(!canSave)
+                }
+            }
+            .sheet(isPresented: $showingCamera) {
+                ImagePickerView(source: .camera) { image in
+                    attachNewPhoto(image)
+                    showingCamera = false
+                }
+            }
+            .sheet(isPresented: $showingLibrary) {
+                ImagePickerView(source: .photoLibrary) { image in
+                    attachNewPhoto(image)
+                    showingLibrary = false
                 }
             }
         }
@@ -225,36 +260,68 @@ private struct HazardEditSheet: View {
         }
     }
 
-    // MARK: - Links
+    // MARK: - Evidence (photo capture)
 
-    private var linksSection: some View {
+    private var evidenceSection: some View {
         Section {
-            if availablePhotos.isEmpty {
-                Text("No photos captured yet.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(availablePhotos) { photo in
-                    let isLinked = hazard.linkedPhotoIds.contains(photo.id)
-                    Button {
-                        togglePhotoLink(photo.id)
-                    } label: {
-                        HStack {
-                            Text(photo.kind.displayName)
-                                .font(.subheadline)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if isLinked {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+            Button {
+                showingCamera = true
+            } label: {
+                Label("Take Photo", systemImage: "camera.fill")
+            }
+            Button {
+                showingLibrary = true
+            } label: {
+                Label("Choose Existing Photo", systemImage: "photo.on.rectangle")
+            }
+
+            if let error = photoSaveError {
+                Text(error)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
             }
         } header: {
-            Text("Linked Photos (\(hazard.linkedPhotoIds.count))")
+            Text("Evidence (\(hazard.linkedPhotoIds.count) photo\(hazard.linkedPhotoIds.count == 1 ? "" : "s"))")
+        } footer: {
+            if hazard.linkedPhotoIds.isEmpty {
+                Text("No photos linked yet. Photo evidence is recommended for all hazard observations.")
+                    .font(.caption2)
+            }
+        }
+    }
+
+    // MARK: - Link existing session photos
+
+    private var existingPhotosSection: some View {
+        let sessionPhotos = store.draft.photos
+        return Group {
+            if !sessionPhotos.isEmpty {
+                Section {
+                    ForEach(sessionPhotos) { photo in
+                        let isLinked = hazard.linkedPhotoIds.contains(photo.id)
+                        Button {
+                            togglePhotoLink(photo.id)
+                        } label: {
+                            HStack {
+                                Text(photo.kind.displayName)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if isLinked {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Link Session Photos")
+                } footer: {
+                    Text("Tap to link or unlink an existing session photo.")
+                        .font(.caption2)
+                }
+            }
         }
     }
 
@@ -279,6 +346,21 @@ private struct HazardEditSheet: View {
             hazard.linkedPhotoIds.remove(at: idx)
         } else {
             hazard.linkedPhotoIds.append(id)
+        }
+    }
+
+    /// Saves a captured image to disk, creates a `CapturedPhotoDraft` in the
+    /// session, and links its UUID to the hazard observation.
+    private func attachNewPhoto(_ image: UIImage) {
+        do {
+            let photoId = UUID()
+            let (filename, _) = try PhotoStore.shared.save(image, id: photoId)
+            // Use photoId as the draft's id to ensure it matches the saved filename.
+            let photo = CapturedPhotoDraft(id: photoId, localFilename: filename, kind: .issue)
+            store.addPhoto(photo)
+            hazard.linkedPhotoIds.append(photoId)
+        } catch {
+            photoSaveError = error.localizedDescription
         }
     }
 }

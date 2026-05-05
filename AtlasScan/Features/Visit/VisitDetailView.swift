@@ -74,6 +74,7 @@ struct VisitDetailView: View {
         .sheet(isPresented: $showingObjectPinPlacement) {
             ObjectPinPlacementView(
                 roomScans: store.draft.roomScans,
+                fabricRecords: store.draft.fabricRecords,
                 photos: store.draft.photos
             ) { pin in
                 store.addObjectPin(pin)

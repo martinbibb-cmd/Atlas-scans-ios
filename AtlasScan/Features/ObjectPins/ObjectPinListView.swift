@@ -3,7 +3,11 @@ import SwiftUI
 // MARK: - ObjectPinListView
 //
 // Lists all object and pin placements for the visit.
-// Provides quick placement of typed objects with optional room association.
+// Provides quick placement of typed objects with optional room and wall association.
+//
+// Wall-mounted objects (radiator, towel rail, fan convector) show wall context.
+// If no wall is assigned to a wall-mounted object, a "Needs wall placement"
+// badge is shown to prompt the engineer.
 
 struct ObjectPinListView: View {
 
@@ -30,6 +34,7 @@ struct ObjectPinListView: View {
         .sheet(isPresented: $showingPlacement) {
             ObjectPinPlacementView(
                 roomScans: store.draft.roomScans,
+                fabricRecords: store.draft.fabricRecords,
                 photos: store.draft.photos
             ) { pin in
                 store.addObjectPin(pin)
@@ -37,7 +42,12 @@ struct ObjectPinListView: View {
             }
         }
         .sheet(item: $editingPin) { pin in
-            ObjectPinEditView(pin: pin, roomScans: store.draft.roomScans, photos: store.draft.photos) { updated in
+            ObjectPinEditView(
+                pin: pin,
+                roomScans: store.draft.roomScans,
+                fabricRecords: store.draft.fabricRecords,
+                photos: store.draft.photos
+            ) { updated in
                 store.updateObjectPin(updated)
                 editingPin = nil
             }
@@ -83,21 +93,42 @@ struct ObjectPinListView: View {
         }
     }
 
+    private var pinSeparator: some View {
+        Text("·")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+    }
+
     private func pinRow(_ pin: CapturedObjectPinDraft) -> some View {
         HStack(spacing: 12) {
             pinIcon(pin.type)
             VStack(alignment: .leading, spacing: 4) {
                 Text(pin.label ?? pin.type.displayName)
                     .font(.body)
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text(pin.type.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if let roomId = pin.roomId,
                        let scan = store.draft.roomScans.first(where: { $0.id == roomId }) {
-                        Label(scan.roomLabel ?? "Room", systemImage: "square.split.2x1")
+                        pinSeparator
+                        Text(scan.roomLabel ?? "Room")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                    }
+                    // Wall context for wall-mounted objects
+                    if pin.type.isWallMounted {
+                        if let wallId = pin.attachedWallId,
+                           let label = wallContextLabel(for: wallId) {
+                            pinSeparator
+                            Label(label, systemImage: "square.grid.2x2")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Label("Needs wall placement", systemImage: "exclamationmark.triangle")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
             }
@@ -119,6 +150,17 @@ struct ObjectPinListView: View {
                 .font(.caption.bold())
                 .foregroundStyle(Color.accentColor)
         }
+    }
+
+    /// Returns the display label for the given wall UUID by
+    /// searching all fabric records in the session.
+    private func wallContextLabel(for wallId: UUID) -> String? {
+        for record in store.draft.fabricRecords {
+            if let wall = record.boundaries.first(where: { $0.id == wallId }) {
+                return wall.wallDisplayLabel
+            }
+        }
+        return nil
     }
 
     // MARK: - Actions section
@@ -145,6 +187,7 @@ struct ObjectPinListView: View {
 struct ObjectPinPlacementView: View {
 
     let roomScans: [CapturedRoomScanDraft]
+    let fabricRecords: [CapturedFloorPlanFabricDraft]
     let photos: [CapturedPhotoDraft]
     let onPlace: (CapturedObjectPinDraft) -> Void
 
@@ -153,7 +196,14 @@ struct ObjectPinPlacementView: View {
     @State private var selectedType: ObjectPinType = .boiler
     @State private var label: String = ""
     @State private var selectedRoomId: UUID?
+    @State private var selectedWallId: UUID?
     @State private var selectedPhotoId: UUID?
+
+    /// Walls available in the selected room's fabric record.
+    private var availableWalls: [CapturedBoundaryDraft] {
+        guard let roomId = selectedRoomId else { return [] }
+        return fabricRecords.first(where: { $0.roomId == roomId })?.boundaries ?? []
+    }
 
     var body: some View {
         NavigationStack {
@@ -165,6 +215,10 @@ struct ObjectPinPlacementView: View {
                         }
                     }
                     .pickerStyle(.navigationLink)
+                    .onChange(of: selectedType) { _, _ in
+                        // Clear wall selection when type changes to non-wall-mounted.
+                        if !selectedType.isWallMounted { selectedWallId = nil }
+                    }
                 }
 
                 Section("Label (optional)") {
@@ -177,6 +231,22 @@ struct ObjectPinPlacementView: View {
                             Text("Session level").tag(UUID?.none)
                             ForEach(roomScans) { scan in
                                 Text(scan.roomLabel ?? "Unnamed Room").tag(Optional(scan.id))
+                            }
+                        }
+                        .onChange(of: selectedRoomId) { _, _ in
+                            // Reset wall when room changes.
+                            selectedWallId = nil
+                        }
+                    }
+                }
+
+                if selectedType.isWallMounted && !availableWalls.isEmpty {
+                    Section("Wall") {
+                        Picker("Wall", selection: $selectedWallId) {
+                            Text("Not assigned").tag(UUID?.none)
+                            ForEach(availableWalls) { wall in
+                                Text(wall.wallDisplayLabel)
+                                    .tag(Optional(wall.id))
                             }
                         }
                     }
@@ -221,6 +291,9 @@ struct ObjectPinPlacementView: View {
         pin.label = label.trimmingCharacters(in: .whitespaces).isEmpty ? nil : label.trimmingCharacters(in: .whitespaces)
         pin.roomId = selectedRoomId
         pin.linkedPhotoId = selectedPhotoId
+        if selectedType.isWallMounted {
+            pin.attachedWallId = selectedWallId
+        }
         onPlace(pin)
     }
 }
@@ -231,12 +304,19 @@ struct ObjectPinEditView: View {
 
     @State var pin: CapturedObjectPinDraft
     let roomScans: [CapturedRoomScanDraft]
+    let fabricRecords: [CapturedFloorPlanFabricDraft]
     let photos: [CapturedPhotoDraft]
     let onSave: (CapturedObjectPinDraft) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var label: String = ""
+
+    /// Walls for the pin's currently selected room.
+    private var availableWalls: [CapturedBoundaryDraft] {
+        guard let roomId = pin.roomId else { return [] }
+        return fabricRecords.first(where: { $0.roomId == roomId })?.boundaries ?? []
+    }
 
     var body: some View {
         NavigationStack {
@@ -255,8 +335,31 @@ struct ObjectPinEditView: View {
                                 Text(scan.roomLabel ?? "Unnamed Room").tag(Optional(scan.id))
                             }
                         }
+                        .onChange(of: pin.roomId) { _, _ in
+                            // Clear wall when room changes.
+                            if pin.type.isWallMounted { pin.attachedWallId = nil }
+                        }
                     }
                 }
+
+                if pin.type.isWallMounted {
+                    Section("Wall") {
+                        if availableWalls.isEmpty {
+                            Text("No walls recorded for this room. Add a fabric review record first.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Picker("Wall", selection: $pin.attachedWallId) {
+                                Text("Not assigned").tag(UUID?.none)
+                                ForEach(availableWalls) { wall in
+                                    Text(wall.wallDisplayLabel)
+                                        .tag(Optional(wall.id))
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Section("Details") {
                     Text(pin.placedAt.formatted(date: .abbreviated, time: .shortened))
                         .foregroundStyle(.secondary)
@@ -290,7 +393,9 @@ struct ObjectPinEditView: View {
     draft.visitReference = "JOB-001"
     var pin = CapturedObjectPinDraft(type: .boiler)
     pin.label = "Worcester Bosch 30i"
-    draft.objectPins = [pin]
+    var rad = CapturedObjectPinDraft(type: .radiator)
+    rad.label = "Lounge radiator"
+    draft.objectPins = [pin, rad]
     let store = CaptureSessionStore(draft: draft)
     return NavigationStack {
         ObjectPinListView(store: store)
