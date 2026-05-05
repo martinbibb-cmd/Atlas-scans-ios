@@ -60,6 +60,7 @@ enum SessionCaptureV2Builder {
             floorPlanFabric: mapFloorPlanFabric(draft),
             hazardObservations: mapHazardObservations(draft),
             quotePlannerEvidence: mapQuotePlannerEvidence(draft),
+            externalAreaScans: mapExternalAreaScans(draft),
             qaFlags: buildQAFlags(visit: visit, draft: draft)
         )
     }
@@ -312,6 +313,59 @@ enum SessionCaptureV2Builder {
         }
 
         return QuotePlannerEvidenceV1(candidateLocations: locations, candidateRoutes: routes)
+    }
+
+    // MARK: - External area scan mapping
+
+    /// Maps external area scan drafts to ``ExternalAreaScanV1`` records.
+    ///
+    /// Returns nil when no external area scans exist (keeping the payload backward-compatible).
+    private static func mapExternalAreaScans(
+        _ draft: CaptureSessionDraft
+    ) -> [ExternalAreaScanV1]? {
+        guard !draft.externalAreaScans.isEmpty else { return nil }
+
+        let visitId = draft.id.uuidString
+
+        return draft.externalAreaScans.map { area in
+            let pins = area.objectPins.map { pin -> ExternalObjectPinV1 in
+                var position: ScanPoint3D?
+                if let x = pin.approximatePositionX,
+                   let y = pin.approximatePositionY,
+                   let z = pin.approximatePositionZ {
+                    position = ScanPoint3D(x: x, y: y, z: z)
+                }
+                return ExternalObjectPinV1(
+                    id: pin.id.uuidString,
+                    type: pin.type.rawValue,
+                    label: pin.label,
+                    linkedPhotoIds: pin.linkedPhotoIds.map(\.uuidString),
+                    approximatePositionRef: position
+                )
+            }
+
+            let measurements = area.measurements.map { m -> ExternalMeasurementLineV1 in
+                ExternalMeasurementLineV1(
+                    id: m.id.uuidString,
+                    label: m.label.isEmpty ? nil : m.label,
+                    startPinId: m.startPinId?.uuidString,
+                    endPinId: m.endPinId?.uuidString,
+                    lengthM: m.lengthM
+                )
+            }
+
+            return ExternalAreaScanV1(
+                id: area.id.uuidString,
+                visitId: area.visitId?.uuidString ?? visitId,
+                label: area.label.isEmpty ? nil : area.label,
+                capturedAt: iso8601.string(from: area.capturedAt),
+                reviewStatus: area.reviewStatus.rawValue,
+                photos: area.photos,
+                objectPins: pins,
+                measurements: measurements,
+                pointCloudAssetId: area.pointCloudAssetId
+            )
+        }
     }
 
     // MARK: - QA flags

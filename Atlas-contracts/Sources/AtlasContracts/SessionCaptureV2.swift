@@ -107,6 +107,14 @@ public struct SessionCaptureV2: Codable, Sendable {
     /// Atlas Mind consumes these anchors for quote planning; Scan is capture-only.
     public let quotePlannerEvidence: QuotePlannerEvidenceV1?
 
+    /// Exterior area scans captured during the visit.
+    ///
+    /// Each record captures evidence around a specific exterior area (e.g. the
+    /// flue terminal exit).  Nil or empty when no external scans were recorded.
+    /// Not required for session validity — existing sessions remain valid.
+    /// Atlas Mind evaluates flue clearance rules downstream; Scan is evidence-only.
+    public let externalAreaScans: [ExternalAreaScanV1]?
+
     // MARK: Quality signals
 
     /// QA flags raised during capture. Capture-layer warnings only.
@@ -132,6 +140,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         floorPlanFabric: FloorPlanFabricCaptureV1? = nil,
         hazardObservations: [HazardObservationCaptureV1]? = nil,
         quotePlannerEvidence: QuotePlannerEvidenceV1? = nil,
+        externalAreaScans: [ExternalAreaScanV1]? = nil,
         qaFlags: [ScanQAFlag]
     ) {
         self.schemaVersion = schemaVersion
@@ -151,6 +160,7 @@ public struct SessionCaptureV2: Codable, Sendable {
         self.floorPlanFabric = floorPlanFabric
         self.hazardObservations = hazardObservations
         self.quotePlannerEvidence = quotePlannerEvidence
+        self.externalAreaScans = externalAreaScans
         self.qaFlags = qaFlags
     }
 }

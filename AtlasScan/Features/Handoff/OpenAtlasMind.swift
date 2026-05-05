@@ -158,8 +158,8 @@ enum OpenAtlasMind {
         if let encoded = try? ScanToMindPayloadEncoder.encodeForURL(handoff) {
             var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
             // visitId (UUID) is percent-encoded for robustness; payload is already encoded by the encoder.
-            let encodedRef = handoff.visitId
-                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? handoff.visitId
+            let encodedRef = handoff.visit.visitId
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? handoff.visit.visitId
             components?.percentEncodedQuery = "sessionRef=\(encodedRef)&payload=\(encoded)"
             if let url = components?.url,
                url.absoluteString.count <= quotePlannerURLLengthLimit {
@@ -169,7 +169,7 @@ enum OpenAtlasMind {
 
         // Fallback: sessionRef-only URL — Mind fetches the session via its own API.
         var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "sessionRef", value: handoff.visitId)]
+        components?.queryItems = [URLQueryItem(name: "sessionRef", value: handoff.visit.visitId)]
         return components?.url ?? base
     }
 

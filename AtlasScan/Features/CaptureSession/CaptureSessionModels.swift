@@ -62,6 +62,10 @@ struct CaptureSessionDraft: Identifiable, Codable {
     /// Evidence only — no lengths, no calculations. Atlas Mind calculates once scale is confirmed.
     var candidateRoutes: [CapturedCandidateRouteDraft] = []
 
+    /// External area scans capturing evidence around the exterior of the property.
+    /// Evidence only — no clearance calculations. Atlas Mind evaluates clearance rules.
+    var externalAreaScans: [ExternalAreaScanDraft] = []
+
     /// Export lifecycle state.
     var exportState: CaptureExportState = .draft
 
@@ -1476,4 +1480,135 @@ struct CapturedCandidateRouteDraft: Identifiable, Codable {
     /// Engineer review status.
     /// Manually created routes default to `.confirmed`.
     var reviewStatus: EvidenceReviewStatus = .confirmed
+}
+
+// MARK: - ExternalAreaScanDraft
+
+/// Draft model for an external area scan record.
+///
+/// Used to capture evidence around the exterior of a property — typically
+/// the flue terminal exit and nearby openings or obstructions.
+struct ExternalAreaScanDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// UUID of the parent visit (populated at export time from CaptureSessionDraft.id).
+    var visitId: UUID?
+
+    /// Engineer-assigned label (e.g. "Rear elevation – flue exit").
+    var label: String = ""
+
+    /// When this scan was captured.
+    var capturedAt: Date = Date()
+
+    /// Engineer review status.
+    var reviewStatus: EvidenceReviewStatus = .pending
+
+    /// Local filenames of evidence photos captured for this area.
+    var photos: [String] = []
+
+    /// Object pins placed in this area.
+    var objectPins: [ExternalObjectPinDraft] = []
+
+    /// Measurement lines drawn between reference points.
+    var measurements: [ExternalMeasurementLineDraft] = []
+
+    /// Optional path reference to a point-cloud or 3D scan asset.
+    var pointCloudAssetId: String?
+}
+
+// MARK: - ExternalObjectPinDraft
+
+/// Draft model for a typed object pin in an external area scan.
+struct ExternalObjectPinDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// The type of this external object.
+    var type: ExternalObjectType = .obstruction
+
+    /// Optional free-text label set by the engineer.
+    var label: String?
+
+    /// UUIDs of evidence photos linked to this pin.
+    var linkedPhotoIds: [UUID] = []
+
+    // MARK: Approximate position (optional)
+
+    var approximatePositionX: Double?
+    var approximatePositionY: Double?
+    var approximatePositionZ: Double?
+}
+
+// MARK: - ExternalObjectType
+
+/// Types of objects that can be pinned in an external area scan.
+enum ExternalObjectType: String, Codable, CaseIterable {
+
+    case flueTerminal         = "flue_terminal"
+    case windowOpening        = "window_opening"
+    case doorOpening          = "door_opening"
+    case airBrick             = "air_brick"
+    case boundaryLine         = "boundary_line"
+    case neighbouringBoundary = "neighbouring_boundary"
+    case soffit               = "soffit"
+    case drain                = "drain"
+    case gasMeterBox          = "gas_meter_box"
+    case electricMeterBox     = "electric_meter_box"
+    case obstruction          = "obstruction"
+    case publicWalkway        = "public_walkway"
+
+    var displayName: String {
+        switch self {
+        case .flueTerminal:         return "Flue Terminal"
+        case .windowOpening:        return "Window Opening"
+        case .doorOpening:          return "Door Opening"
+        case .airBrick:             return "Air Brick"
+        case .boundaryLine:         return "Boundary Line"
+        case .neighbouringBoundary: return "Neighbouring Boundary"
+        case .soffit:               return "Soffit"
+        case .drain:                return "Drain"
+        case .gasMeterBox:          return "Gas Meter Box"
+        case .electricMeterBox:     return "Electric Meter Box"
+        case .obstruction:          return "Obstruction"
+        case .publicWalkway:        return "Public Walkway"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .flueTerminal:         return "arrow.up.to.line.circle"
+        case .windowOpening:        return "window.casement"
+        case .doorOpening:          return "door.left.hand.open"
+        case .airBrick:             return "square.grid.2x2"
+        case .boundaryLine:         return "line.diagonal"
+        case .neighbouringBoundary: return "house.and.flag"
+        case .soffit:               return "rectangle.on.rectangle"
+        case .drain:                return "drop.circle"
+        case .gasMeterBox:          return "gauge"
+        case .electricMeterBox:     return "bolt.circle"
+        case .obstruction:          return "exclamationmark.triangle"
+        case .publicWalkway:        return "figure.walk"
+        }
+    }
+}
+
+// MARK: - ExternalMeasurementLineDraft
+
+/// A measurement line drawn between two reference points in an external area.
+struct ExternalMeasurementLineDraft: Identifiable, Codable {
+
+    var id: UUID = UUID()
+
+    /// Optional label (e.g. "Flue → window").
+    var label: String = ""
+
+    /// UUID of the pin at the start of this line; nil when free-placed.
+    var startPinId: UUID?
+
+    /// UUID of the pin at the end of this line; nil when free-placed.
+    var endPinId: UUID?
+
+    /// Engineer-entered distance in metres; nil when not yet measured.
+    var lengthM: Double?
 }

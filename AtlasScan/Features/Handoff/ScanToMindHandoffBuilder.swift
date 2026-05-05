@@ -7,9 +7,9 @@ import AtlasContracts
 //
 // Rules:
 //   • visit.visitId must match capture.sessionId — throws otherwise.
-//   • version = "1.0", schemaVersion = "1.0".
+//   • kind = "scan-to-mind-handoff", schemaVersion = 1 (numeric).
 //   • sourceApp = "scan_ios", targetApp = "mind_pwa".
-//   • readiness is copied directly from the visit at build time.
+//   • visit snapshot is built from AtlasScanVisit at build time.
 //   • reason is supplied by the caller:
 //       complete_capture  — completed visit
 //       save_progress     — draft / incomplete visit
@@ -58,10 +58,9 @@ enum ScanToMindHandoffBuilder {
             )
         }
 
+        let visitSnapshot = buildVisitSnapshot(from: visit)
         return ScanToMindHandoffV1(
-            visitId: visit.visitId,
-            sessionId: capture.sessionId,
-            readiness: visit.readiness,
+            visit: visitSnapshot,
             capture: capture,
             reason: reason,
             exportedAt: iso8601.string(from: Date())
@@ -70,9 +69,8 @@ enum ScanToMindHandoffBuilder {
 
     /// Builds a ``ScanToMindHandoffV1`` directly from a ``CaptureSessionDraft``.
     ///
-    /// Uses `draft.id.uuidString` as both `visitId` and `sessionId` (they are
-    /// always equal when produced this way, satisfying the contract).  Readiness
-    /// is derived from the draft at build time.
+    /// Uses `draft.id.uuidString` as the `visitId` (satisfying the contract).
+    /// Readiness and lifecycle state are derived from the draft at build time.
     ///
     /// Use this overload when no ``AtlasScanVisit`` lifecycle object is available
     /// (e.g. the review/export screen accessed outside the main visit flow).
@@ -89,17 +87,39 @@ enum ScanToMindHandoffBuilder {
     ) -> ScanToMindHandoffV1 {
         let sessionId = draft.id.uuidString
         let readiness = AtlasScanVisit.deriveReadiness(from: draft)
-        return ScanToMindHandoffV1(
+        let now = iso8601.string(from: Date())
+        let visitSnapshot = HandoffVisitSnapshotV1(
             visitId: sessionId,
-            sessionId: sessionId,
+            visitNumber: draft.visitReference.isEmpty ? nil : draft.visitReference,
+            brandId: nil,
+            status: VisitLifecycleStatus.capturing.rawValue,
             readiness: readiness,
+            createdAt: iso8601.string(from: draft.capturedAt),
+            updatedAt: now
+        )
+        return ScanToMindHandoffV1(
+            visit: visitSnapshot,
             capture: capture,
             reason: reason,
-            exportedAt: iso8601.string(from: Date())
+            exportedAt: now
         )
     }
 
     // MARK: - Private
+
+    /// Builds a ``HandoffVisitSnapshotV1`` from a full ``AtlasScanVisit``.
+    private static func buildVisitSnapshot(from visit: AtlasScanVisit) -> HandoffVisitSnapshotV1 {
+        let formatter = iso8601
+        return HandoffVisitSnapshotV1(
+            visitId: visit.visitId,
+            visitNumber: visit.visitNumber,
+            brandId: visit.brandId,
+            status: visit.status.rawValue,
+            readiness: visit.readiness,
+            createdAt: formatter.string(from: visit.createdAt),
+            updatedAt: formatter.string(from: visit.updatedAt)
+        )
+    }
 
     private static let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
