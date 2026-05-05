@@ -137,6 +137,8 @@
 		AA010704 /* QuotePlannerEvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020704 /* QuotePlannerEvidenceTests.swift */; };
 		AA010705 /* ScanToMindHandoffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020705 /* ScanToMindHandoffTests.swift */; };
 
+		AA010B01 /* HardwareRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020B01 /* HardwareRegistryTests.swift */; };
+
 		AA010900 /* ExternalScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020900 /* ExternalScanView.swift */; };
 		AA010901 /* ExternalScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020901 /* ExternalScanCaptureView.swift */; };
 
@@ -147,6 +149,7 @@
 		AA010A04 /* ClearanceCubeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A04 /* ClearanceCubeOverlayView.swift */; };
 		AA010A05 /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A05 /* OutdoorFlueModeView.swift */; };
 		AA010A06 /* VanModeReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A06 /* VanModeReviewView.swift */; };
+		AA010B00 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020B00 /* GhostBoxARView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -283,6 +286,8 @@
 		AA020704 /* QuotePlannerEvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotePlannerEvidenceTests.swift; sourceTree = "<group>"; };
 		AA020705 /* ScanToMindHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffTests.swift; sourceTree = "<group>"; };
 
+		AA020B01 /* HardwareRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareRegistryTests.swift; sourceTree = "<group>"; };
+
 		AA020900 /* ExternalScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanView.swift; sourceTree = "<group>"; };
 		AA020901 /* ExternalScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanCaptureView.swift; sourceTree = "<group>"; };
 
@@ -293,6 +298,7 @@
 		AA020A04 /* ClearanceCubeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceCubeOverlayView.swift; sourceTree = "<group>"; };
 		AA020A05 /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
 		AA020A06 /* VanModeReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeReviewView.swift; sourceTree = "<group>"; };
+		AA020B00 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -642,6 +648,7 @@
 				AA020A04 /* ClearanceCubeOverlayView.swift */,
 				AA020A05 /* OutdoorFlueModeView.swift */,
 				AA020A06 /* VanModeReviewView.swift */,
+				AA020B00 /* GhostBoxARView.swift */,
 			);
 			path = SpatialWalkthrough;
 			sourceTree = "<group>";
@@ -738,6 +745,7 @@
 				AA020702 /* FloorPlanFabricBuilderTests.swift */,
 				AA020704 /* QuotePlannerEvidenceTests.swift */,
 				AA020705 /* ScanToMindHandoffTests.swift */,
+				AA020B01 /* HardwareRegistryTests.swift */,
 				AA020800 /* ServiceObjectCategoryTerminologyTests.swift */,
 			);
 			path = AtlasScanTests;
@@ -980,6 +988,7 @@
 				AA010A04 /* ClearanceCubeOverlayView.swift in Sources */,
 				AA010A05 /* OutdoorFlueModeView.swift in Sources */,
 				AA010A06 /* VanModeReviewView.swift in Sources */,
+				AA010B00 /* GhostBoxARView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1018,6 +1027,7 @@
 				AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */,
 				AA010704 /* QuotePlannerEvidenceTests.swift in Sources */,
 				AA010705 /* ScanToMindHandoffTests.swift in Sources */,
+				AA010B01 /* HardwareRegistryTests.swift in Sources */,
 				AA010800 /* ServiceObjectCategoryTerminologyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
