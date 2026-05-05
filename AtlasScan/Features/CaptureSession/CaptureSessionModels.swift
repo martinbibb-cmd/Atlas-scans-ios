@@ -688,8 +688,10 @@ extension CapturedRoomScanDraft {
         //   Wall 3 — north-facing  (length = rawWidthM)
         //   Wall 4 — west-facing   (length = rawDepthM)
         // RoomPlan does not provide absolute compass orientation, so these are
-        // relative to the scan origin.  The engineer can correct them via the
-        // fabric review UI.
+        // relative to the scan origin.  The engineer can correct the wall type
+        // (internal / external / party) and construction details via the fabric
+        // review UI; the dimensional pairing between width-side and depth-side
+        // walls is fixed by the scan geometry.
         let wallDefs: [(index: Int, length: Double?)] = [
             (1, rawWidthM),
             (2, rawDepthM),

@@ -437,8 +437,8 @@ final class FloorPlanFabricBuilderTests: XCTestCase {
         scan.rawDepthM = 3.0
         let walls = scan.derivedWallDrafts()
         // Walls 1 and 3 (0-indexed: 0 and 2) should have rawWidthM as length.
-        let wallIndices = walls.enumerated().filter { _, w in w.wallIndex == 1 || w.wallIndex == 3 }
-        XCTAssertTrue(wallIndices.allSatisfy { _, w in w.lengthM == 5.0 },
+        let widthWalls = walls.enumerated().filter { _, w in w.wallIndex == 1 || w.wallIndex == 3 }
+        XCTAssertTrue(widthWalls.allSatisfy { _, w in w.lengthM == 5.0 },
                       "Width-side walls (1 and 3) must carry rawWidthM as length")
     }
 

@@ -355,11 +355,10 @@ private struct HazardEditSheet: View {
         do {
             let photoId = UUID()
             let (filename, _) = try PhotoStore.shared.save(image, id: photoId)
-            var photo = CapturedPhotoDraft(localFilename: filename)
-            photo.id = photoId
-            photo.kind = .issue
+            // Use photoId as the draft's id to ensure it matches the saved filename.
+            let photo = CapturedPhotoDraft(id: photoId, localFilename: filename, kind: .issue)
             store.addPhoto(photo)
-            hazard.linkedPhotoIds.append(photo.id)
+            hazard.linkedPhotoIds.append(photoId)
         } catch {
             photoSaveError = error.localizedDescription
         }

@@ -280,8 +280,7 @@ private struct FabricWallReviewView: View {
               let scan = store.draft.roomScans.first(where: { $0.id == id }) else { return }
         localRecord.applyDerivedWalls(from: scan)
     }
-
-    // MARK: - Walls section
+}    // MARK: - Walls section
 
     private var wallsSection: some View {
         Section {
