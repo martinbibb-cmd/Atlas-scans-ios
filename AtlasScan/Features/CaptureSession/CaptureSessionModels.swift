@@ -681,6 +681,15 @@ extension CapturedRoomScanDraft {
     /// capture them.
     func derivedWallDrafts() -> [CapturedBoundaryDraft] {
         let height = rawHeightM
+        // Wall numbering follows a clockwise convention starting from the
+        // "south" (front-facing) wall when viewed from above:
+        //   Wall 1 — south-facing  (length = rawWidthM)
+        //   Wall 2 — east-facing   (length = rawDepthM)
+        //   Wall 3 — north-facing  (length = rawWidthM)
+        //   Wall 4 — west-facing   (length = rawDepthM)
+        // RoomPlan does not provide absolute compass orientation, so these are
+        // relative to the scan origin.  The engineer can correct them via the
+        // fabric review UI.
         let wallDefs: [(index: Int, length: Double?)] = [
             (1, rawWidthM),
             (2, rawDepthM),
@@ -907,6 +916,12 @@ struct CapturedBoundaryDraft: Identifiable, Codable {
     /// Engineer review status.
     /// Scan-derived boundaries default to `.pending`; manual entries default to `.confirmed`.
     var reviewStatus: EvidenceReviewStatus = .confirmed
+
+    /// Display label for this wall, e.g. "Wall 1".  Falls back to the
+    /// boundary type display name for manually added walls without an index.
+    var wallDisplayLabel: String {
+        wallIndex.map { "Wall \($0)" } ?? boundaryType.displayName
+    }
 }
 
 // MARK: - BoundaryType

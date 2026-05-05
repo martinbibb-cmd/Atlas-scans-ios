@@ -93,6 +93,12 @@ struct ObjectPinListView: View {
         }
     }
 
+    private var pinSeparator: some View {
+        Text("·")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+    }
+
     private func pinRow(_ pin: CapturedObjectPinDraft) -> some View {
         HStack(spacing: 12) {
             pinIcon(pin.type)
@@ -105,9 +111,7 @@ struct ObjectPinListView: View {
                         .foregroundStyle(.secondary)
                     if let roomId = pin.roomId,
                        let scan = store.draft.roomScans.first(where: { $0.id == roomId }) {
-                        Text("·")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        pinSeparator
                         Text(scan.roomLabel ?? "Room")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -115,11 +119,9 @@ struct ObjectPinListView: View {
                     // Wall context for wall-mounted objects
                     if pin.type.isWallMounted {
                         if let wallId = pin.attachedWallId,
-                           let wallLabel = wallContextLabel(for: wallId) {
-                            Text("·")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Label(wallLabel, systemImage: "square.grid.2x2")
+                           let label = wallContextLabel(for: wallId) {
+                            pinSeparator
+                            Label(label, systemImage: "square.grid.2x2")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         } else {
@@ -150,12 +152,12 @@ struct ObjectPinListView: View {
         }
     }
 
-    /// Returns a short wall label (e.g. "Wall 2") for the given wall UUID by
+    /// Returns the display label for the given wall UUID by
     /// searching all fabric records in the session.
     private func wallContextLabel(for wallId: UUID) -> String? {
         for record in store.draft.fabricRecords {
             if let wall = record.boundaries.first(where: { $0.id == wallId }) {
-                return wall.wallIndex.map { "Wall \($0)" } ?? "Wall"
+                return wall.wallDisplayLabel
             }
         }
         return nil
@@ -243,7 +245,7 @@ struct ObjectPinPlacementView: View {
                         Picker("Wall", selection: $selectedWallId) {
                             Text("Not assigned").tag(UUID?.none)
                             ForEach(availableWalls) { wall in
-                                Text(wall.wallIndex.map { "Wall \($0)" } ?? wall.boundaryType.displayName)
+                                Text(wall.wallDisplayLabel)
                                     .tag(Optional(wall.id))
                             }
                         }
@@ -350,7 +352,7 @@ struct ObjectPinEditView: View {
                             Picker("Wall", selection: $pin.attachedWallId) {
                                 Text("Not assigned").tag(UUID?.none)
                                 ForEach(availableWalls) { wall in
-                                    Text(wall.wallIndex.map { "Wall \($0)" } ?? wall.boundaryType.displayName)
+                                    Text(wall.wallDisplayLabel)
                                         .tag(Optional(wall.id))
                                 }
                             }

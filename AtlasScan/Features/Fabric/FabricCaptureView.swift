@@ -311,7 +311,7 @@ private struct FabricWallReviewView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 // Wall label
-                Text(wallLabel(b))
+                Text(b.wallDisplayLabel)
                     .font(.subheadline.bold())
                 Spacer()
                 // Source badge
@@ -420,11 +420,6 @@ private struct FabricWallReviewView: View {
         .padding(.vertical, 4)
     }
 
-    private func wallLabel(_ b: CapturedBoundaryDraft) -> String {
-        if let idx = b.wallIndex { return "Wall \(idx)" }
-        return "Wall"
-    }
-
     private func typeBadge(_ type: BoundaryType) -> some View {
         Label(type.displayName, systemImage: type.symbolName)
             .font(.caption2.bold())
@@ -504,9 +499,8 @@ private struct FabricWallReviewView: View {
                             .clipShape(Capsule())
                     }
                     if let wallId = opening.linkedBoundaryId,
-                       let wall = localRecord.boundaries.first(where: { $0.id == wallId }),
-                       let idx = wall.wallIndex {
-                        Text("Wall \(idx)")
+                       let wall = localRecord.boundaries.first(where: { $0.id == wallId }) {
+                        Text(wall.wallDisplayLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -692,8 +686,7 @@ private struct OpeningEditSheet: View {
                     Picker("Wall", selection: $opening.linkedBoundaryId) {
                         Text("None").tag(Optional<UUID>.none)
                         ForEach(availableBoundaries) { boundary in
-                            let label = boundary.wallIndex.map { "Wall \($0)" } ?? boundary.boundaryType.displayName
-                            Text(label).tag(Optional(boundary.id))
+                            Text(boundary.wallDisplayLabel).tag(Optional(boundary.id))
                         }
                     }
                 } header: {
