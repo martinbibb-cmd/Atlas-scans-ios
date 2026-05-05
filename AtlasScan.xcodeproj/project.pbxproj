@@ -28,6 +28,7 @@
 		AA010060 /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020060 /* VoiceNote.swift */; };
 		AA010061 /* VoiceNoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020061 /* VoiceNoteStore.swift */; };
 		AA0100F7 /* DeveloperModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F7 /* DeveloperModeStore.swift */; };
+		AA0100F8 /* DocumentPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200F8 /* DocumentPickerSheet.swift */; };
 		AA010062 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020062 /* VoiceNoteRecorder.swift */; };
 		AA010063 /* VoiceNoteRecorderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020063 /* VoiceNoteRecorderSheet.swift */; };
 		AA010064 /* VoiceNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020064 /* VoiceNoteTests.swift */; };
@@ -168,6 +169,7 @@
 		AA020060 /* VoiceNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
 		AA020061 /* VoiceNoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteStore.swift; sourceTree = "<group>"; };
 		AA0200F7 /* DeveloperModeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperModeStore.swift; sourceTree = "<group>"; };
+		AA0200F8 /* DocumentPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerSheet.swift; sourceTree = "<group>"; };
 		AA020062 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
 		AA020063 /* VoiceNoteRecorderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderSheet.swift; sourceTree = "<group>"; };
 		AA020064 /* VoiceNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTests.swift; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 				AA020070 /* JSONInspectorView.swift */,
 				AA020071 /* ShareSheet.swift */,
 				AA020072 /* WorkspaceExporter.swift */,
+				AA0200F8 /* DocumentPickerSheet.swift */,
 
 			);
 			path = Export;
@@ -827,6 +830,7 @@
 				AA010041 /* ImagePickerView.swift in Sources */,
 
 				AA0100F7 /* DeveloperModeStore.swift in Sources */,
+				AA0100F8 /* DocumentPickerSheet.swift in Sources */,
 
 				AA010047 /* LiDARClearanceMeasurement.swift in Sources */,
 				AA010048 /* LiDARClearanceSession.swift in Sources */,
