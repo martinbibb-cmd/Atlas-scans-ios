@@ -36,8 +36,47 @@ struct ExternalScanCaptureView: View {
     @State private var addMeasurementStartPinId: UUID?
     @State private var addMeasurementEndPinId: UUID?
     @State private var addMeasurementLengthText: String = ""
+    @State private var showingCompletenessWarning = false
 
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Checklist computed properties
+
+    private var hasLabel: Bool {
+        !draft.label.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasFlueTerminal: Bool {
+        draft.objectPins.contains { $0.type == .flueTerminal }
+    }
+
+    private var hasOpeningOrObstruction: Bool {
+        let types: Set<ExternalObjectType> = [
+            .windowOpening, .doorOpening, .airBrick,
+            .obstruction, .boundaryLine, .neighbouringBoundary,
+            .soffit, .publicWalkway
+        ]
+        return draft.objectPins.contains { types.contains($0.type) }
+    }
+
+    private var hasMeasurement: Bool {
+        !draft.measurements.isEmpty
+    }
+
+    private var isIncomplete: Bool {
+        !hasFlueTerminal || !hasMeasurement
+    }
+
+    private var isFullyComplete: Bool {
+        hasLabel && hasFlueTerminal && hasOpeningOrObstruction && hasMeasurement
+    }
+
+    private var completenessWarningMessage: String {
+        var missing: [String] = []
+        if !hasFlueTerminal { missing.append("no flue terminal pin") }
+        if !hasMeasurement  { missing.append("no measurement line") }
+        return "This scan is missing: \(missing.joined(separator: " and ")). You can save and come back, but incomplete flue evidence may not be accepted."
+    }
 
     // MARK: Init
 
@@ -62,8 +101,10 @@ struct ExternalScanCaptureView: View {
         NavigationStack {
             Form {
                 areaDetailsSection
+                quickActionsSection
                 objectPinsSection
                 measurementsSection
+                captureChecklistSection
             }
             .navigationTitle(existingDraft == nil ? "New External Scan" : "Edit External Scan")
             .navigationBarTitleDisplayMode(.inline)
@@ -73,10 +114,20 @@ struct ExternalScanCaptureView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(draft)
+                        if isIncomplete {
+                            showingCompletenessWarning = true
+                        } else {
+                            onSave(draft)
+                        }
                     }
                     .fontWeight(.semibold)
                 }
+            }
+            .alert("Incomplete Flue Evidence", isPresented: $showingCompletenessWarning) {
+                Button("Save Anyway", role: .destructive) { onSave(draft) }
+                Button("Continue Capturing", role: .cancel) {}
+            } message: {
+                Text(completenessWarningMessage)
             }
             .sheet(isPresented: $showingAddPin) {
                 addPinSheet
@@ -183,6 +234,84 @@ struct ExternalScanCaptureView: View {
         } footer: {
             Text("Record distances between the flue terminal and nearby openings or boundaries.")
                 .font(.caption2)
+        }
+    }
+
+    // MARK: - Quick actions section
+
+    private var quickActionsSection: some View {
+        Section {
+            Button {
+                addPinType = .flueTerminal
+                addPinLabel = ""
+                showingAddPin = true
+            } label: {
+                Label("Add Flue Terminal", systemImage: ExternalObjectType.flueTerminal.symbolName)
+            }
+
+            Button {
+                addPinType = .windowOpening
+                addPinLabel = ""
+                showingAddPin = true
+            } label: {
+                Label("Add Window / Opening", systemImage: ExternalObjectType.windowOpening.symbolName)
+            }
+
+            Button {
+                addPinType = .obstruction
+                addPinLabel = ""
+                showingAddPin = true
+            } label: {
+                Label("Add Boundary / Obstruction", systemImage: ExternalObjectType.obstruction.symbolName)
+            }
+
+            Button {
+                addMeasurementLabel = ""
+                addMeasurementStartPinId = nil
+                addMeasurementEndPinId = nil
+                addMeasurementLengthText = ""
+                showingAddMeasurement = true
+            } label: {
+                Label("Add Measurement", systemImage: "ruler")
+            }
+        } header: {
+            Text("Quick Actions")
+        } footer: {
+            Text("Use these shortcuts to add the most common flue evidence items.")
+                .font(.caption2)
+        }
+    }
+
+    // MARK: - Capture checklist section
+
+    private var captureChecklistSection: some View {
+        Section {
+            checklistRow(done: hasLabel,                label: "External area labelled")
+            checklistRow(done: hasFlueTerminal,         label: "Flue terminal marked")
+            checklistRow(done: hasOpeningOrObstruction, label: "Nearby opening or obstruction marked")
+            checklistRow(done: hasMeasurement,          label: "Measurement line recorded")
+        } header: {
+            Text("Capture Checklist")
+        } footer: {
+            if isFullyComplete {
+                Text("All key evidence items captured.")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            } else {
+                Text("Missing items are flagged. Flue terminal and a measurement line are required; the other items are strongly recommended.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func checklistRow(done: Bool, label: String) -> some View {
+        Label {
+            Text(label)
+                .foregroundStyle(done ? .primary : .secondary)
+        } icon: {
+            Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(done ? .green : .orange)
         }
     }
 
