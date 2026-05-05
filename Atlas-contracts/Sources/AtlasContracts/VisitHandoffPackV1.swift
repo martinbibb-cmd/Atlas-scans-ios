@@ -68,6 +68,17 @@ public struct VisitHandoffPackV1: Codable, Sendable {
     /// Where the visit currently sits in the review workflow.
     public let reviewStatus: VisitHandoffReviewStatus
 
+    // MARK: Hardware patches
+
+    /// Optional hardware definition overrides from Atlas Mind.
+    ///
+    /// When Mind sends a visit handoff to Atlas Scan it may include custom or
+    /// legacy appliance definitions not present in the bundled static registry.
+    /// The iOS app merges these into its runtime hardware registry, preferring
+    /// patch definitions over static ones when `modelId` keys collide.
+    /// `nil` when no overrides are needed (the common case).
+    public let hardwarePatches: HardwarePatchV1?
+
     // MARK: Timestamps
 
     /// ISO-8601 timestamp of when this handoff pack was generated.
@@ -84,6 +95,7 @@ public struct VisitHandoffPackV1: Codable, Sendable {
         capturePackageRef: String? = nil,
         sessionId: String? = nil,
         reviewStatus: VisitHandoffReviewStatus = .pendingReview,
+        hardwarePatches: HardwarePatchV1? = nil,
         exportedAt: String
     ) {
         self.schemaVersion = "1.0"
@@ -95,6 +107,7 @@ public struct VisitHandoffPackV1: Codable, Sendable {
         self.capturePackageRef = capturePackageRef
         self.sessionId = sessionId
         self.reviewStatus = reviewStatus
+        self.hardwarePatches = hardwarePatches
         self.exportedAt = exportedAt
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AtlasContracts
 
 // MARK: - ClearanceCubeOverlayView
 //
@@ -18,6 +19,12 @@ import SwiftUI
 // Coordinate normalisation:
 //   Room dimensions map to (0...1) in both X and Z. The view renders
 //   proportionally within whatever SwiftUI frame is provided.
+//
+// Shared definitions:
+//   When a `definitionsByPinID` map is provided, each pin's dimensions are
+//   driven by the matching `ApplianceDefinitionV1` from `MasterHardwareRegistry`
+//   (or a runtime hardware patch).  When no entry exists for a given pin the
+//   view falls back to `ClearanceEngine.rule(for:)`.
 
 struct ClearanceCubeOverlayView: View {
 
@@ -25,6 +32,14 @@ struct ClearanceCubeOverlayView: View {
 
     let roomScan: CapturedRoomScanDraft
     let objectPins: [CapturedObjectPinDraft]
+
+    /// Optional map from pin ID → shared hardware definition.
+    ///
+    /// Populated by the host view when the session has been associated with an
+    /// appliance profile from `ApplianceProfileLibrary` or from a `HardwarePatchV1`
+    /// received in a `VisitHandoffPackV1`.  Entries take precedence over the
+    /// generic `ClearanceEngine` fallback rules.
+    var definitionsByPinID: [UUID: ApplianceDefinitionV1] = [:]
 
     // MARK: - Body
 
@@ -50,10 +65,6 @@ struct ClearanceCubeOverlayView: View {
     private func roomFloorBackground(in size: CGSize) -> some View {
         Rectangle()
             .fill(Color(.systemBackground))
-            .overlay(
-                Grid(horizontalSpacing: 20, verticalSpacing: 20) {}
-                    .stroke(Color(.systemFill), lineWidth: 0.5)
-            )
     }
 
     private func roomBoundaryOutline(in size: CGSize) -> some View {
@@ -191,13 +202,16 @@ private extension ObjectPinType {
 // MARK: - ClearanceCubeOverlayView internal data helpers
 
 private extension ClearanceCubeOverlayView {
+
     var clearanceItems: [ClearanceItem] {
         guard let roomW = roomScan.rawWidthM, roomW > 0,
               let roomD = roomScan.rawDepthM, roomD > 0
         else { return [] }
 
         return objectPins.compactMap { pin -> ClearanceItem? in
-            guard let rule = ClearanceEngine.rule(for: pin.type.serviceCategory) else { return nil }
+            let rule = resolvedRule(for: pin)
+            guard let rule else { return nil }
+
             // Default normalised position: evenly spaced along north wall
             let idx = objectPins.firstIndex(where: { $0.id == pin.id }) ?? 0
             let segment = 1.0 / Double(max(objectPins.count, 1))
@@ -230,6 +244,26 @@ private extension ClearanceCubeOverlayView {
     var conflictCount: Int {
         clearanceItems.filter { $0.hasConflict }.count
     }
+
+    /// Returns the resolved `ClearanceRule` for a pin.
+    ///
+    /// Priority (highest first):
+    ///   1. `ApplianceDefinitionV1` from `definitionsByPinID` (shared contract).
+    ///   2. Generic fallback from `ClearanceEngine`.
+    func resolvedRule(for pin: CapturedObjectPinDraft) -> ClearanceRule? {
+        if let def = definitionsByPinID[pin.id] {
+            return ClearanceRule(
+                footprintWidthMetres:   def.dimensions.widthM,
+                footprintDepthMetres:   def.dimensions.depthM,
+                installMinFrontMetres:  def.clearanceRules.installMinFrontM,
+                frontClearanceMetres:   def.clearanceRules.frontM,
+                sideClearanceMetres:    def.clearanceRules.sideM,
+                rearClearanceMetres:    def.clearanceRules.rearM,
+                minCeilingHeightMetres: def.clearanceRules.minCeilingHeightM
+            )
+        }
+        return ClearanceEngine.rule(for: pin.type.serviceCategory)
+    }
 }
 
 // MARK: - Preview
@@ -247,9 +281,14 @@ private extension ClearanceCubeOverlayView {
     var cyl = CapturedObjectPinDraft(type: .cylinder)
     cyl.label = "Cylinder"
 
+    // Wire in a shared definition to show contract-driven dimensions
+    let worcesterDef = MasterHardwareRegistry.registry.definition(for: "worcester_4000_combi_30")
+    let defsByID: [UUID: ApplianceDefinitionV1] = worcesterDef.map { [boiler.id: $0] } ?? [:]
+
     return ClearanceCubeOverlayView(
         roomScan: scan,
-        objectPins: [boiler, cyl]
+        objectPins: [boiler, cyl],
+        definitionsByPinID: defsByID
     )
     .frame(height: 240)
     .padding()

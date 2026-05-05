@@ -1,4 +1,5 @@
 import Foundation
+import AtlasContracts
 
 // MARK: - ApplianceProfile
 
@@ -7,9 +8,15 @@ import Foundation
 ///
 /// Profiles represent practical appliance families (e.g., compact combi, slim cylinder).
 /// They are not full manufacturer records — dimensions are approximate guidance only.
+///
+/// Architecture: `ApplianceProfile` is a lightweight app-side projection of an
+/// `ApplianceDefinitionV1` from the shared AtlasContracts registry.  All
+/// authoritative data originates in `MasterHardwareRegistry`; this type is a
+/// convenience wrapper that satisfies existing `ClearanceEngine` and UI call sites.
 struct ApplianceProfile: Identifiable {
 
     /// Stable identifier stored in a capture session's appliance profile ID field.
+    /// Matches `ApplianceDefinitionV1.modelId`.
     let id: String
 
     /// Category this profile belongs to.
@@ -27,278 +34,108 @@ struct ApplianceProfile: Identifiable {
     /// Optional plain-English guidance note surfaced alongside the clearance result.
     /// Wording is deliberately hedged to avoid false certainty.
     let guidanceNote: String?
+
+    /// The underlying shared definition this profile was derived from.
+    let definition: ApplianceDefinitionV1
+}
+
+// MARK: - ApplianceProfile init from ApplianceDefinitionV1
+
+extension ApplianceProfile {
+
+    /// Creates an `ApplianceProfile` from a shared `ApplianceDefinitionV1`.
+    ///
+    /// - Parameters:
+    ///   - definition: The contract-level appliance definition.
+    ///   - category: The resolved `ServiceObjectCategory`; caller must verify
+    ///     that `definition.category` maps to a known category before passing.
+    init?(definition: ApplianceDefinitionV1, category: ServiceObjectCategory) {
+        self.id = definition.modelId
+        self.category = category
+        self.family = definition.family
+        self.displayName = definition.displayName
+        self.guidanceNote = definition.guidanceNote
+        self.definition = definition
+        self.rule = ClearanceRule(
+            footprintWidthMetres:   definition.dimensions.widthM,
+            footprintDepthMetres:   definition.dimensions.depthM,
+            installMinFrontMetres:  definition.clearanceRules.installMinFrontM,
+            frontClearanceMetres:   definition.clearanceRules.frontM,
+            sideClearanceMetres:    definition.clearanceRules.sideM,
+            rearClearanceMetres:    definition.clearanceRules.rearM,
+            minCeilingHeightMetres: definition.clearanceRules.minCeilingHeightM
+        )
+    }
 }
 
 // MARK: - ApplianceProfileLibrary
 
-/// Static library of practical appliance profiles for ClearanceEngine.
+/// Library of practical appliance profiles for ClearanceEngine and picker UI.
 ///
-/// Scope: a handful of profile families per supported category.
-/// Category-default rules in ClearanceEngine remain as the generic fallback when
-/// no profile is selected.
+/// All profiles are derived from `MasterHardwareRegistry` in AtlasContracts,
+/// ensuring the iOS app and Atlas Mind PWA share a single source of truth for
+/// appliance dimensions.
 ///
-/// Architecture: local to AtlasScan; no external dependencies; designed to grow
-/// incrementally without touching AtlasContracts or ExportBuilder.
+/// A runtime registry merged with a `HardwarePatchV1` (received in a
+/// `VisitHandoffPackV1`) can be applied via `ApplianceProfileLibrary.apply(patch:)`
+/// to extend or override the static profiles for a specific visit.
 enum ApplianceProfileLibrary {
+
+    // MARK: - Runtime registry
+
+    /// Current merged registry (static master + any applied patch).
+    private(set) static var currentRegistry: HardwareRegistryV1 = MasterHardwareRegistry.registry
+
+    /// Applies a hardware patch received from Atlas Mind, merging its overrides
+    /// and additions into the runtime registry.  Call this once per visit, after
+    /// decoding the incoming `VisitHandoffPackV1`.
+    static func apply(patch: HardwarePatchV1) {
+        currentRegistry = currentRegistry.applying(patch)
+        _cachedAll = nil   // invalidate cache
+    }
+
+    /// Resets the runtime registry back to the static master.
+    static func resetToMaster() {
+        currentRegistry = MasterHardwareRegistry.registry
+        _cachedAll = nil
+    }
 
     // MARK: - All profiles
 
-    static let all: [ApplianceProfile] =
-        boilerProfiles + cylinderProfiles + manifoldProfiles + radiatorProfiles
+    /// All profiles derived from the current runtime registry.
+    static var all: [ApplianceProfile] {
+        if let cached = _cachedAll { return cached }
+        let built = currentRegistry.definitions.values.compactMap { def -> ApplianceProfile? in
+            guard let cat = ServiceObjectCategory(rawValue: def.category) else { return nil }
+            return ApplianceProfile(definition: def, category: cat)
+        }.sorted { $0.displayName < $1.displayName }
+        _cachedAll = built
+        return built
+    }
+
+    private static var _cachedAll: [ApplianceProfile]?
 
     // MARK: - Lookup
 
-    /// Returns all profiles for the given category, sorted by display name.
+    /// Returns all profiles for the given category, sorted by family then display name.
     static func profiles(for category: ServiceObjectCategory) -> [ApplianceProfile] {
         all.filter { $0.category == category }
+            .sorted { lhs, rhs in
+                lhs.family == rhs.family
+                    ? lhs.displayName < rhs.displayName
+                    : lhs.family < rhs.family
+            }
     }
 
-    /// Returns the profile with the given identifier, or `nil`.
+    /// Returns the profile with the given model identifier, or `nil`.
     static func profile(id: String) -> ApplianceProfile? {
-        all.first { $0.id == id }
+        guard let def = currentRegistry.definition(for: id),
+              let cat = ServiceObjectCategory(rawValue: def.category) else { return nil }
+        return ApplianceProfile(definition: def, category: cat)
     }
 
-    // MARK: - Boiler profiles
-
-    static let boilerProfiles: [ApplianceProfile] = [
-        ApplianceProfile(
-            id: "combi_generic",
-            category: .boiler,
-            family: "Combi Boiler",
-            displayName: "Generic combi",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.60,
-                footprintDepthMetres:   0.50,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.15,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 2.00
-            ),
-            guidanceNote: "Typical wall-hung combi. Verify manufacturer spec for exact clearances."
-        ),
-        ApplianceProfile(
-            id: "combi_compact",
-            category: .boiler,
-            family: "Combi Boiler",
-            displayName: "Compact combi",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.44,
-                footprintDepthMetres:   0.36,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 2.00
-            ),
-            guidanceNote: "Compact wall-hung combi. Smaller body but same front service clearance required."
-        ),
-        ApplianceProfile(
-            id: "system_generic",
-            category: .boiler,
-            family: "System Boiler",
-            displayName: "Generic system boiler",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.70,
-                footprintDepthMetres:   0.50,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.15,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 2.00
-            ),
-            guidanceNote: "System boiler — typically wider than a combi. Check system pump clearance too."
-        ),
-        ApplianceProfile(
-            id: "regular_generic",
-            category: .boiler,
-            family: "Regular Boiler",
-            displayName: "Regular (heat-only) boiler",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.70,
-                footprintDepthMetres:   0.55,
-                installMinFrontMetres:  0.35,
-                frontClearanceMetres:   0.70,
-                sideClearanceMetres:    0.20,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 2.00
-            ),
-            guidanceNote: "Regular boiler. Typically more side room needed for pipework and zone valves."
-        ),
-    ]
-
-    // MARK: - Cylinder profiles
-
-    static let cylinderProfiles: [ApplianceProfile] = [
-        ApplianceProfile(
-            id: "cylinder_unvented_standard",
-            category: .cylinder,
-            family: "Unvented Cylinder",
-            displayName: "Standard unvented cylinder",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.55,
-                footprintDepthMetres:   0.55,
-                installMinFrontMetres:  0.25,
-                frontClearanceMetres:   0.50,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 1.90
-            ),
-            guidanceNote: "Standard unvented cylinder ~450 mm dia. G3 — confirm tundish and pressure relief access."
-        ),
-        ApplianceProfile(
-            id: "cylinder_unvented_slim",
-            category: .cylinder,
-            family: "Unvented Cylinder",
-            displayName: "Slim unvented cylinder",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.40,
-                footprintDepthMetres:   0.40,
-                installMinFrontMetres:  0.25,
-                frontClearanceMetres:   0.50,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 1.90
-            ),
-            guidanceNote: "Slim-profile unvented cylinder. Same front access required; height likely exceeds 1.8 m."
-        ),
-        ApplianceProfile(
-            id: "cylinder_vented_standard",
-            category: .cylinder,
-            family: "Vented Cylinder",
-            displayName: "Standard vented cylinder",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.45,
-                footprintDepthMetres:   0.45,
-                installMinFrontMetres:  0.25,
-                frontClearanceMetres:   0.50,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.05,
-                minCeilingHeightMetres: 1.80
-            ),
-            guidanceNote: "Vented hot-water cylinder. Check cold-feed header tank location and overflow route."
-        ),
-    ]
-
-    // MARK: - Manifold profiles
-
-    static let manifoldProfiles: [ApplianceProfile] = [
-        ApplianceProfile(
-            id: "manifold_ufh_small",
-            category: .manifold,
-            family: "UFH Manifold",
-            displayName: "Small UFH manifold (≤ 6 loops)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.40,
-                footprintDepthMetres:   0.15,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.80
-            ),
-            guidanceNote: "Small manifold up to 6 UFH loops. Allow front access for flow/return valves and actuators."
-        ),
-        ApplianceProfile(
-            id: "manifold_ufh_standard",
-            category: .manifold,
-            family: "UFH Manifold",
-            displayName: "Standard UFH manifold (7–12 loops)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.60,
-                footprintDepthMetres:   0.15,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.80
-            ),
-            guidanceNote: "Standard manifold up to 12 loops. Check cabinet width if the manifold is to be boxed in."
-        ),
-        ApplianceProfile(
-            id: "manifold_ufh_large",
-            category: .manifold,
-            family: "UFH Manifold",
-            displayName: "Large UFH manifold (13+ loops)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.80,
-                footprintDepthMetres:   0.15,
-                installMinFrontMetres:  0.30,
-                frontClearanceMetres:   0.60,
-                sideClearanceMetres:    0.10,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.80
-            ),
-            guidanceNote: "Large manifold for 13+ loops. Significant wall width required — check available run."
-        ),
-    ]
-
-    // MARK: - Radiator profiles
-
-    static let radiatorProfiles: [ApplianceProfile] = [
-        ApplianceProfile(
-            id: "radiator_compact",
-            category: .radiator,
-            family: "Panel Radiator",
-            displayName: "Compact radiator (up to 600 mm)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.55,
-                footprintDepthMetres:   0.12,
-                installMinFrontMetres:  0.03,
-                frontClearanceMetres:   0.05,
-                sideClearanceMetres:    0.05,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.50
-            ),
-            guidanceNote: nil
-        ),
-        ApplianceProfile(
-            id: "radiator_standard",
-            category: .radiator,
-            family: "Panel Radiator",
-            displayName: "Standard radiator (600–900 mm)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.75,
-                footprintDepthMetres:   0.12,
-                installMinFrontMetres:  0.03,
-                frontClearanceMetres:   0.05,
-                sideClearanceMetres:    0.05,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.50
-            ),
-            guidanceNote: nil
-        ),
-        ApplianceProfile(
-            id: "radiator_wide",
-            category: .radiator,
-            family: "Panel Radiator",
-            displayName: "Wide radiator (900–1200 mm)",
-            rule: ClearanceRule(
-                footprintWidthMetres:   1.05,
-                footprintDepthMetres:   0.12,
-                installMinFrontMetres:  0.03,
-                frontClearanceMetres:   0.05,
-                sideClearanceMetres:    0.05,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.50
-            ),
-            guidanceNote: "Wide radiator — check available wall run. Ensure no obstructions at either end."
-        ),
-        ApplianceProfile(
-            id: "radiator_double_panel",
-            category: .radiator,
-            family: "Double Panel Radiator",
-            displayName: "Double panel radiator",
-            rule: ClearanceRule(
-                footprintWidthMetres:   0.60,
-                footprintDepthMetres:   0.18,
-                installMinFrontMetres:  0.03,
-                frontClearanceMetres:   0.05,
-                sideClearanceMetres:    0.05,
-                rearClearanceMetres:    0.00,
-                minCeilingHeightMetres: 1.50
-            ),
-            guidanceNote: "Double panel — deeper than standard. Check against furniture and window sill depth."
-        ),
-    ]
+    /// Returns the `ApplianceDefinitionV1` for the given model identifier, or `nil`.
+    static func definition(id: String) -> ApplianceDefinitionV1? {
+        currentRegistry.definition(for: id)
+    }
 }
