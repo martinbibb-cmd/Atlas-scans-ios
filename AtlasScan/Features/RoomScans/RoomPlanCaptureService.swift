@@ -62,7 +62,8 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
     private var visitId: UUID?
 
     /// A fresh UUID is assigned each time startScan() is called so that
-    /// parallel invocations never collide on the file system.
+    /// sequential scans in the same session each produce a unique filename
+    /// on the file system.
     private var currentScanId: UUID = UUID()
 
     // MARK: - Init
@@ -92,7 +93,7 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
             return
         }
         capturedResult = nil
-        currentScanId  = UUID()   // fresh ID for each scan attempt
+        currentScanId  = UUID()   // fresh ID for each new scan so files never collide
         sessionState   = .scanning
         roomCaptureView.captureSession.run(configuration: captureConfig)
     }

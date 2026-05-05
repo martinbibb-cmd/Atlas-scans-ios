@@ -1654,6 +1654,10 @@ extension CaptureSessionDraft {
     /// deterministic from the draft data and suitable for export-gate decisions and
     /// QA flag generation without a live AR session.
     var hasClearanceConflicts: Bool {
+        /// Normalised Z position used to place pins near the north wall,
+        /// matching the heuristic in ``ClearanceCubeOverlayView``.
+        let northWallNormalisedZ = 0.1
+
         for scan in roomScans {
             guard let roomW = scan.rawWidthM, roomW > 0,
                   let roomD = scan.rawDepthM, roomD > 0 else { continue }
@@ -1665,7 +1669,7 @@ extension CaptureSessionDraft {
                 guard let rule = ClearanceEngine.rule(for: pin.type.serviceCategory) else { continue }
 
                 let nx   = (Double(idx) + 0.5) / Double(pinsInRoom.count)
-                let nz   = 0.1   // near north wall, matching ClearanceCubeOverlayView
+                let nz   = northWallNormalisedZ
                 let servW = (rule.footprintWidthMetres  + rule.sideClearanceMetres * 2) / roomW
                 let servD = (rule.footprintDepthMetres
                              + rule.frontClearanceMetres
