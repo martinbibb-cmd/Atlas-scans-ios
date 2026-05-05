@@ -392,4 +392,219 @@ final class FloorPlanFabricBuilderTests: XCTestCase {
         draft.hazardObservations.append(hazard)
         XCTAssertEqual(draft.pendingReviewCount, 1)
     }
+
+    // MARK: - Derived wall drafts from room scan
+
+    func test_derivedWallDrafts_fromScanWithDimensions_produces4Walls() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        scan.rawHeightM = 2.4
+        let walls = scan.derivedWallDrafts()
+        XCTAssertEqual(walls.count, 4, "derivedWallDrafts must produce exactly 4 walls")
+    }
+
+    func test_derivedWallDrafts_allDefaultToExternal() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        let walls = scan.derivedWallDrafts()
+        XCTAssertTrue(walls.allSatisfy { $0.boundaryType == .external },
+                      "All scan-derived walls must default to .external")
+    }
+
+    func test_derivedWallDrafts_allDefaultToPending() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        let walls = scan.derivedWallDrafts()
+        XCTAssertTrue(walls.allSatisfy { $0.reviewStatus == .pending },
+                      "All scan-derived walls must default to .pending review status")
+    }
+
+    func test_derivedWallDrafts_walledMarkedScanDerived() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        let walls = scan.derivedWallDrafts()
+        XCTAssertTrue(walls.allSatisfy { $0.source == .scanDerived },
+                      "All scan-derived walls must have source .scanDerived")
+    }
+
+    func test_derivedWallDrafts_widthWallsUseRawWidth() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 5.0
+        scan.rawDepthM = 3.0
+        let walls = scan.derivedWallDrafts()
+        // Walls 1 and 3 (0-indexed: 0 and 2) should have rawWidthM as length.
+        let wallIndices = walls.enumerated().filter { _, w in w.wallIndex == 1 || w.wallIndex == 3 }
+        XCTAssertTrue(wallIndices.allSatisfy { _, w in w.lengthM == 5.0 },
+                      "Width-side walls (1 and 3) must carry rawWidthM as length")
+    }
+
+    func test_derivedWallDrafts_noScanDimensions_stillProduces4Walls() {
+        let scan = CapturedRoomScanDraft()
+        let walls = scan.derivedWallDrafts()
+        XCTAssertEqual(walls.count, 4, "derivedWallDrafts must produce 4 walls even without dimensions")
+        XCTAssertTrue(walls.allSatisfy { $0.lengthM == nil }, "Walls without scan dimensions must have nil lengthM")
+    }
+
+    // MARK: - applyDerivedWalls helper
+
+    func test_applyDerivedWalls_populatesBoundariesWhenEmpty() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        var record = CapturedFloorPlanFabricDraft()
+        record.applyDerivedWalls(from: scan)
+        XCTAssertEqual(record.boundaries.count, 4, "applyDerivedWalls must populate 4 boundaries")
+    }
+
+    func test_applyDerivedWalls_doesNotOverwriteExistingBoundaries() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        var record = CapturedFloorPlanFabricDraft()
+        var existing = CapturedBoundaryDraft()
+        existing.boundaryType = .party
+        record.boundaries.append(existing)
+        record.applyDerivedWalls(from: scan)
+        // Should still have exactly 1 boundary (the existing one was not overwritten).
+        XCTAssertEqual(record.boundaries.count, 1)
+        XCTAssertEqual(record.boundaries.first?.boundaryType, .party)
+    }
+
+    // MARK: - Wall type can be changed from external to party
+
+    func test_boundary_externalCanBeChangedToParty() {
+        var boundary = CapturedBoundaryDraft()
+        boundary.boundaryType = .external
+        boundary.boundaryType = .party
+        XCTAssertEqual(boundary.boundaryType, .party)
+    }
+
+    // MARK: - constructionType maps to material on export
+
+    func test_build_constructionType_mapsToMaterialString() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        var record = CapturedFloorPlanFabricDraft()
+        var boundary = CapturedBoundaryDraft()
+        boundary.constructionType = .solidBrick
+        boundary.material = nil  // no override
+        record.boundaries.append(boundary)
+        draft.fabricRecords.append(record)
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let exported = capture.floorPlanFabric?.rooms.first?.boundaries.first
+        XCTAssertEqual(exported?.material, "Solid brick",
+                       "constructionType .solidBrick must export as material string when no override is set")
+    }
+
+    func test_build_constructionType_unknownExportsNilMaterial() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        var record = CapturedFloorPlanFabricDraft()
+        var boundary = CapturedBoundaryDraft()
+        boundary.constructionType = .unknown
+        boundary.material = nil
+        record.boundaries.append(boundary)
+        draft.fabricRecords.append(record)
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let exported = capture.floorPlanFabric?.rooms.first?.boundaries.first
+        XCTAssertNil(exported?.material, "constructionType .unknown must export nil material")
+    }
+
+    func test_build_materialOverride_takesPrecedenceOverConstructionType() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        var record = CapturedFloorPlanFabricDraft()
+        var boundary = CapturedBoundaryDraft()
+        boundary.constructionType = .cavityWall
+        boundary.material = "cavity wall + 50mm PIR"  // free-text override
+        record.boundaries.append(boundary)
+        draft.fabricRecords.append(record)
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let exported = capture.floorPlanFabric?.rooms.first?.boundaries.first
+        XCTAssertEqual(exported?.material, "cavity wall + 50mm PIR",
+                       "Free-text material override must take precedence over constructionType")
+    }
+
+    // MARK: - Hazard observation photo linking
+
+    func test_hazard_canSaveWithLinkedPhotoOnly() {
+        // A hazard with no title but a linked photo ID must still have a UUID link stored.
+        var hazard = CapturedHazardObservationDraft()
+        hazard.title = ""
+        let photoId = UUID()
+        hazard.linkedPhotoIds.append(photoId)
+        XCTAssertEqual(hazard.linkedPhotoIds.count, 1)
+        XCTAssertEqual(hazard.linkedPhotoIds.first, photoId)
+    }
+
+    func test_build_hazard_exportsLinkedPhotoIds() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+
+        let photoId1 = UUID()
+        let photoId2 = UUID()
+        var hazard = CapturedHazardObservationDraft()
+        hazard.category = .gas
+        hazard.title = "Gas smell"
+        hazard.linkedPhotoIds = [photoId1, photoId2]
+        draft.hazardObservations.append(hazard)
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let exported = capture.hazardObservations?.first
+        XCTAssertEqual(exported?.linkedPhotoIds, [photoId1.uuidString, photoId2.uuidString],
+                       "Hazard linked photo IDs must be exported in order")
+    }
+
+    func test_hazard_newDomainCategories_mapCorrectly() throws {
+        let visit = makeVisit()
+        var draft = makeDraft()
+
+        let categories: [HazardCategory] = [.flue, .access, .workingAtHeight, .customerProperty]
+        for category in categories {
+            var hazard = CapturedHazardObservationDraft()
+            hazard.category = category
+            hazard.title = category.displayName
+            draft.hazardObservations.append(hazard)
+        }
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let exportedCategories = capture.hazardObservations?.map(\.category) ?? []
+        XCTAssertTrue(exportedCategories.contains("flue"))
+        XCTAssertTrue(exportedCategories.contains("access"))
+        XCTAssertTrue(exportedCategories.contains("working_at_height"))
+        XCTAssertTrue(exportedCategories.contains("customer_property"))
+    }
+
+    // MARK: - Object pin wall context
+
+    func test_objectPinType_radiatorIsWallMounted() {
+        XCTAssertTrue(ObjectPinType.radiator.isWallMounted)
+    }
+
+    func test_objectPinType_towelRailIsWallMounted() {
+        XCTAssertTrue(ObjectPinType.towelRail.isWallMounted)
+    }
+
+    func test_objectPinType_fanConvectorIsWallMounted() {
+        XCTAssertTrue(ObjectPinType.fanConvector.isWallMounted)
+    }
+
+    func test_objectPinType_boilerIsNotWallMounted() {
+        XCTAssertFalse(ObjectPinType.boiler.isWallMounted)
+    }
+
+    func test_objectPin_attachedWallIdCanBeSet() {
+        var pin = CapturedObjectPinDraft(type: .radiator)
+        let wallId = UUID()
+        pin.attachedWallId = wallId
+        XCTAssertEqual(pin.attachedWallId, wallId)
+    }
+
+    func test_objectPin_attachedWallIdDefaultsToNil() {
+        let pin = CapturedObjectPinDraft(type: .radiator)
+        XCTAssertNil(pin.attachedWallId, "attachedWallId must default to nil")
+    }
 }

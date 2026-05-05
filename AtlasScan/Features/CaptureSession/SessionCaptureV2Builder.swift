@@ -182,7 +182,7 @@ enum SessionCaptureV2Builder {
                     boundaryType: b.boundaryType.rawValue,
                     lengthM: b.lengthM,
                     heightM: b.heightM,
-                    material: b.material,
+                    material: b.material ?? b.constructionType.exportMaterialString,
                     reviewStatus: b.reviewStatus.rawValue
                 )
             }

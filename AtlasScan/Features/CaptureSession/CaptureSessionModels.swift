@@ -375,6 +375,11 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
     /// UUID of a linked evidence photo.
     var linkedPhotoId: UUID?
 
+    /// UUID of the fabric-record boundary (wall) this object is mounted on.
+    /// Relevant for wall-mounted types (radiator, towel rail, fan convector).
+    /// Nil for non-wall-mounted objects or when wall placement has not been set.
+    var attachedWallId: UUID?
+
     /// Source of the pin placement.
     var pinSource: ObjectPinSource?
 
@@ -416,6 +421,7 @@ enum ObjectPinType: String, Codable, CaseIterable, Identifiable {
     // Emitters
     case radiator           = "radiator"
     case towelRail          = "towel_rail"
+    case fanConvector       = "fan_convector"
 
     // Services / utilities
     case flue               = "flue"
@@ -436,6 +442,15 @@ enum ObjectPinType: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// True for object types that are physically mounted on a wall.
+    /// These objects benefit from wall-context display and wall-placement selection.
+    var isWallMounted: Bool {
+        switch self {
+        case .radiator, .towelRail, .fanConvector: return true
+        default: return false
+        }
+    }
+
     var displayName: String {
         switch self {
         case .boiler:           return "Boiler"
@@ -444,6 +459,7 @@ enum ObjectPinType: String, Codable, CaseIterable, Identifiable {
         case .pump:             return "Pump"
         case .radiator:         return "Radiator"
         case .towelRail:        return "Towel Rail"
+        case .fanConvector:     return "Fan Convector"
         case .flue:             return "Flue"
         case .gasMeter:         return "Gas Meter"
         case .stopTap:          return "Stop Tap"
@@ -464,6 +480,7 @@ enum ObjectPinType: String, Codable, CaseIterable, Identifiable {
         case .pump:             return "arrow.circlepath"
         case .radiator:         return "thermometer.medium"
         case .towelRail:        return "towel"
+        case .fanConvector:     return "wind.snow"
         case .flue:             return "arrow.up.to.line"
         case .gasMeter:         return "gauge"
         case .stopTap:          return "drop.circle"
@@ -647,7 +664,54 @@ extension CaptureSessionDraft {
     }
 }
 
-// MARK: - FloorPlanDraft
+// MARK: - CapturedRoomScanDraft helpers
+
+extension CapturedRoomScanDraft {
+
+    /// Derives a set of boundary wall drafts representing the four walls of this
+    /// room based on its scanned dimensions.
+    ///
+    /// For a rectangular room the scan produces:
+    ///   - Wall 1 & 3: width-side walls (length = rawWidthM)
+    ///   - Wall 2 & 4: depth-side walls (length = rawDepthM)
+    ///
+    /// All derived walls default to `.external` boundary type and `.pending`
+    /// review status so the engineer must review and confirm each wall.
+    /// Returns exactly four walls; dimensions are nil when the scan did not
+    /// capture them.
+    func derivedWallDrafts() -> [CapturedBoundaryDraft] {
+        let height = rawHeightM
+        let wallDefs: [(index: Int, length: Double?)] = [
+            (1, rawWidthM),
+            (2, rawDepthM),
+            (3, rawWidthM),
+            (4, rawDepthM),
+        ]
+        return wallDefs.map { def in
+            var wall = CapturedBoundaryDraft()
+            wall.wallIndex = def.index
+            wall.lengthM = def.length
+            wall.heightM = height
+            wall.boundaryType = .external
+            wall.constructionType = .unknown
+            wall.reviewStatus = .pending
+            wall.source = .scanDerived
+            return wall
+        }
+    }
+}
+
+// MARK: - CapturedFloorPlanFabricDraft helpers
+
+extension CapturedFloorPlanFabricDraft {
+
+    /// Populates this record with scan-derived walls when no walls have been
+    /// added yet.  Call this immediately after linking a fabric record to a room.
+    mutating func applyDerivedWalls(from scan: CapturedRoomScanDraft) {
+        guard boundaries.isEmpty else { return }
+        boundaries = scan.derivedWallDrafts()
+    }
+}
 
 /// Engineer-annotated floor plan for one room.
 ///
@@ -749,6 +813,66 @@ struct CapturedFloorPlanFabricDraft: Identifiable, Codable {
     var openings: [CapturedOpeningDraft] = []
 }
 
+// MARK: - WallConstructionType
+
+/// Construction / fabric type for a building boundary wall.
+enum WallConstructionType: String, Codable, CaseIterable, Identifiable {
+    case unknown          = "unknown"
+    case solidBrick       = "solid_brick"
+    case cavityWall       = "cavity_wall"
+    case insulatedCavity  = "insulated_cavity"
+    case timberFrame      = "timber_frame"
+    case partyWall        = "party_wall"
+    case other            = "other"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .unknown:         return "Unknown"
+        case .solidBrick:      return "Solid brick"
+        case .cavityWall:      return "Cavity wall"
+        case .insulatedCavity: return "Insulated cavity"
+        case .timberFrame:     return "Timber frame"
+        case .partyWall:       return "Party wall"
+        case .other:           return "Other"
+        }
+    }
+
+    /// The material description string used in export when no free-text
+    /// material override is set.  Returns nil for .unknown.
+    var exportMaterialString: String? {
+        self == .unknown ? nil : displayName
+    }
+}
+
+// MARK: - BoundarySource
+
+/// How a boundary wall record was created.
+enum BoundarySource: String, Codable {
+    /// Created automatically from scan geometry.
+    case scanDerived = "scan_derived"
+    /// Added manually by the engineer.
+    case manual = "manual"
+
+    var displayName: String {
+        switch self {
+        case .scanDerived: return "Scan"
+        case .manual:      return "Manual"
+        }
+    }
+}
+
+// MARK: - OpeningSource
+
+/// How an opening record was created.
+enum OpeningSource: String, Codable {
+    /// Imported automatically from scan detection.
+    case scanDerived = "scan_derived"
+    /// Added manually by the engineer (e.g. missed by the scan).
+    case manual = "manual"
+}
+
 // MARK: - CapturedBoundaryDraft
 
 /// In-app draft of a single boundary (wall segment) observation.
@@ -757,7 +881,11 @@ struct CapturedBoundaryDraft: Identifiable, Codable {
     var id: UUID = UUID()
 
     /// Classification of this boundary.
-    var boundaryType: BoundaryType = .unknown
+    var boundaryType: BoundaryType = .external
+
+    /// Wall index within the room (1-based). Set when derived from a scan.
+    /// Nil for manually added walls.
+    var wallIndex: Int?
 
     /// Measured length in metres; nil if not recorded.
     var lengthM: Double?
@@ -765,11 +893,19 @@ struct CapturedBoundaryDraft: Identifiable, Codable {
     /// Measured height in metres; nil if not recorded.
     var heightM: Double?
 
-    /// Free-text material description (e.g. "solid brick", "cavity wall").
+    /// Structured construction / fabric type selection.
+    /// Takes precedence over `material` for display purposes.
+    var constructionType: WallConstructionType = .unknown
+
+    /// Free-text material description override (e.g. "solid brick + render").
+    /// When nil, `constructionType.exportMaterialString` is used on export.
     var material: String?
 
+    /// How this boundary was created.
+    var source: BoundarySource = .manual
+
     /// Engineer review status.
-    /// Manually entered boundaries default to `.confirmed`.
+    /// Scan-derived boundaries default to `.pending`; manual entries default to `.confirmed`.
     var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
@@ -825,8 +961,11 @@ struct CapturedOpeningDraft: Identifiable, Codable {
     /// UUID of the boundary this opening belongs to; nil when unlinked.
     var linkedBoundaryId: UUID?
 
+    /// How this opening was created.
+    var source: OpeningSource = .manual
+
     /// Engineer review status.
-    /// Manually entered openings default to `.confirmed`.
+    /// Scan-derived openings default to `.pending`; manual entries default to `.confirmed`.
     var reviewStatus: EvidenceReviewStatus = .confirmed
 }
 
@@ -903,37 +1042,49 @@ struct CapturedHazardObservationDraft: Identifiable, Codable {
 
 /// Category of a site hazard observation.
 enum HazardCategory: String, Codable, CaseIterable, Identifiable {
-    case asbestos   = "asbestos"
-    case structural = "structural"
-    case electrical = "electrical"
-    case gas        = "gas"
-    case water      = "water"
-    case slipTrip   = "slip_trip"
-    case other      = "other"
+    case asbestos        = "asbestos"
+    case electrical      = "electrical"
+    case flue            = "flue"
+    case gas             = "gas"
+    case water           = "water"
+    case access          = "access"
+    case workingAtHeight = "working_at_height"
+    case structural      = "structural"
+    case slipTrip        = "slip_trip"
+    case customerProperty = "customer_property"
+    case other           = "other"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .asbestos:   return "Asbestos / ACM"
-        case .structural: return "Structural"
-        case .electrical: return "Electrical"
-        case .gas:        return "Gas"
-        case .water:      return "Water / Damp"
-        case .slipTrip:   return "Slip / Trip"
-        case .other:      return "Other"
+        case .asbestos:        return "Asbestos suspected"
+        case .electrical:      return "Electrical concern"
+        case .flue:            return "Flue / combustion concern"
+        case .gas:             return "Gas installation concern"
+        case .water:           return "Water damage / leak"
+        case .access:          return "Access issue"
+        case .workingAtHeight: return "Working at height"
+        case .structural:      return "Structural concern"
+        case .slipTrip:        return "Trip / obstruction"
+        case .customerProperty: return "Customer property risk"
+        case .other:           return "Other"
         }
     }
 
     var symbolName: String {
         switch self {
-        case .asbestos:   return "exclamationmark.triangle.fill"
-        case .structural: return "building.columns"
-        case .electrical: return "bolt.fill"
-        case .gas:        return "flame.fill"
-        case .water:      return "drop.fill"
-        case .slipTrip:   return "figure.walk.motion"
-        case .other:      return "exclamationmark.circle"
+        case .asbestos:        return "exclamationmark.triangle.fill"
+        case .electrical:      return "bolt.fill"
+        case .flue:            return "smoke.fill"
+        case .gas:             return "flame.fill"
+        case .water:           return "drop.fill"
+        case .access:          return "door.left.hand.open"
+        case .workingAtHeight: return "ladder"
+        case .structural:      return "building.columns"
+        case .slipTrip:        return "figure.walk.motion"
+        case .customerProperty: return "house.fill"
+        case .other:           return "exclamationmark.circle"
         }
     }
 }

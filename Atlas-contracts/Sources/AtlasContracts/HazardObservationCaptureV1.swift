@@ -22,8 +22,9 @@ public struct HazardObservationCaptureV1: Codable, Sendable {
 
     /// Hazard category raw value.
     ///
-    /// Known values: "asbestos" | "structural" | "electrical" | "gas" |
-    ///               "water" | "slip_trip" | "other"
+    /// Known values: "asbestos" | "electrical" | "flue" | "gas" | "water" |
+    ///               "access" | "working_at_height" | "structural" |
+    ///               "slip_trip" | "customer_property" | "other"
     public let category: String
 
     /// Hazard severity raw value.
