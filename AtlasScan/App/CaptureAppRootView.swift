@@ -1,21 +1,23 @@
 import SwiftUI
 
+// MARK: - CaptureFlowState
+
+enum CaptureFlowState {
+    case spatial    // Spatial-first walkthrough (PropertyNavigatorView) — default
+    case classic    // Legacy card-based LiveCaptureView
+    case reviewing
+}
+
 // MARK: - CaptureAppRootView
 //
 // Atlas Scan V2 root: the single-session visit capture flow.
 //
-// Flow:
-//   • Initialised with a pre-selected draft (from VisitPickerView).
-//   • Live Capture → Review Visit → Export
-//   • Export → onDone callback (returns to VisitPickerView)
-//   • "Back to Capture" available from review screen.
+// Modes:
+//   • Spatial (default) — spatial-first walkthrough via PropertyNavigatorView.
+//   • Classic           — legacy card-based LiveCaptureView.
+//   • Reviewing         — ReviewVisitView with export actions.
 //
 // "One visit, one session, one home screen."
-
-enum CaptureFlowState {
-    case capturing
-    case reviewing
-}
 
 struct CaptureAppRootView: View {
 
@@ -23,7 +25,7 @@ struct CaptureAppRootView: View {
     let onDone: () -> Void
 
     @State private var activeStore: CaptureSessionStore
-    @State private var flowState: CaptureFlowState = .capturing
+    @State private var flowState: CaptureFlowState = .spatial
 
     // MARK: Init
 
@@ -38,7 +40,9 @@ struct CaptureAppRootView: View {
     var body: some View {
         Group {
             switch flowState {
-            case .capturing:
+            case .spatial:
+                spatialScreen
+            case .classic:
                 capturingScreen
             case .reviewing:
                 reviewingScreen
@@ -47,11 +51,44 @@ struct CaptureAppRootView: View {
         .animation(.easeInOut(duration: 0.2), value: flowState)
     }
 
-    // MARK: - Capturing
+    // MARK: - Spatial walkthrough (primary)
+
+    private var spatialScreen: some View {
+        NavigationStack {
+            PropertyNavigatorView(store: activeStore)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button("Classic Capture Mode") {
+                                flowState = .classic
+                            }
+                            Button("Review & Export") {
+                                flowState = .reviewing
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
+        }
+    }
+
+    // MARK: - Classic capture (legacy)
 
     private var capturingScreen: some View {
-        LiveCaptureView(store: activeStore) {
-            flowState = .reviewing
+        NavigationStack {
+            LiveCaptureView(store: activeStore) {
+                flowState = .reviewing
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        flowState = .spatial
+                    } label: {
+                        Label("Walkthrough", systemImage: "map")
+                    }
+                }
+            }
         }
     }
 
@@ -62,7 +99,7 @@ struct CaptureAppRootView: View {
             ReviewVisitView(store: activeStore)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("← Capture") { flowState = .capturing }
+                        Button("← Walkthrough") { flowState = .spatial }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         if activeStore.draft.exportState == .exported {
@@ -78,11 +115,19 @@ struct CaptureAppRootView: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("Capture") {
+#Preview("Spatial Walkthrough") {
     CaptureAppRootView(
         initialDraft: CaptureSessionStore.newSession(visitReference: "JOB-PREVIEW-001"),
         onDone: {}
     )
+}
+
+#Preview("Classic Capture") {
+    var root = CaptureAppRootView(
+        initialDraft: CaptureSessionStore.newSession(visitReference: "JOB-PREVIEW-002"),
+        onDone: {}
+    )
+    return root
 }
 #endif
 

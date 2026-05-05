@@ -139,6 +139,14 @@
 
 		AA010900 /* ExternalScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020900 /* ExternalScanView.swift */; };
 		AA010901 /* ExternalScanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020901 /* ExternalScanCaptureView.swift */; };
+
+		AA010A00 /* MollerTrumboreIntersection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A00 /* MollerTrumboreIntersection.swift */; };
+		AA010A01 /* PropertyNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A01 /* PropertyNavigatorView.swift */; };
+		AA010A02 /* RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A02 /* RoomLoopView.swift */; };
+		AA010A03 /* SpatialPinDialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A03 /* SpatialPinDialView.swift */; };
+		AA010A04 /* ClearanceCubeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A04 /* ClearanceCubeOverlayView.swift */; };
+		AA010A05 /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A05 /* OutdoorFlueModeView.swift */; };
+		AA010A06 /* VanModeReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A06 /* VanModeReviewView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -278,6 +286,14 @@
 		AA020900 /* ExternalScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanView.swift; sourceTree = "<group>"; };
 		AA020901 /* ExternalScanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalScanCaptureView.swift; sourceTree = "<group>"; };
 
+		AA020A00 /* MollerTrumboreIntersection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MollerTrumboreIntersection.swift; sourceTree = "<group>"; };
+		AA020A01 /* PropertyNavigatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyNavigatorView.swift; sourceTree = "<group>"; };
+		AA020A02 /* RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLoopView.swift; sourceTree = "<group>"; };
+		AA020A03 /* SpatialPinDialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinDialView.swift; sourceTree = "<group>"; };
+		AA020A04 /* ClearanceCubeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceCubeOverlayView.swift; sourceTree = "<group>"; };
+		AA020A05 /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
+		AA020A06 /* VanModeReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeReviewView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
 		AA0200E8 /* VisitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitDetailView.swift; sourceTree = "<group>"; };
@@ -354,6 +370,7 @@
 				AA050081 /* Hazards */,
 				AA050082 /* QuotePlanner */,
 				AA050090 /* ExternalScan */,
+			AA050091 /* SpatialWalkthrough */,
 				AA050037 /* Welcome */,
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
@@ -613,6 +630,20 @@
 				AA020901 /* ExternalScanCaptureView.swift */,
 			);
 			path = ExternalScan;
+			sourceTree = "<group>";
+		};
+		AA050091 /* SpatialWalkthrough */ = {
+			isa = PBXGroup;
+			children = (
+				AA020A00 /* MollerTrumboreIntersection.swift */,
+				AA020A01 /* PropertyNavigatorView.swift */,
+				AA020A02 /* RoomLoopView.swift */,
+				AA020A03 /* SpatialPinDialView.swift */,
+				AA020A04 /* ClearanceCubeOverlayView.swift */,
+				AA020A05 /* OutdoorFlueModeView.swift */,
+				AA020A06 /* VanModeReviewView.swift */,
+			);
+			path = SpatialWalkthrough;
 			sourceTree = "<group>";
 		};
 		AA050036 /* AtlasRecommendations */ = {
@@ -941,6 +972,14 @@
 
 				AA010900 /* ExternalScanView.swift in Sources */,
 				AA010901 /* ExternalScanCaptureView.swift in Sources */,
+
+				AA010A00 /* MollerTrumboreIntersection.swift in Sources */,
+				AA010A01 /* PropertyNavigatorView.swift in Sources */,
+				AA010A02 /* RoomLoopView.swift in Sources */,
+				AA010A03 /* SpatialPinDialView.swift in Sources */,
+				AA010A04 /* ClearanceCubeOverlayView.swift in Sources */,
+				AA010A05 /* OutdoorFlueModeView.swift in Sources */,
+				AA010A06 /* VanModeReviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
