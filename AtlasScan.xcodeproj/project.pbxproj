@@ -38,6 +38,7 @@
 		AA010071 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020071 /* ShareSheet.swift */; };
 		AA010072 /* WorkspaceExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020072 /* WorkspaceExporter.swift */; };
 		AA010073 /* WorkspaceExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020073 /* WorkspaceExporterTests.swift */; };
+		AA010800 /* ServiceObjectCategoryTerminologyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020800 /* ServiceObjectCategoryTerminologyTests.swift */; };
 
 		AA010076 /* ExtractedSessionFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020076 /* ExtractedSessionFact.swift */; };
 
@@ -179,6 +180,7 @@
 		AA020071 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		AA020072 /* WorkspaceExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceExporter.swift; sourceTree = "<group>"; };
 		AA020073 /* WorkspaceExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceExporterTests.swift; sourceTree = "<group>"; };
+		AA020800 /* ServiceObjectCategoryTerminologyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceObjectCategoryTerminologyTests.swift; sourceTree = "<group>"; };
 
 		AA020076 /* ExtractedSessionFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedSessionFact.swift; sourceTree = "<group>"; };
 
@@ -689,6 +691,7 @@
 				AA020702 /* FloorPlanFabricBuilderTests.swift */,
 				AA020704 /* QuotePlannerEvidenceTests.swift */,
 				AA020705 /* ScanToMindHandoffTests.swift */,
+				AA020800 /* ServiceObjectCategoryTerminologyTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -957,6 +960,7 @@
 				AA010702 /* FloorPlanFabricBuilderTests.swift in Sources */,
 				AA010704 /* QuotePlannerEvidenceTests.swift in Sources */,
 				AA010705 /* ScanToMindHandoffTests.swift in Sources */,
+				AA010800 /* ServiceObjectCategoryTerminologyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

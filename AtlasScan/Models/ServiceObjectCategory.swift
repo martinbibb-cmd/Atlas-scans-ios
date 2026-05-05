@@ -86,7 +86,7 @@ enum ServiceObjectCategory: String, Codable, CaseIterable, Identifiable {
         case .externalWall:         return "External Wall Candidate"
         case .likelyFlueRoute:      return "Likely Flue Route"
         case .serviceVoid:          return "Service Void"
-        case .plantSpace:           return "Plant Space"
+        case .plantSpace:           return "Heating cupboard / utility space"
         case .other:                return "Other"
         }
     }
@@ -137,7 +137,7 @@ enum ServiceObjectCategory: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .boiler, .heatPump, .cylinder, .thermalStore, .bufferVessel,
              .pump, .lowLossHeader, .expansionVessel, .manifold, .zoneValve:
-            return "Heat Source / Plant"
+            return "Boiler, cylinder & heating equipment"
         case .radiator, .radiatorDrop, .towelRail, .ufhZone, .fanConvector:
             return "Emitters"
         case .gasMeter, .electricMeter, .consumerUnit, .stopTap, .flue, .drainPoint:
