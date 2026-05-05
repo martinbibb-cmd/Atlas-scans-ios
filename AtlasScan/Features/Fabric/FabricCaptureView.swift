@@ -112,7 +112,7 @@ struct FabricCaptureView: View {
                 Text(boundary.boundaryType.displayName)
                     .font(.subheadline)
                 if let len = boundary.lengthM {
-                    Text("\(len, specifier: "%.1f") m" + (boundary.heightM.map { " × \($0, specifier: "%.1f") m" } ?? ""))
+                    Text(String(format: "%.1f m", len) + (boundary.heightM.map { String(format: " × %.1f m", $0) } ?? ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -139,7 +139,7 @@ struct FabricCaptureView: View {
                 Text(opening.openingType.displayName)
                     .font(.subheadline)
                 if let w = opening.widthM {
-                    Text("\(w, specifier: "%.2f") m wide" + (opening.heightM.map { " × \($0, specifier: "%.2f") m" } ?? ""))
+                    Text(String(format: "%.2f m wide", w) + (opening.heightM.map { String(format: " × %.2f m", $0) } ?? ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

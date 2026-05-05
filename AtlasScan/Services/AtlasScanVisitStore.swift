@@ -77,7 +77,7 @@ final class AtlasScanVisitStore: ObservableObject {
         let ref = visitNumber?.trimmingCharacters(in: .whitespaces) ?? ""
 
         // Create and persist the capture session draft.
-        var draft = CaptureSessionStore.newSession(visitReference: ref)
+        let draft = CaptureSessionStore.newSession(visitReference: ref)
         CaptureSessionPersistence.shared.save(draft)
 
         // Create the lifecycle visit linked to the draft.
