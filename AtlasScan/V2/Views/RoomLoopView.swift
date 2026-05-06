@@ -1,9 +1,9 @@
-/// RoomLoopView — Orchestrates repeated room captures until the user finishes.
+/// V2RoomLoopView — Orchestrates repeated room captures until the user finishes.
 
 import SwiftUI
 import AtlasScanCore
 
-struct RoomLoopView: View {
+struct V2RoomLoopView: View {
     @ObservedObject var coordinator: ScanSessionCoordinator
     @Environment(\.dismiss) private var dismiss
 

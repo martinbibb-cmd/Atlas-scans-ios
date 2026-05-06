@@ -1,9 +1,9 @@
-/// OutdoorFlueModeView — Captures outdoor flue terminal observations.
+/// V2OutdoorFlueModeView — Captures outdoor flue terminal observations.
 
 import SwiftUI
 import AtlasScanCore
 
-struct OutdoorFlueModeView: View {
+struct V2OutdoorFlueModeView: View {
     @ObservedObject var coordinator: ScanSessionCoordinator
     @Environment(\.dismiss) private var dismiss
 
