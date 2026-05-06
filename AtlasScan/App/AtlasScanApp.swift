@@ -1,33 +1,20 @@
 import SwiftUI
-import AtlasContracts
 
-// Atlas Scan is capture-only.
-// Recommendation, simulation, scenario ranking, presentation,
-// portal and PDF outputs are owned by Atlas Mind.
-
-// MARK: - AtlasScanApp
-//
-// Root entry point.
-//
-// Navigation:
-//   HomeView
-//     ├── Open Atlas Mind    → MindRootView (full-screen Atlas Mind WebView shortcut)
-//     ├── Start Local Visit  → StartVisitView sheet → VisitDetailView
-//     └── Saved Visits       → SavedVisitsView → VisitDetailView
-//
-// URL scheme (atlasscan://):
-//   atlasscan://?visitId=<ref>           – open / create visit by reference
-//   atlasscan://?handoff=<base64-pack>   – receive VisitHandoffPackV1 from Mind
+// Atlas Scan V2 — capture-only app.
+// The root scene now uses ScanSessionCoordinator + MindRecallClient
+// and launches into PropertyMapView.
 
 @main
 struct AtlasScanApp: App {
 
-    @StateObject private var visitStore = AtlasScanVisitStore.shared
+    @StateObject private var coordinator = ScanSessionCoordinator()
+    @StateObject private var recallClient = MindRecallClient(store: .shared)
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
-                .environmentObject(visitStore)
+            PropertyMapView()
+                .environmentObject(coordinator)
+                .environmentObject(recallClient)
         }
     }
 }
