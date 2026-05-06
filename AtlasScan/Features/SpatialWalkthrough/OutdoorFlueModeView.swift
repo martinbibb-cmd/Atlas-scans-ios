@@ -254,7 +254,7 @@ struct FlueDistanceReportView: View {
             Image(systemName: row.pass
                   ? "checkmark.circle.fill"
                   : "exclamationmark.triangle.fill")
-                .foregroundStyle(row.pass ? .green : .red)
+                .foregroundStyle(row.pass ? Color.green : Color.red)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Flue → \(row.featureLabel)")
@@ -272,7 +272,7 @@ struct FlueDistanceReportView: View {
             Spacer()
             Text(String(format: "%.0f mm", row.distanceMM))
                 .font(.body.monospacedDigit().bold())
-                .foregroundStyle(row.pass ? .primary : .red)
+                .foregroundStyle(row.pass ? Color.primary : Color.red)
         }
     }
 
