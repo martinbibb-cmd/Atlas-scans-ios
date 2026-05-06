@@ -221,25 +221,41 @@ struct PropertyNavigatorView: View {
 
     // MARK: - Readiness bar
 
-    private var readinessBar: some View {
-        let readiness = VisitReadinessBuilder.build(from: store.draft)
-        let met = readinessFlags(from: readiness).filter { $0.met }.count
-        let total = readinessFlags(from: readiness).count
-        let allMet = met == total
+    private var currentReadiness: VisitReadinessV1 {
+        VisitReadinessBuilder.build(from: store.draft)
+    }
 
-        return VStack(alignment: .leading, spacing: 8) {
+    private var currentReadinessFlags: [ReadinessFlag] {
+        readinessFlags(from: currentReadiness)
+    }
+
+    private var readinessMetCount: Int {
+        currentReadinessFlags.filter { $0.met }.count
+    }
+
+    private var readinessTotalCount: Int {
+        currentReadinessFlags.count
+    }
+
+    private var allReadinessMet: Bool {
+        readinessMetCount == readinessTotalCount
+    }
+
+    @ViewBuilder
+    private var readinessBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Readiness")
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("\(met)/\(total)")
+                Text("\(readinessMetCount)/\(readinessTotalCount)")
                     .font(.caption2.bold())
-                    .foregroundStyle(allMet ? .green : .orange)
+                    .foregroundStyle(allReadinessMet ? .green : .orange)
             }
 
             HStack(spacing: 8) {
-                ForEach(readinessFlags(from: readiness), id: \.label) { flag in
+                ForEach(currentReadinessFlags, id: \.label) { flag in
                     readinessPill(flag)
                 }
             }
@@ -452,13 +468,15 @@ struct PropertyNavigatorView: View {
 
     // MARK: - Export footer
 
-    private var exportFooter: some View {
-        let readiness = VisitReadinessBuilder.build(from: store.draft)
+    private var exportIsReady: Bool {
         let noConflicts = !store.draft.hasClearanceConflicts
-        let isReady = readiness.hasRooms && readiness.hasPhotos && readiness.hasBoiler && readiness.hasFlue && noConflicts
+        return currentReadiness.hasRooms && currentReadiness.hasPhotos && currentReadiness.hasBoiler && currentReadiness.hasFlue && noConflicts
+    }
 
-        return VStack(spacing: 8) {
-            if !isReady {
+    @ViewBuilder
+    private var exportFooter: some View {
+        VStack(spacing: 8) {
+            if !exportIsReady {
                 HStack(spacing: 6) {
                     Image(systemName: "lock.fill")
                         .font(.caption)
@@ -477,15 +495,15 @@ struct PropertyNavigatorView: View {
                 showingExportReadiness = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: isReady ? "arrow.up.doc.fill" : "lock.fill")
-                    Text(isReady ? "Review & Export to Atlas Mind" : "Review Capture")
+                    Image(systemName: exportIsReady ? "arrow.up.doc.fill" : "lock.fill")
+                    Text(exportIsReady ? "Review & Export to Atlas Mind" : "Review Capture")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
             }
             .buttonStyle(.borderedProminent)
-            .tint(isReady ? .green : .gray)
+            .tint(exportIsReady ? .green : .gray)
         }
     }
 
