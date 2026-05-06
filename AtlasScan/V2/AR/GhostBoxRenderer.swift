@@ -15,22 +15,29 @@ final class GhostBoxRenderer: NSObject {
         rootAnchor = anchor
 
         for pin in pins {
-            let spec = pin.hardwareSpecId.flatMap { registry.spec(for: $0) }
-            let envelope = spec?.clearanceEnvelope ?? ClearanceEnvelopeV1(
-                widthM: 0.5, heightM: 0.8, depthM: 0.5,
-                clearanceTopM: 0.2, clearanceBottomM: 0.0,
-                clearanceFrontM: 0.3, clearanceBackM: 0.1,
-                clearanceLeftM: 0.1, clearanceRightM: 0.1
-            )
-            let entity = ghostBoxEntity(for: pin, envelope: envelope)
+            let spec = pin.hardwareSpecId.flatMap { id in
+                registry.allSpecs().first { $0.id == id }
+            }
+            let entity = ghostBoxEntity(for: pin, spec: spec)
             anchor.addChild(entity)
         }
     }
 
-    private func ghostBoxEntity(for pin: SpatialPinV1, envelope: ClearanceEnvelopeV1) -> ModelEntity {
-        let w = Float(envelope.widthM  + envelope.clearanceLeftM  + envelope.clearanceRightM)
-        let h = Float(envelope.heightM + envelope.clearanceTopM   + envelope.clearanceBottomM)
-        let d = Float(envelope.depthM  + envelope.clearanceFrontM + envelope.clearanceBackM)
+    private func ghostBoxEntity(for pin: SpatialPinV1, spec: HardwareSpecV1?) -> ModelEntity {
+        let w: Float
+        let h: Float
+        let d: Float
+        if let spec {
+            w = Float(spec.ghostBoxWidthM)
+            h = Float(spec.ghostBoxHeightM)
+            d = Float(spec.ghostBoxDepthM)
+        } else {
+            // Regulatory minimum fallback box
+            let env = ClearanceEnvelopeV1.regulatoryMinimum
+            w = Float(0.5 + env.leftM + env.rightM)
+            h = Float(0.8 + env.topM  + env.bottomM)
+            d = Float(0.5 + env.frontM + env.backM)
+        }
         let mesh = MeshResource.generateBox(size: SIMD3(w, h, d))
         var material = SimpleMaterial()
         material.color = .init(tint: .cyan.withAlphaComponent(0.25))
@@ -43,7 +50,8 @@ final class GhostBoxRenderer: NSObject {
 }
 
 extension HardwareRegistryV1 {
-    func spec(for id: UUID) -> HardwareSpecV1? {
-        catalogue.first { $0.id == id }
+    func allSpecs() -> [HardwareSpecV1] {
+        allSpecs(ofType: .boiler) + allSpecs(ofType: .heatPump)
+            + allSpecs(ofType: .hotWaterCylinder) + allSpecs(ofType: .pressureVessel)
     }
 }

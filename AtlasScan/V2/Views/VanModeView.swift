@@ -114,7 +114,7 @@ struct VanModeView: View {
                 Text("No QA flags for this room.").foregroundStyle(.secondary).font(.subheadline)
             } else {
                 ForEach(roomFlags) { flag in
-                    Label(flag.detail ?? flag.type.rawValue, systemImage: flagIcon(for: flag.type))
+                    Label(flag.detail, systemImage: flagIcon(for: flag.type))
                         .font(.subheadline)
                         .foregroundStyle(flagColor(for: flag.type))
                 }
@@ -152,19 +152,23 @@ struct VanModeView: View {
 
     private func flagIcon(for type: QAFlagType) -> String {
         switch type {
-        case .clearancePass:     return "checkmark.circle.fill"
-        case .clearanceConflict: return "exclamationmark.triangle.fill"
-        case .missingData:       return "questionmark.circle"
-        case .userOverride:      return "hand.raised.fill"
+        case .clearancePass:          return "checkmark.circle.fill"
+        case .clearanceConflict:      return "exclamationmark.triangle.fill"
+        case .missingFabric:          return "questionmark.circle"
+        case .lowPhotoCount:          return "photo.badge.exclamationmark"
+        case .incompleteTranscript:   return "mic.slash"
+        case .flueConflict:           return "exclamationmark.triangle"
         }
     }
 
     private func flagColor(for type: QAFlagType) -> Color {
         switch type {
-        case .clearancePass:     return .green
-        case .clearanceConflict: return .red
-        case .missingData:       return .orange
-        case .userOverride:      return .blue
+        case .clearancePass:          return .green
+        case .clearanceConflict:      return .red
+        case .flueConflict:           return .red
+        case .missingFabric:          return .orange
+        case .lowPhotoCount:          return .orange
+        case .incompleteTranscript:   return .orange
         }
     }
 }

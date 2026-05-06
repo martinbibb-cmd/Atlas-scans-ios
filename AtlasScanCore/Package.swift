@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "AtlasScanV2",
+    name: "AtlasScanCore",
     platforms: [
         .macOS(.v13),
         .iOS(.v17)

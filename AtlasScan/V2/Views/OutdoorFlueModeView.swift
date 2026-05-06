@@ -9,7 +9,6 @@ struct OutdoorFlueModeView: View {
 
     @State private var clearanceDistanceM: Double = 0
     @State private var selectedOpeningType: OpeningType = .window
-    @State private var notes = ""
 
     var body: some View {
         NavigationStack {
@@ -29,10 +28,6 @@ struct OutdoorFlueModeView: View {
                         }
                     }
                 }
-                Section("Notes") {
-                    TextEditor(text: $notes)
-                        .frame(minHeight: 80)
-                }
             }
             .navigationTitle("Outdoor Flue Check")
             .navigationBarTitleDisplayMode(.inline)
@@ -40,14 +35,8 @@ struct OutdoorFlueModeView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let report = OutdoorFlueClearanceReportV1(
-                            distanceToNearestOpeningM: clearanceDistanceM,
-                            openingType: selectedOpeningType,
-                            notes: notes.isEmpty ? nil : notes
-                        )
                         let flag = QAFlagV1(
-                            type: clearanceDistanceM >= 0.3 ? .clearancePass : .clearanceConflict,
-                            roomId: coordinator.session.visitId,
+                            type: clearanceDistanceM >= 0.3 ? .clearancePass : .flueConflict,
                             detail: "Flue distance: \(String(format: "%.2f", clearanceDistanceM))m. Opening: \(selectedOpeningType.rawValue)"
                         )
                         coordinator.emitQAFlag(flag)
