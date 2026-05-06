@@ -21,8 +21,8 @@ struct RoomLoopView: View {
                     MiniMapHUD(rooms: coordinator.session.rooms)
                         .padding()
                 }
-                .onChange(of: capturedRoom) { _, newRoom in
-                    if newRoom != nil {
+                .onChange(of: capturedRoom?.id) { _, newId in
+                    if newId != nil {
                         showCapture = false
                         showNamePrompt = true
                     }
