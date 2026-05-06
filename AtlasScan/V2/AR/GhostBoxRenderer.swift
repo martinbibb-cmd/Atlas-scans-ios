@@ -1,5 +1,6 @@
 /// GhostBoxRenderer — Manages ghost-box entity creation and clearance conflict highlighting.
 
+import Foundation
 import RealityKit
 import AtlasScanCore
 
