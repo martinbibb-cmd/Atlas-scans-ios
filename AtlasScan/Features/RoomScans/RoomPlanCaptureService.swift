@@ -278,15 +278,17 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
     //
     // Extracts the true room outline polygon from wall surfaces captured by RoomPlan.
     //
-    // Each wall surface has a 4×4 transform matrix whose:
-    //   • columns.3 (x, z) = wall centre position on the floor plane
-    //   • columns.0 (x, z) = wall face direction (local X axis)
-    //   • dimensions.x     = wall width (metres along the face)
+    // RoomPlan wall coordinate conventions (Y-up, right-handed space):
+    //   • transform.columns.3 (x, z) = wall centre position on the floor plane
+    //   • transform.columns.0        = local X axis — the direction *along* the
+    //                                  wall face (i.e. parallel to the wall surface,
+    //                                  not perpendicular to it). Travelling ± halfLen
+    //                                  along this axis reaches the two wall endpoints.
+    //   • dimensions.x               = wall width in metres (distance between endpoints)
     //
-    // From these we compute the two floor-plane endpoints for every wall,
-    // then chain the segments end-to-end (greedy nearest-endpoint matching)
-    // to build an ordered polygon.  The result is normalised to [margin, 1-margin]
-    // in both axes while preserving the aspect ratio.
+    // From each wall we compute the two floor-plane endpoints, then chain the
+    // segments end-to-end (greedy nearest-endpoint matching) to build an ordered
+    // polygon. The result is normalised to [margin, 1−margin] preserving aspect ratio.
     //
     // Returns: (outlinePoints, wallSegmentLengthsM)
     //   • outlinePoints          — normalised polygon vertices (empty on failure)
@@ -295,6 +297,14 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
     /// Minimum wall or axis span (metres) required to treat geometry as valid.
     /// Walls shorter than this are treated as degenerate and discarded.
     private static let minimumWallLengthMeters: Float = 0.01
+
+    /// Lower bound for the adaptive endpoint-chaining tolerance (metres).
+    private static let polygonToleranceMin:        Float = 0.01
+    /// Fraction of the room's shortest span used as the chaining tolerance.
+    private static let polygonToleranceFraction:   Float = 0.10
+    /// Upper bound for the adaptive endpoint-chaining tolerance (metres).
+    /// This caps the tolerance so it cannot grow larger than a typical wall gap.
+    private static let polygonToleranceMax:        Float = 0.25
 
     private nonisolated static func extractPolygon(
         from walls: [CapturedRoom.Surface],
@@ -337,7 +347,11 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
 
         let roomSpanX = maxX - minX
         let roomSpanZ = maxZ - minZ
-        let tolerance = max(0.01, min(Float(min(roomSpanX, roomSpanZ)) * 0.10, 0.25))
+        let tolerance = max(
+            RoomPlanCaptureService.polygonToleranceMin,
+            min(Float(min(roomSpanX, roomSpanZ)) * RoomPlanCaptureService.polygonToleranceFraction,
+                RoomPlanCaptureService.polygonToleranceMax)
+        )
 
         var orderedPts: [Pt] = [segments[0].a, segments[0].b]
         var remaining = Array(segments.dropFirst())

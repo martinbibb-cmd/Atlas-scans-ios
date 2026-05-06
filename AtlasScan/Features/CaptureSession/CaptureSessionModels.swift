@@ -712,6 +712,7 @@ extension CapturedRoomScanDraft {
         if let segmentLengths = wallSegmentLengthsM, !segmentLengths.isEmpty {
             // Minimum plausible wall length (metres); shorter entries are treated
             // as degenerate polygon artefacts and stored without a metric length.
+            // Mirrors RoomPlanCaptureService.minimumWallLengthMeters (0.01 m).
             let minimumWallLengthMeters = 0.01
             return segmentLengths.enumerated().map { (i, length) in
                 var wall = CapturedBoundaryDraft()
