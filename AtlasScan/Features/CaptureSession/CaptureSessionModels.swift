@@ -209,6 +209,14 @@ struct CapturedRoomScanDraft: Identifiable, Codable, Hashable {
     /// Raw ceiling height in metres from the platform scan API.
     var rawHeightM: Double?
 
+    /// Per-segment wall lengths in metres, in polygon vertex order.
+    ///
+    /// Populated from the Anti-Square geometry engine during LiDAR capture.
+    /// Entry i corresponds to the wall segment from `floorPlan.outlinePoints[i]`
+    /// to `floorPlan.outlinePoints[(i+1) % count]`.
+    /// Nil for manually entered scans or when polygon extraction fails.
+    var wallSegmentLengthsM: [Double]?
+
     /// Optional capture-API warning codes.
     var warningCodes: [String] = []
 
@@ -685,16 +693,37 @@ extension CapturedRoomScanDraft {
     /// Derives a set of boundary wall drafts representing the four walls of this
     /// room based on its scanned dimensions.
     ///
-    /// For a rectangular room the scan produces:
+    /// When `wallSegmentLengthsM` is populated (LiDAR polygon capture), this
+    /// function produces one `CapturedBoundaryDraft` per polygon wall segment,
+    /// so that wall count matches the room's actual geometry (e.g. 6 walls for
+    /// an L-shaped room rather than the default 4-wall rectangular assumption).
+    ///
+    /// When `wallSegmentLengthsM` is nil (manual entry or pre-polygon scans),
+    /// the legacy 4-wall rectangular fallback is used:
     ///   - Wall 1 & 3: width-side walls (length = rawWidthM)
     ///   - Wall 2 & 4: depth-side walls (length = rawDepthM)
     ///
     /// All derived walls default to `.external` boundary type and `.pending`
     /// review status so the engineer must review and confirm each wall.
-    /// Returns exactly four walls; dimensions are nil when the scan did not
-    /// capture them.
     func derivedWallDrafts() -> [CapturedBoundaryDraft] {
         let height = rawHeightM
+
+        // Polygon-based walls (N-sided room from LiDAR capture).
+        if let segmentLengths = wallSegmentLengthsM, !segmentLengths.isEmpty {
+            return segmentLengths.enumerated().map { (i, length) in
+                var wall = CapturedBoundaryDraft()
+                wall.wallIndex        = i + 1
+                wall.lengthM          = length > 0.01 ? length : nil
+                wall.heightM          = height
+                wall.boundaryType     = .external
+                wall.constructionType = .unknown
+                wall.reviewStatus     = .pending
+                wall.source           = .scanDerived
+                return wall
+            }
+        }
+
+        // Rectangular fallback (manual entry or bounding-box-only scans).
         // Wall numbering follows a clockwise convention starting from the
         // "south" (front-facing) wall when viewed from above:
         //   Wall 1 — south-facing  (length = rawWidthM)
@@ -702,7 +731,7 @@ extension CapturedRoomScanDraft {
         //   Wall 3 — north-facing  (length = rawWidthM)
         //   Wall 4 — west-facing   (length = rawDepthM)
         // RoomPlan does not provide absolute compass orientation, so these are
-        // relative to the scan origin.  The engineer can correct the wall type
+        // relative to the scan origin. The engineer can correct the wall type
         // (internal / external / party) and construction details via the fabric
         // review UI; the dimensional pairing between width-side and depth-side
         // walls is fixed by the scan geometry.
@@ -714,13 +743,13 @@ extension CapturedRoomScanDraft {
         ]
         return wallDefs.map { def in
             var wall = CapturedBoundaryDraft()
-            wall.wallIndex = def.index
-            wall.lengthM = def.length
-            wall.heightM = height
-            wall.boundaryType = .external
+            wall.wallIndex        = def.index
+            wall.lengthM          = def.length
+            wall.heightM          = height
+            wall.boundaryType     = .external
             wall.constructionType = .unknown
-            wall.reviewStatus = .pending
-            wall.source = .scanDerived
+            wall.reviewStatus     = .pending
+            wall.source           = .scanDerived
             return wall
         }
     }
