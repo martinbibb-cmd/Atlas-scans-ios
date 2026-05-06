@@ -166,6 +166,7 @@ struct PropertyNavigatorView: View {
     }
 
     @ViewBuilder private var lidarCaptureSheet: some View {
+        #if false
         RoomPlanCaptureView(
             visitId: store.draft.id,
             roomIndex: store.draft.roomScans.count + 1
@@ -179,6 +180,9 @@ struct PropertyNavigatorView: View {
         } onCancel: {
             showingLiDARCapture = false
         }
+        #else
+        EmptyView()
+        #endif
     }
 
     // MARK: - Property header
@@ -339,10 +343,7 @@ struct PropertyNavigatorView: View {
             activeRoom = scan
         } label: {
             HStack(spacing: 12) {
-                RoomPolygonThumbnail(
-                    outlinePoints: scan.floorPlan?.outlinePoints ?? [],
-                    size: 44
-                )
+                Color.secondary.opacity(0.1).frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(alignment: .bottomTrailing) {
                     Text("\(number)")
                         .font(.system(size: 10, weight: .bold))

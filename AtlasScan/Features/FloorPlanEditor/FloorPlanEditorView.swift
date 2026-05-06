@@ -201,7 +201,7 @@ struct FloorPlanEditorView: View {
                     .foregroundStyle(.tertiary)
             )
         }
-        let renderer = CustomRoomShapeRenderer(vertices: points)
+        let renderer = RoundedRectangle(cornerRadius: 6)
         return AnyView(
             ZStack {
                 renderer.fill(Color.accentColor.opacity(0.06))

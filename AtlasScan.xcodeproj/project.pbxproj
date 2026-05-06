@@ -151,6 +151,24 @@
 		AA010A06 /* VanModeReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A06 /* VanModeReviewView.swift */; };
 		AA010B00 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020B00 /* GhostBoxARView.swift */; };
 		AA010A07 /* CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A07 /* CustomRoomShapeRenderer.swift */; };
+		AA010B00 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020B00 /* GhostBoxARView.swift */; };
+		AAPKG013 /* AtlasScanCore in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG012 /* AtlasScanCore */; };
+		AAPKG015 /* AtlasScanCore in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG014 /* AtlasScanCore */; };
+		AAV20001 /* MindRecallClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30001 /* MindRecallClient.swift */; };
+		AAV20002 /* ScanSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30002 /* ScanSessionCoordinator.swift */; };
+		AAV20003 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30003 /* GhostBoxARView.swift */; };
+		AAV20004 /* GhostBoxRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30004 /* GhostBoxRenderer.swift */; };
+		AAV20005 /* MiniMapHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30005 /* MiniMapHUD.swift */; };
+		AAV20006 /* RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* RoomPlanCaptureView.swift */; };
+		AAV20007 /* RoomPlanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30007 /* RoomPlanCoordinator.swift */; };
+		AAV20008 /* SpatialPinARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30008 /* SpatialPinARView.swift */; };
+		AAV20009 /* SpatialPinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30009 /* SpatialPinManager.swift */; };
+		AAV2000A /* CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000A /* CustomRoomShapeRenderer.swift */; };
+		AAV2000B /* HandoffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000B /* HandoffView.swift */; };
+		AAV2000C /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000C /* OutdoorFlueModeView.swift */; };
+		AAV2000D /* PropertyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000D /* PropertyMapView.swift */; };
+		AAV2000E /* VanModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000E /* VanModeView.swift */; };
+		AAV2000F /* RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* RoomLoopView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -309,6 +327,21 @@
 		AA0200EA /* TextNoteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextNoteSheet.swift; sourceTree = "<group>"; };
 		AA0200EB /* VisitReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitReviewView.swift; sourceTree = "<group>"; };
 		AA0200EC /* VisitContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitContainerTests.swift; sourceTree = "<group>"; };
+		AAV30001 /* MindRecallClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindRecallClient.swift; sourceTree = "<group>"; };
+		AAV30002 /* ScanSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionCoordinator.swift; sourceTree = "<group>"; };
+		AAV30003 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
+		AAV30004 /* GhostBoxRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxRenderer.swift; sourceTree = "<group>"; };
+		AAV30005 /* MiniMapHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMapHUD.swift; sourceTree = "<group>"; };
+		AAV30006 /* RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureView.swift; sourceTree = "<group>"; };
+		AAV30007 /* RoomPlanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCoordinator.swift; sourceTree = "<group>"; };
+		AAV30008 /* SpatialPinARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinARView.swift; sourceTree = "<group>"; };
+		AAV30009 /* SpatialPinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinManager.swift; sourceTree = "<group>"; };
+		AAV3000A /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
+		AAV3000B /* HandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffView.swift; sourceTree = "<group>"; };
+		AAV3000C /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
+		AAV3000D /* PropertyMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyMapView.swift; sourceTree = "<group>"; };
+		AAV3000E /* VanModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeView.swift; sourceTree = "<group>"; };
+		AAV3000F /* RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLoopView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -317,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAPKG003 /* AtlasContracts in Frameworks */,
+				AAPKG013 /* AtlasScanCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +359,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAPKG005 /* AtlasContracts in Frameworks */,
+				AAPKG015 /* AtlasScanCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,6 +375,7 @@
 				AA050005 /* Services */,
 				AA050008 /* Resources */,
 				AA05003C /* Extensions */,
+				AAV50001 /* V2 */,
 			);
 			path = AtlasScan;
 			sourceTree = "<group>";
@@ -705,6 +741,52 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		AAV50001 /* V2 */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30001 /* MindRecallClient.swift */,
+				AAV50002 /* Coordinators */,
+				AAV50003 /* AR */,
+				AAV50004 /* Views */,
+			);
+			path = V2;
+			sourceTree = "<group>";
+		};
+		AAV50002 /* Coordinators */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30002 /* ScanSessionCoordinator.swift */,
+			);
+			path = Coordinators;
+			sourceTree = "<group>";
+		};
+		AAV50003 /* AR */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30003 /* GhostBoxARView.swift */,
+				AAV30004 /* GhostBoxRenderer.swift */,
+				AAV30005 /* MiniMapHUD.swift */,
+				AAV30006 /* RoomPlanCaptureView.swift */,
+				AAV30007 /* RoomPlanCoordinator.swift */,
+				AAV30008 /* SpatialPinARView.swift */,
+				AAV30009 /* SpatialPinManager.swift */,
+			);
+			path = AR;
+			sourceTree = "<group>";
+		};
+		AAV50004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AAV3000A /* CustomRoomShapeRenderer.swift */,
+				AAV3000B /* HandoffView.swift */,
+				AAV3000C /* OutdoorFlueModeView.swift */,
+				AAV3000D /* PropertyMapView.swift */,
+				AAV3000E /* VanModeView.swift */,
+				AAV3000F /* RoomLoopView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		AA060000 = {
 			isa = PBXGroup;
 			children = (
@@ -798,6 +880,7 @@
 			name = AtlasScan;
 			packageProductDependencies = (
 				AAPKG002 /* AtlasContracts */,
+				AAPKG012 /* AtlasScanCore */,
 			);
 			productName = AtlasScan;
 			productReference = AA030001 /* AtlasScan.app */;
@@ -818,6 +901,7 @@
 			name = AtlasScanTests;
 			packageProductDependencies = (
 				AAPKG004 /* AtlasContracts */,
+				AAPKG014 /* AtlasScanCore */,
 			);
 			productName = AtlasScanTests;
 			productReference = AA030002 /* AtlasScanTests.xctest */;
@@ -853,6 +937,7 @@
 			mainGroup = AA060000;
 			packageReferences = (
 				AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */,
+				AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */,
 			);
 			productRefGroup = AA060002 /* Products */;
 			projectDirPath = "";
@@ -993,6 +1078,21 @@
 				AA010A06 /* VanModeReviewView.swift in Sources */,
 				AA010A07 /* CustomRoomShapeRenderer.swift in Sources */,
 				AA010B00 /* GhostBoxARView.swift in Sources */,
+				AAV20001 /* MindRecallClient.swift in Sources */,
+				AAV20002 /* ScanSessionCoordinator.swift in Sources */,
+				AAV20003 /* GhostBoxARView.swift in Sources */,
+				AAV20004 /* GhostBoxRenderer.swift in Sources */,
+				AAV20005 /* MiniMapHUD.swift in Sources */,
+				AAV20006 /* RoomPlanCaptureView.swift in Sources */,
+				AAV20007 /* RoomPlanCoordinator.swift in Sources */,
+				AAV20008 /* SpatialPinARView.swift in Sources */,
+				AAV20009 /* SpatialPinManager.swift in Sources */,
+				AAV2000A /* CustomRoomShapeRenderer.swift in Sources */,
+				AAV2000B /* HandoffView.swift in Sources */,
+				AAV2000C /* OutdoorFlueModeView.swift in Sources */,
+				AAV2000D /* PropertyMapView.swift in Sources */,
+				AAV2000E /* VanModeView.swift in Sources */,
+				AAV2000F /* RoomLoopView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1300,6 +1400,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Atlas-contracts";
 		};
+		AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "AtlasScanCore";
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1312,6 +1416,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */;
 			productName = AtlasContracts;
+		};
+		AAPKG012 /* AtlasScanCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */;
+			productName = AtlasScanCore;
+		};
+		AAPKG014 /* AtlasScanCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */;
+			productName = AtlasScanCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

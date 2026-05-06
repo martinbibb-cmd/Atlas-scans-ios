@@ -34,21 +34,7 @@ struct RoomScanListView: View {
                 showingManualEntry = false
             }
         }
-        // LiDAR capture fullscreen modal
-        .fullScreenCover(isPresented: $showingLiDARCapture) {
-            RoomPlanCaptureView(
-                visitId: store.draft.id,
-                roomIndex: store.draft.roomScans.count + 1
-            ) { scan, pins, snapshot in
-                store.addRoomScan(scan)
-                pins.forEach { store.addObjectPin($0) }
-                store.addFloorPlanSnapshot(snapshot)
-                showingLiDARCapture = false
-                openFloorPlanForScan = scan
-            } onCancel: {
-                showingLiDARCapture = false
-            }
-        }
+        // LiDAR capture fullscreen modal — disabled in V2; capture handled by RoomLoopView
         // Floor plan editor opened after LiDAR accept
         .sheet(item: $openFloorPlanForScan) { scan in
             FloorPlanEditorView(
