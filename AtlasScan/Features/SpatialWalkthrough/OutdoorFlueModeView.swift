@@ -238,7 +238,7 @@ struct FlueDistanceReportView: View {
 
     private var distancesSection: some View {
         Section("Calculated Distances") {
-            ForEach(distances, id: \.id) { row in
+            ForEach(distances) { row in
                 HStack(spacing: 12) {
                     Image(systemName: row.pass
                           ? "checkmark.circle.fill"
