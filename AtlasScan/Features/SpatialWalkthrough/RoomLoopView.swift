@@ -427,13 +427,23 @@ struct RoomLoopView: View {
             }
 
             HStack(spacing: 10) {
-                Button {
-                    showingClearance = true
-                } label: {
-                    Label(clearanceDone ? "Re-check Clearances" : "Measure Clearances", systemImage: "ruler")
-                        .frame(maxWidth: .infinity)
+                if clearanceDone {
+                    Button {
+                        showingClearance = true
+                    } label: {
+                        Label("Re-check Clearances", systemImage: "ruler")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Button {
+                        showingClearance = true
+                    } label: {
+                        Label("Measure Clearances", systemImage: "ruler")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(clearanceDone ? .bordered : .borderedProminent)
             }
         }
         .padding(16)

@@ -123,7 +123,7 @@ struct VanModeReviewView: View {
             .frame(width: 44, height: 44)
             .overlay {
                 Image(systemName: scan.captureSource == .lidar ? "lidar.scanner" : "cube.fill")
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
             }
     }
 
