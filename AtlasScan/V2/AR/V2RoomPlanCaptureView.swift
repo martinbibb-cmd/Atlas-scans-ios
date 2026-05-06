@@ -1,11 +1,11 @@
-/// RoomPlanCaptureView (V2) — Wraps RoomPlan's RoomCaptureView into SwiftUI
+/// V2RoomPlanCaptureView — Wraps RoomPlan's RoomCaptureView into SwiftUI
 /// and bridges captured data into the v2 model types.
 
 import SwiftUI
 import RoomPlan
 import AtlasScanCore
 
-struct RoomPlanCaptureView: UIViewControllerRepresentable {
+struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     @Binding var capturedRoom: RoomCaptureV2?
 
     func makeCoordinator() -> RoomPlanCoordinator {

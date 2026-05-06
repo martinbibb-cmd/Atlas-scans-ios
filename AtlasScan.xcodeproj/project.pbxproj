@@ -155,19 +155,19 @@
 		AAPKG015 /* AtlasScanCore in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG014 /* AtlasScanCore */; };
 		AAV20001 /* MindRecallClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30001 /* MindRecallClient.swift */; };
 		AAV20002 /* ScanSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30002 /* ScanSessionCoordinator.swift */; };
-		AAV20003 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30003 /* GhostBoxARView.swift */; };
+		AAV20003 /* V2GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30003 /* V2GhostBoxARView.swift */; };
 		AAV20004 /* GhostBoxRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30004 /* GhostBoxRenderer.swift */; };
 		AAV20005 /* MiniMapHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30005 /* MiniMapHUD.swift */; };
-		AAV20006 /* RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* RoomPlanCaptureView.swift */; };
+		AAV20006 /* V2RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* V2RoomPlanCaptureView.swift */; };
 		AAV20007 /* RoomPlanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30007 /* RoomPlanCoordinator.swift */; };
 		AAV20008 /* SpatialPinARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30008 /* SpatialPinARView.swift */; };
 		AAV20009 /* SpatialPinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30009 /* SpatialPinManager.swift */; };
-		AAV2000A /* CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000A /* CustomRoomShapeRenderer.swift */; };
+		AAV2000A /* V2CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000A /* V2CustomRoomShapeRenderer.swift */; };
 		AAV2000B /* HandoffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000B /* HandoffView.swift */; };
-		AAV2000C /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000C /* OutdoorFlueModeView.swift */; };
+		AAV2000C /* V2OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000C /* V2OutdoorFlueModeView.swift */; };
 		AAV2000D /* PropertyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000D /* PropertyMapView.swift */; };
 		AAV2000E /* VanModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000E /* VanModeView.swift */; };
-		AAV2000F /* RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* RoomLoopView.swift */; };
+		AAV2000F /* V2RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* V2RoomLoopView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -328,19 +328,19 @@
 		AA0200EC /* VisitContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitContainerTests.swift; sourceTree = "<group>"; };
 		AAV30001 /* MindRecallClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindRecallClient.swift; sourceTree = "<group>"; };
 		AAV30002 /* ScanSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionCoordinator.swift; sourceTree = "<group>"; };
-		AAV30003 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
+		AAV30003 /* V2GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2GhostBoxARView.swift; sourceTree = "<group>"; };
 		AAV30004 /* GhostBoxRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxRenderer.swift; sourceTree = "<group>"; };
 		AAV30005 /* MiniMapHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMapHUD.swift; sourceTree = "<group>"; };
-		AAV30006 /* RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureView.swift; sourceTree = "<group>"; };
+		AAV30006 /* V2RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomPlanCaptureView.swift; sourceTree = "<group>"; };
 		AAV30007 /* RoomPlanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCoordinator.swift; sourceTree = "<group>"; };
 		AAV30008 /* SpatialPinARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinARView.swift; sourceTree = "<group>"; };
 		AAV30009 /* SpatialPinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinManager.swift; sourceTree = "<group>"; };
-		AAV3000A /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
+		AAV3000A /* V2CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
 		AAV3000B /* HandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffView.swift; sourceTree = "<group>"; };
-		AAV3000C /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
+		AAV3000C /* V2OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OutdoorFlueModeView.swift; sourceTree = "<group>"; };
 		AAV3000D /* PropertyMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyMapView.swift; sourceTree = "<group>"; };
 		AAV3000E /* VanModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeView.swift; sourceTree = "<group>"; };
-		AAV3000F /* RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLoopView.swift; sourceTree = "<group>"; };
+		AAV3000F /* V2RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomLoopView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -762,10 +762,10 @@
 		AAV50003 /* AR */ = {
 			isa = PBXGroup;
 			children = (
-				AAV30003 /* GhostBoxARView.swift */,
+				AAV30003 /* V2GhostBoxARView.swift */,
 				AAV30004 /* GhostBoxRenderer.swift */,
 				AAV30005 /* MiniMapHUD.swift */,
-				AAV30006 /* RoomPlanCaptureView.swift */,
+				AAV30006 /* V2RoomPlanCaptureView.swift */,
 				AAV30007 /* RoomPlanCoordinator.swift */,
 				AAV30008 /* SpatialPinARView.swift */,
 				AAV30009 /* SpatialPinManager.swift */,
@@ -776,12 +776,12 @@
 		AAV50004 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				AAV3000A /* CustomRoomShapeRenderer.swift */,
+				AAV3000A /* V2CustomRoomShapeRenderer.swift */,
 				AAV3000B /* HandoffView.swift */,
-				AAV3000C /* OutdoorFlueModeView.swift */,
+				AAV3000C /* V2OutdoorFlueModeView.swift */,
 				AAV3000D /* PropertyMapView.swift */,
 				AAV3000E /* VanModeView.swift */,
-				AAV3000F /* RoomLoopView.swift */,
+				AAV3000F /* V2RoomLoopView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1079,19 +1079,19 @@
 	
 				AAV20001 /* MindRecallClient.swift in Sources */,
 				AAV20002 /* ScanSessionCoordinator.swift in Sources */,
-				AAV20003 /* GhostBoxARView.swift in Sources */,
+				AAV20003 /* V2GhostBoxARView.swift in Sources */,
 				AAV20004 /* GhostBoxRenderer.swift in Sources */,
 				AAV20005 /* MiniMapHUD.swift in Sources */,
-				AAV20006 /* RoomPlanCaptureView.swift in Sources */,
+				AAV20006 /* V2RoomPlanCaptureView.swift in Sources */,
 				AAV20007 /* RoomPlanCoordinator.swift in Sources */,
 				AAV20008 /* SpatialPinARView.swift in Sources */,
 				AAV20009 /* SpatialPinManager.swift in Sources */,
-				AAV2000A /* CustomRoomShapeRenderer.swift in Sources */,
+				AAV2000A /* V2CustomRoomShapeRenderer.swift in Sources */,
 				AAV2000B /* HandoffView.swift in Sources */,
-				AAV2000C /* OutdoorFlueModeView.swift in Sources */,
+				AAV2000C /* V2OutdoorFlueModeView.swift in Sources */,
 				AAV2000D /* PropertyMapView.swift in Sources */,
 				AAV2000E /* VanModeView.swift in Sources */,
-				AAV2000F /* RoomLoopView.swift in Sources */,
+				AAV2000F /* V2RoomLoopView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

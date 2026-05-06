@@ -4,7 +4,7 @@ import SwiftUI
 import RealityKit
 import AtlasScanCore
 
-struct GhostBoxARView: UIViewRepresentable {
+struct V2GhostBoxARView: UIViewRepresentable {
     var pins: [SpatialPinV1]
     var hardwareRegistry: HardwareRegistryV1 = .shared
 
