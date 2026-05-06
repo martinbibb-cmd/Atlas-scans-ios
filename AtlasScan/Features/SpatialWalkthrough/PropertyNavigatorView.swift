@@ -38,6 +38,48 @@ struct PropertyNavigatorView: View {
     // MARK: - Body
 
     var body: some View {
+        navigatorStack
+            // Floor plan editor
+            .sheet(item: $openFloorPlanForScan) { scan in
+                FloorPlanEditorView(
+                    scan: scan,
+                    onSnapshot: { snapshot in store.addFloorPlanSnapshot(snapshot) },
+                    onSave: { updated in
+                        store.updateRoomScan(updated)
+                        openFloorPlanForScan = nil
+                    }
+                )
+            }
+            // Manual room entry
+            .sheet(isPresented: $showingManualEntry) {
+                RoomScanManualEntrySheet { scan in
+                    store.addRoomScan(scan)
+                    showingManualEntry = false
+                    activeRoom = scan
+                }
+            }
+            // Export readiness check
+            .sheet(isPresented: $showingExportReadiness) {
+                NavigationStack {
+                    ReviewExportView(store: store)
+                }
+            }
+            // Add-room action sheet
+            .confirmationDialog("Add Room", isPresented: $showingNewRoomOptions, titleVisibility: .visible) {
+                Button("Scan with LiDAR") {
+                    showingLiDARCapture = true
+                }
+                Button("Enter Manually") {
+                    showingManualEntry = true
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+    }
+
+    /// Inner navigation stack with scroll content and primary presentation layers.
+    /// Kept in a separate computed property so the outer `body` chain stays short
+    /// enough for Swift's type-checker.
+    private var navigatorStack: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
@@ -85,66 +127,31 @@ struct PropertyNavigatorView: View {
                     }
                 )
             }
-            // Outdoor flue mode
-            .sheet(isPresented: $showingOutdoorFlue) {
-                OutdoorFlueModeView(store: store)
+        }
+        // Outdoor flue mode
+        .sheet(isPresented: $showingOutdoorFlue) {
+            OutdoorFlueModeView(store: store)
+        }
+        // Van mode review
+        .sheet(isPresented: $showingVanMode) {
+            NavigationStack {
+                VanModeReviewView(store: store)
             }
-            // Van mode review
-            .sheet(isPresented: $showingVanMode) {
-                NavigationStack {
-                    VanModeReviewView(store: store)
-                }
-            }
-            // LiDAR capture for new room
-            .fullScreenCover(isPresented: $showingLiDARCapture) {
-                RoomPlanCaptureView(
-                    visitId: store.draft.id,
-                    roomIndex: store.draft.roomScans.count + 1
-                ) { scan, pins, snapshot in
-                    store.addRoomScan(scan)
-                    pins.forEach { store.addObjectPin($0) }
-                    store.addFloorPlanSnapshot(snapshot)
-                    showingLiDARCapture = false
-                    openFloorPlanForScan = scan
-                    activeRoom = scan
-                } onCancel: {
-                    showingLiDARCapture = false
-                }
-            }
-            // Floor plan editor
-            .sheet(item: $openFloorPlanForScan) { scan in
-                FloorPlanEditorView(
-                    scan: scan,
-                    onSnapshot: { snapshot in store.addFloorPlanSnapshot(snapshot) },
-                    onSave: { updated in
-                        store.updateRoomScan(updated)
-                        openFloorPlanForScan = nil
-                    }
-                )
-            }
-            // Manual room entry
-            .sheet(isPresented: $showingManualEntry) {
-                RoomScanManualEntrySheet { scan in
-                    store.addRoomScan(scan)
-                    showingManualEntry = false
-                    activeRoom = scan
-                }
-            }
-            // Export readiness check
-            .sheet(isPresented: $showingExportReadiness) {
-                NavigationStack {
-                    ReviewExportView(store: store)
-                }
-            }
-            // Add-room action sheet
-            .confirmationDialog("Add Room", isPresented: $showingNewRoomOptions, titleVisibility: .visible) {
-                Button("Scan with LiDAR") {
-                    showingLiDARCapture = true
-                }
-                Button("Enter Manually") {
-                    showingManualEntry = true
-                }
-                Button("Cancel", role: .cancel) {}
+        }
+        // LiDAR capture for new room
+        .fullScreenCover(isPresented: $showingLiDARCapture) {
+            RoomPlanCaptureView(
+                visitId: store.draft.id,
+                roomIndex: store.draft.roomScans.count + 1
+            ) { scan, pins, snapshot in
+                store.addRoomScan(scan)
+                pins.forEach { store.addObjectPin($0) }
+                store.addFloorPlanSnapshot(snapshot)
+                showingLiDARCapture = false
+                openFloorPlanForScan = scan
+                activeRoom = scan
+            } onCancel: {
+                showingLiDARCapture = false
             }
         }
     }
