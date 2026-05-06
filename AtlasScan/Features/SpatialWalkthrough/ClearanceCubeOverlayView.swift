@@ -184,19 +184,6 @@ private extension ObjectPinType {
         }
     }
 
-    /// Maps ObjectPinType to the ServiceObjectCategory used by ClearanceEngine.
-    var serviceCategory: ServiceObjectCategory {
-        switch self {
-        case .boiler:        return .boiler
-        case .heatPump:      return .heatPump
-        case .cylinder:      return .cylinder
-        case .pump:          return .pump
-        case .radiator:      return .radiator
-        case .towelRail:     return .towelRail   // treated as radiator for clearance
-        case .fanConvector:  return .fanConvector
-        default:             return .other
-        }
-    }
 }
 
 // MARK: - ClearanceCubeOverlayView internal data helpers
