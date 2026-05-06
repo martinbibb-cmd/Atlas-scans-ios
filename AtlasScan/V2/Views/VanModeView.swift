@@ -44,7 +44,7 @@ struct VanModeView: View {
     private var roomOverview: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Floor Plan").font(.headline)
-            CustomRoomShapeRenderer(vertices: room.polygonVertices)
+            V2CustomRoomShapeRenderer(vertices: room.polygonVertices)
                 .fill(Color.accentColor.opacity(0.12))
                 .stroke(Color.accentColor, lineWidth: 2)
                 .frame(maxWidth: .infinity)

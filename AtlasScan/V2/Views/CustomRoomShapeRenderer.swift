@@ -1,9 +1,9 @@
-/// CustomRoomShapeRenderer — Renders a room's polygon outline as a SwiftUI shape.
+/// V2CustomRoomShapeRenderer — Renders a room's polygon outline as a SwiftUI shape.
 
 import SwiftUI
 import AtlasScanCore
 
-struct CustomRoomShapeRenderer: Shape {
+struct V2CustomRoomShapeRenderer: Shape {
     var vertices: [Vertex2D]
 
     func path(in rect: CGRect) -> Path {

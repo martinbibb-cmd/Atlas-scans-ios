@@ -58,7 +58,7 @@ struct HandoffView: View {
         isTransmitting = true
         defer { isTransmitting = false }
         do {
-            let payload = try ScanToMindPayloadEncoder.encode(session: coordinator.session)
+            let payload = try AtlasScanCore.ScanToMindPayloadEncoder.encode(session: coordinator.session)
             let url = try payload.buildDeepLinkURL()
             await UIApplication.shared.open(url)
             dismiss()

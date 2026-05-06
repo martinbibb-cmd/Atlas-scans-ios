@@ -24,13 +24,13 @@ struct PropertyMapView: View {
             .navigationTitle("Property Map")
             .toolbar { toolbarContent }
             .sheet(isPresented: $showRoomCapture) {
-                RoomLoopView(coordinator: coordinator)
+                V2RoomLoopView(coordinator: coordinator)
             }
             .sheet(isPresented: $coordinator.showHandoff) {
                 HandoffView(coordinator: coordinator)
             }
             .sheet(isPresented: $showOutdoorFlue) {
-                OutdoorFlueModeView(coordinator: coordinator)
+                V2OutdoorFlueModeView(coordinator: coordinator)
             }
         }
     }
@@ -61,7 +61,7 @@ struct PropertyMapView: View {
 
     private func roomRow(_ room: RoomCaptureV2) -> some View {
         HStack {
-            CustomRoomShapeRenderer(vertices: room.polygonVertices)
+            V2CustomRoomShapeRenderer(vertices: room.polygonVertices)
                 .fill(Color.accentColor.opacity(0.15))
                 .stroke(Color.accentColor, lineWidth: 1.5)
                 .frame(width: 44, height: 44)
