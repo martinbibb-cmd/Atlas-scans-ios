@@ -427,23 +427,13 @@ struct RoomLoopView: View {
             }
 
             HStack(spacing: 10) {
-                if clearanceDone {
-                    Button {
-                        showingClearance = true
-                    } label: {
-                        Label("Re-check Clearances", systemImage: "ruler")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                } else {
-                    Button {
-                        showingClearance = true
-                    } label: {
-                        Label("Measure Clearances", systemImage: "ruler")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                Button {
+                    showingClearance = true
+                } label: {
+                    Label(clearanceDone ? "Re-check Clearances" : "Measure Clearances", systemImage: "ruler")
+                        .frame(maxWidth: .infinity)
                 }
+                .borderedStyle(prominent: !clearanceDone)
             }
         }
         .padding(16)
@@ -517,6 +507,20 @@ private extension CapturedObjectPinDraft {
     var displayLabel: String {
         if let l = label, !l.isEmpty { return l }
         return type.displayName
+    }
+}
+
+// MARK: - View helpers
+
+private extension View {
+    /// Applies `.borderedProminent` when `prominent` is true, `.bordered` otherwise.
+    @ViewBuilder
+    func borderedStyle(prominent: Bool) -> some View {
+        if prominent {
+            self.buttonStyle(.borderedProminent)
+        } else {
+            self.buttonStyle(.bordered)
+        }
     }
 }
 
