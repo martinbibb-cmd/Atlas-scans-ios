@@ -165,24 +165,24 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
         // Capture the USDZ save state on the main actor before leaving.
         Task {
             // Capture main-actor-isolated state needed for USDZ persistence.
-            let (saveURL, assetRef) = await MainActor.run {
+            let (saveURL, assetRef): (URL?, String?) = await Task { @MainActor in
                 (self.makeUSDZSaveURL(), self.visitId.map { self.rawScanAssetRef(for: $0) })
-            }
+            }.value
             do {
                 let result = try await RoomPlanCaptureService.buildResult(
                     from: data,
                     saveUSDZAt: saveURL,
                     rawScanAssetRef: assetRef
                 )
-                await MainActor.run {
+                await Task { @MainActor in
                     // Ignore completion if the user cancelled while processing.
                     guard self.sessionState == .processing else { return }
                     self.capturedResult = result
                     self.sessionState = .completed
-                }
+                }.value
             } catch {
                 let message = error.localizedDescription
-                await MainActor.run { self.sessionState = .failed(message) }
+                await Task { @MainActor in self.sessionState = .failed(message) }.value
             }
         }
     }

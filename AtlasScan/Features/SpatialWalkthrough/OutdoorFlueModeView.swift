@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - AreaIndex
+
+private struct AreaIndex: Identifiable {
+    let value: Int
+    var id: Int { value }
+}
+
 // MARK: - OutdoorFlueModeView
 //
 // Dedicated capture flow for external flue terminal clearance evidence.
@@ -28,10 +35,10 @@ struct OutdoorFlueModeView: View {
 
     @State private var label: String = "Flue Terminal Exit"
     @State private var showingCaptureSheet = false
-    @State private var editingAreaIndex: Int?
+    @State private var editingAreaIndex: AreaIndex?
     @State private var showingAddFeature   = false
     @State private var newFeatureLabel     = ""
-    @State private var selectedAreaIndex: Int?
+    @State private var selectedAreaIndex: AreaIndex?
 
     // MARK: - Body
 
@@ -55,21 +62,21 @@ struct OutdoorFlueModeView: View {
                     existingDraft: nil,
                     visitId: store.draft.id
                 ) { newArea in
-                    store.draft.externalAreaScans.append(newArea)
+                    store.update { $0.externalAreaScans.append(newArea) }
                     showingCaptureSheet = false
                 }
             }
-            .sheet(item: $editingAreaIndex) { index in
+            .sheet(item: $editingAreaIndex) { areaIndex in
                 ExternalScanCaptureView(
-                    existingDraft: store.draft.externalAreaScans[index],
+                    existingDraft: store.draft.externalAreaScans[areaIndex.value],
                     visitId: store.draft.id
                 ) { updated in
-                    store.draft.externalAreaScans[index] = updated
+                    store.update { $0.externalAreaScans[areaIndex.value] = updated }
                     editingAreaIndex = nil
                 }
             }
-            .sheet(item: $selectedAreaIndex) { index in
-                flueDistanceSheet(for: index)
+            .sheet(item: $selectedAreaIndex) { areaIndex in
+                flueDistanceSheet(for: areaIndex.value)
             }
         }
     }
@@ -109,7 +116,7 @@ struct OutdoorFlueModeView: View {
                     areaRow(store.draft.externalAreaScans[index], at: index)
                 }
                 .onDelete { indexSet in
-                    store.draft.externalAreaScans.remove(atOffsets: indexSet)
+                    store.update { $0.externalAreaScans.remove(atOffsets: indexSet) }
                 }
             }
         } header: {
@@ -132,7 +139,7 @@ struct OutdoorFlueModeView: View {
             Spacer()
             HStack(spacing: 8) {
                 Button {
-                    selectedAreaIndex = index
+                    selectedAreaIndex = AreaIndex(value: index)
                 } label: {
                     Image(systemName: "ruler")
                         .foregroundStyle(.blue)
@@ -140,7 +147,7 @@ struct OutdoorFlueModeView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    editingAreaIndex = index
+                    editingAreaIndex = AreaIndex(value: index)
                 } label: {
                     Image(systemName: "pencil.circle")
                         .foregroundStyle(.secondary)

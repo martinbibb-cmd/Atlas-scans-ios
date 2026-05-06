@@ -123,7 +123,7 @@ struct CaptureAppRootView: View {
 }
 
 #Preview("Classic Capture") {
-    var root = CaptureAppRootView(
+    let root = CaptureAppRootView(
         initialDraft: CaptureSessionStore.newSession(visitReference: "JOB-PREVIEW-002"),
         onDone: {}
     )

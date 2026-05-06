@@ -297,7 +297,7 @@ struct PropertyNavigatorView: View {
                         .frame(width: 44, height: 44)
                     Text("\(number)")
                         .font(.headline.bold())
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -538,7 +538,7 @@ enum VisitReadinessBuilder {
     var boiler = CapturedObjectPinDraft(type: .boiler); boiler.roomId = r1.id
     var flue   = CapturedObjectPinDraft(type: .flue);   flue.roomId   = r2.id
     draft.objectPins = [boiler, flue]
-    var photo = CapturedPhotoDraft(localFilename: "photo1.jpg")
+    let photo = CapturedPhotoDraft(localFilename: "photo1.jpg")
     draft.photos = [photo]
     let store = CaptureSessionStore(draft: draft, persistence: .shared)
     return PropertyNavigatorView(store: store)

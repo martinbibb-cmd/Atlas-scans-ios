@@ -175,7 +175,16 @@ enum CaptureExportState: String, Codable, CaseIterable {
 ///
 /// Stores raw observation data only. No heat loss, no thermal meaning,
 /// no emitter adequacy — those belong in Mind.
-struct CapturedRoomScanDraft: Identifiable, Codable {
+struct CapturedRoomScanDraft: Identifiable, Codable, Hashable {
+
+    static func == (lhs: CapturedRoomScanDraft, rhs: CapturedRoomScanDraft) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
 
     var id: UUID = UUID()
 
