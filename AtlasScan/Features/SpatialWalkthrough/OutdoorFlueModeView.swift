@@ -203,20 +203,25 @@ struct FlueDistanceReportView: View {
     var body: some View {
         List {
             headerSection
-            if distances.isEmpty {
-                Section {
-                    Text("Pin the Flue Terminal and at least one Nearby Feature to see distance calculations.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                distancesSection
-            }
+            distancesContent
             disclaimerSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Flue Distances")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private var distancesContent: some View {
+        if distances.isEmpty {
+            Section {
+                Text("Pin the Flue Terminal and at least one Nearby Feature to see distance calculations.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            distancesSection
+        }
     }
 
     private var headerSection: some View {
@@ -239,31 +244,35 @@ struct FlueDistanceReportView: View {
     private var distancesSection: some View {
         Section("Calculated Distances") {
             ForEach(distances) { row in
-                HStack(spacing: 12) {
-                    Image(systemName: row.pass
-                          ? "checkmark.circle.fill"
-                          : "exclamationmark.triangle.fill")
-                        .foregroundStyle(row.pass ? .green : .red)
-                        .frame(width: 24)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Flue → \(row.featureLabel)")
-                            .font(.subheadline)
-                        if row.pass {
-                            Text("Appears clear (≥ 600 mm)")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("May be too close (< 600 mm) — verify on site")
-                                .font(.caption2)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    Spacer()
-                    Text(String(format: "%.0f mm", row.distanceMM))
-                        .font(.body.monospacedDigit().bold())
-                        .foregroundStyle(row.pass ? .primary : .red)
+                distanceRowCell(row)
+            }
+        }
+    }
+
+    private func distanceRowCell(_ row: DistanceRow) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: row.pass
+                  ? "checkmark.circle.fill"
+                  : "exclamationmark.triangle.fill")
+                .foregroundStyle(row.pass ? .green : .red)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Flue → \(row.featureLabel)")
+                    .font(.subheadline)
+                if row.pass {
+                    Text("Appears clear (≥ 600 mm)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("May be too close (< 600 mm) — verify on site")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
                 }
             }
+            Spacer()
+            Text(String(format: "%.0f mm", row.distanceMM))
+                .font(.body.monospacedDigit().bold())
+                .foregroundStyle(row.pass ? .primary : .red)
         }
     }
 

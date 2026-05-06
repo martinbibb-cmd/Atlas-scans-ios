@@ -40,30 +40,11 @@ struct PropertyNavigatorView: View {
     var body: some View {
         navigatorStack
             // Floor plan editor
-            .sheet(item: $openFloorPlanForScan) { scan in
-                FloorPlanEditorView(
-                    scan: scan,
-                    onSnapshot: { snapshot in store.addFloorPlanSnapshot(snapshot) },
-                    onSave: { updated in
-                        store.updateRoomScan(updated)
-                        openFloorPlanForScan = nil
-                    }
-                )
-            }
+            .sheet(item: $openFloorPlanForScan, content: floorPlanEditorSheet)
             // Manual room entry
-            .sheet(isPresented: $showingManualEntry) {
-                RoomScanManualEntrySheet { scan in
-                    store.addRoomScan(scan)
-                    showingManualEntry = false
-                    activeRoom = scan
-                }
-            }
+            .sheet(isPresented: $showingManualEntry) { manualEntrySheet }
             // Export readiness check
-            .sheet(isPresented: $showingExportReadiness) {
-                NavigationStack {
-                    ReviewExportView(store: store)
-                }
-            }
+            .sheet(isPresented: $showingExportReadiness) { exportReadinessSheet }
             // Add-room action sheet
             .confirmationDialog("Add Room", isPresented: $showingNewRoomOptions, titleVisibility: .visible) {
                 Button("Scan with LiDAR") {
@@ -74,6 +55,32 @@ struct PropertyNavigatorView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             }
+    }
+
+    @ViewBuilder
+    private func floorPlanEditorSheet(for scan: CapturedRoomScanDraft) -> some View {
+        FloorPlanEditorView(
+            scan: scan,
+            onSnapshot: { snapshot in store.addFloorPlanSnapshot(snapshot) },
+            onSave: { updated in
+                store.updateRoomScan(updated)
+                openFloorPlanForScan = nil
+            }
+        )
+    }
+
+    @ViewBuilder private var manualEntrySheet: some View {
+        RoomScanManualEntrySheet { scan in
+            store.addRoomScan(scan)
+            showingManualEntry = false
+            activeRoom = scan
+        }
+    }
+
+    @ViewBuilder private var exportReadinessSheet: some View {
+        NavigationStack {
+            ReviewExportView(store: store)
+        }
     }
 
     /// Inner navigation stack with scroll content and primary presentation layers.
@@ -129,30 +136,36 @@ struct PropertyNavigatorView: View {
             }
         }
         // Outdoor flue mode
-        .sheet(isPresented: $showingOutdoorFlue) {
-            OutdoorFlueModeView(store: store)
-        }
+        .sheet(isPresented: $showingOutdoorFlue) { outdoorFlueSheet }
         // Van mode review
-        .sheet(isPresented: $showingVanMode) {
-            NavigationStack {
-                VanModeReviewView(store: store)
-            }
-        }
+        .sheet(isPresented: $showingVanMode) { vanModeSheet }
         // LiDAR capture for new room
-        .fullScreenCover(isPresented: $showingLiDARCapture) {
-            RoomPlanCaptureView(
-                visitId: store.draft.id,
-                roomIndex: store.draft.roomScans.count + 1
-            ) { scan, pins, snapshot in
-                store.addRoomScan(scan)
-                pins.forEach { store.addObjectPin($0) }
-                store.addFloorPlanSnapshot(snapshot)
-                showingLiDARCapture = false
-                openFloorPlanForScan = scan
-                activeRoom = scan
-            } onCancel: {
-                showingLiDARCapture = false
-            }
+        .fullScreenCover(isPresented: $showingLiDARCapture) { lidarCaptureSheet }
+    }
+
+    @ViewBuilder private var outdoorFlueSheet: some View {
+        OutdoorFlueModeView(store: store)
+    }
+
+    @ViewBuilder private var vanModeSheet: some View {
+        NavigationStack {
+            VanModeReviewView(store: store)
+        }
+    }
+
+    @ViewBuilder private var lidarCaptureSheet: some View {
+        RoomPlanCaptureView(
+            visitId: store.draft.id,
+            roomIndex: store.draft.roomScans.count + 1
+        ) { scan, pins, snapshot in
+            store.addRoomScan(scan)
+            pins.forEach { store.addObjectPin($0) }
+            store.addFloorPlanSnapshot(snapshot)
+            showingLiDARCapture = false
+            openFloorPlanForScan = scan
+            activeRoom = scan
+        } onCancel: {
+            showingLiDARCapture = false
         }
     }
 
