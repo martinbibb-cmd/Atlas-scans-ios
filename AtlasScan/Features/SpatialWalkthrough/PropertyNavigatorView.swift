@@ -322,7 +322,7 @@ struct PropertyNavigatorView: View {
                 Spacer()
 
                 Image(systemName: loopDone ? "checkmark.circle.fill" : "chevron.right")
-                    .foregroundStyle(loopDone ? .green : .tertiary)
+                    .foregroundStyle(loopDone ? Color.green : Color(.tertiaryLabel))
                     .font(loopDone ? .body : .caption)
             }
             .padding(12)
