@@ -21,6 +21,11 @@ import UIKit
 enum OpenAtlasMind {
 
     private static let mindBaseURL = URL(string: "https://next.atlas-phm.uk")!
+    /// Maximum URL length before the payload is dropped in favour of sessionRef-only.
+    ///
+    /// 8 000 characters is a conservative limit that fits within the practical
+    /// browser URL bar and iOS `UIApplication.open` constraints (the HTTP spec
+    /// has no hard limit, but many proxies and browsers cap at 8 000–16 000 chars).
     private static let maxURLLength = 8_000
 
     // MARK: - openMind
@@ -71,8 +76,10 @@ enum OpenAtlasMind {
         }
 
         // Fallback: sessionRef only (Mind fetches the session server-side).
+        // This string is always valid: the base URL and visitId are well-formed,
+        // so the force-unwrap is safe.
         let fallback = "\(base)?sessionRef=\(sessionRef)"
-        return URL(string: fallback) ?? mindBaseURL
+        return URL(string: fallback)!
     }
 
     private static func open(_ url: URL) {
