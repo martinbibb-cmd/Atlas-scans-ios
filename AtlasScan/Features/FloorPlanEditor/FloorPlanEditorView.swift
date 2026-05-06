@@ -201,7 +201,7 @@ struct FloorPlanEditorView: View {
                     .foregroundStyle(.tertiary)
             )
         }
-        let renderer = RoundedRectangle(cornerRadius: 6)
+        let renderer = RoundedRectangle(cornerRadius: 6) // TODO: restore v2 CustomRoomShapeRenderer once polygon data flows through
         return AnyView(
             ZStack {
                 renderer.fill(Color.accentColor.opacity(0.06))

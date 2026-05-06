@@ -66,5 +66,6 @@ struct RoomLoopView: View {
         coordinator.addRoom(room)
         Task { await coordinator.saveSession() }
         roomName = ""
+        capturedRoom = nil
     }
 }

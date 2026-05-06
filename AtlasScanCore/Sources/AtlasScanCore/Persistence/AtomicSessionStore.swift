@@ -29,7 +29,11 @@ public final class AtomicSessionStore: Sendable {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(session)
         try data.write(to: tmp, options: .atomic)
-        _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+        if FileManager.default.fileExists(atPath: url.path) {
+            _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+        } else {
+            try FileManager.default.moveItem(at: tmp, to: url)
+        }
     }
 
     public func load(visitId: UUID) throws -> SessionCaptureV2 {

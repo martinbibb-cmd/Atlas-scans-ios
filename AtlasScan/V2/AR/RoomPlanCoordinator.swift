@@ -30,8 +30,12 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         error: (Error)?
     ) {
         Task { @MainActor in
-            let processed = try? await RoomBuilder(options: []).capturedRoom(from: data)
-            capturedRoomBinding.wrappedValue = processed.map { bridgeToV2($0) }
+            do {
+                let processed = try await RoomBuilder(options: []).capturedRoom(from: data)
+                capturedRoomBinding.wrappedValue = bridgeToV2(processed)
+            } catch {
+                print("[RoomPlanCoordinator] RoomBuilder failed: \(error.localizedDescription)")
+            }
         }
     }
 
