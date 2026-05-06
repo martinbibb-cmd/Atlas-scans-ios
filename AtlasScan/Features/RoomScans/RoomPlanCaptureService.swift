@@ -292,6 +292,10 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
     //   • outlinePoints          — normalised polygon vertices (empty on failure)
     //   • wallSegmentLengthsM    — raw metric segment lengths in polygon order
 
+    /// Minimum wall or axis span (metres) required to treat geometry as valid.
+    /// Walls shorter than this are treated as degenerate and discarded.
+    private static let minimumWallLengthMeters: Float = 0.01
+
     private nonisolated static func extractPolygon(
         from walls: [CapturedRoom.Surface],
         minX: Float, maxX: Float,
@@ -360,8 +364,10 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
 
         guard orderedPts.count >= 3 else { return ([], []) }
 
-        // Remove the closing point if it is a duplicate of the first vertex.
-        if simd_distance(orderedPts.first!, orderedPts.last!) < tolerance {
+        // Remove the closing point if it is a near-duplicate of the first vertex
+        // (RoomPlan sometimes closes the polygon with an extra overlapping point).
+        if let first = orderedPts.first, let last = orderedPts.last,
+           simd_distance(first, last) < tolerance {
             orderedPts.removeLast()
         }
 
@@ -383,11 +389,12 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
 
         let rangeX = pMaxX - pMinX
         let rangeZ = pMaxZ - pMinZ
-        guard rangeX > 0.01 || rangeZ > 0.01 else { return ([], []) }
+        guard rangeX > RoomPlanCaptureService.minimumWallLengthMeters ||
+              rangeZ > RoomPlanCaptureService.minimumWallLengthMeters else { return ([], []) }
 
         let margin: Float = 0.05
         let usableSize: Float = 1.0 - 2 * margin
-        let maxRange = max(rangeX, rangeZ, 0.01)
+        let maxRange = max(rangeX, rangeZ, RoomPlanCaptureService.minimumWallLengthMeters)
         let scale = usableSize / maxRange
 
         // Centre the polygon within the normalised canvas.

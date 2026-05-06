@@ -710,10 +710,13 @@ extension CapturedRoomScanDraft {
 
         // Polygon-based walls (N-sided room from LiDAR capture).
         if let segmentLengths = wallSegmentLengthsM, !segmentLengths.isEmpty {
+            // Minimum plausible wall length (metres); shorter entries are treated
+            // as degenerate polygon artefacts and stored without a metric length.
+            let minimumWallLengthMeters = 0.01
             return segmentLengths.enumerated().map { (i, length) in
                 var wall = CapturedBoundaryDraft()
                 wall.wallIndex        = i + 1
-                wall.lengthM          = length > 0.01 ? length : nil
+                wall.lengthM          = length > minimumWallLengthMeters ? length : nil
                 wall.heightM          = height
                 wall.boundaryType     = .external
                 wall.constructionType = .unknown

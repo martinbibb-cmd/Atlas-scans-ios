@@ -192,6 +192,8 @@ struct FloorPlanEditorView: View {
 
     private func outlineShape(size: CGFloat) -> some View {
         let points = plan.outlinePoints
+        // A closed polygon requires at least 3 non-collinear vertices; fewer
+        // points cannot form a valid shape (2 points = line, 0–1 = nothing).
         guard points.count >= 3 else {
             return AnyView(
                 Text("Add room scan to show outline")
