@@ -38,14 +38,9 @@ struct PropertyNavigatorView: View {
     // MARK: - Body
 
     var body: some View {
-        navigatorStack
-            // Floor plan editor
-            .sheet(item: $openFloorPlanForScan, content: floorPlanEditorSheet)
-            // Manual room entry
-            .sheet(isPresented: $showingManualEntry) { manualEntrySheet }
-            // Export readiness check
-            .sheet(isPresented: $showingExportReadiness) { exportReadinessSheet }
-            // Add-room action sheet
+        // Split the modifier chain across two properties so Swift's type-checker
+        // can resolve each sub-expression independently without timing out.
+        navigatorStackWithSheets
             .confirmationDialog("Add Room", isPresented: $showingNewRoomOptions, titleVisibility: .visible) {
                 Button("Scan with LiDAR") {
                     showingLiDARCapture = true
@@ -55,6 +50,16 @@ struct PropertyNavigatorView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             }
+    }
+
+    /// Layers the floor-plan, manual-entry, and export-readiness sheets onto
+    /// the navigator stack. Kept separate from `body` so each modifier chain
+    /// stays within Swift's type-checker complexity budget.
+    private var navigatorStackWithSheets: some View {
+        navigatorStack
+            .sheet(item: $openFloorPlanForScan, content: floorPlanEditorSheet)
+            .sheet(isPresented: $showingManualEntry) { manualEntrySheet }
+            .sheet(isPresented: $showingExportReadiness) { exportReadinessSheet }
     }
 
     @ViewBuilder
