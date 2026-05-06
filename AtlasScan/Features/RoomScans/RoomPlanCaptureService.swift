@@ -206,7 +206,7 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
         var resolvedAssetRef: String? = nil
         if let saveURL, let rawScanAssetRef {
             do {
-                try await room.export(to: saveURL)
+                try room.export(to: saveURL)
                 resolvedAssetRef = rawScanAssetRef
             } catch {
                 // Non-fatal: continue without persisting the USDZ asset.
