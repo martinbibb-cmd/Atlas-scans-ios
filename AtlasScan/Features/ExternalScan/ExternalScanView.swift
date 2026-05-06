@@ -25,7 +25,7 @@ struct ExternalScanView: View {
     // MARK: Presentation state
 
     @State private var showingCapture = false
-    @State private var editingIndex: Int?
+    @State private var editingDraft: ExternalAreaScanDraft?
 
     // MARK: Body
 
@@ -41,16 +41,15 @@ struct ExternalScanView: View {
                 }
             } else {
                 Section {
-                    ForEach(store.draft.externalAreaScans.indices, id: \.self) { index in
-                        let area = store.draft.externalAreaScans[index]
+                    ForEach(store.draft.externalAreaScans) { area in
                         Button {
-                            editingIndex = index
+                            editingDraft = area
                         } label: {
                             externalScanRow(area)
                         }
                     }
                     .onDelete { indexSet in
-                        store.draft.externalAreaScans.remove(atOffsets: indexSet)
+                        store.update { $0.externalAreaScans.remove(atOffsets: indexSet) }
                     }
                 } header: {
                     Text("Captured Areas")
@@ -62,7 +61,7 @@ struct ExternalScanView: View {
 
             Section {
                 Button {
-                    editingIndex = nil
+                    editingDraft = nil
                     showingCapture = true
                 } label: {
                     Label("Add External Area Scan", systemImage: "plus.circle")
@@ -81,17 +80,21 @@ struct ExternalScanView: View {
                 existingDraft: nil,
                 visitId: store.draft.id
             ) { newArea in
-                store.draft.externalAreaScans.append(newArea)
+                store.update { $0.externalAreaScans.append(newArea) }
                 showingCapture = false
             }
         }
-        .sheet(item: $editingIndex) { index in
+        .sheet(item: $editingDraft) { draft in
             ExternalScanCaptureView(
-                existingDraft: store.draft.externalAreaScans[index],
+                existingDraft: draft,
                 visitId: store.draft.id
             ) { updated in
-                store.draft.externalAreaScans[index] = updated
-                editingIndex = nil
+                store.update { d in
+                    if let idx = d.externalAreaScans.firstIndex(where: { $0.id == updated.id }) {
+                        d.externalAreaScans[idx] = updated
+                    }
+                }
+                editingDraft = nil
             }
         }
     }
