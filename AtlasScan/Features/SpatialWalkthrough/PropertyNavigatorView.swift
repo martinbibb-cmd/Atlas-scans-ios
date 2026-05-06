@@ -558,10 +558,10 @@ enum VisitReadinessBuilder {
         return VisitReadinessV1(
             hasRooms:         !draft.roomScans.isEmpty,
             hasPhotos:        !draft.photos.isEmpty,
-            hasHeatingSystem: pins.contains { $0.pinType == .boiler || $0.pinType == .heatPump },
-            hasHotWaterSystem: pins.contains { $0.pinType == .cylinder },
-            hasBoiler:        pins.contains { $0.pinType == .boiler || $0.pinType == .heatPump },
-            hasFlue:          pins.contains { $0.pinType == .flue },
+            hasHeatingSystem: pins.contains { $0.type == .boiler || $0.type == .heatPump },
+            hasHotWaterSystem: pins.contains { $0.type == .cylinder },
+            hasBoiler:        pins.contains { $0.type == .boiler || $0.type == .heatPump },
+            hasFlue:          pins.contains { $0.type == .flue },
             hasNotes:         !draft.voiceNotes.isEmpty
         )
     }
