@@ -1,5 +1,6 @@
 /// RoomPlanCoordinator — Bridges RoomPlan delegate callbacks to v2 model types.
 
+import SwiftUI
 import RoomPlan
 import simd
 import AtlasScanCore
