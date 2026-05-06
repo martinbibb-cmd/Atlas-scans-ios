@@ -296,15 +296,15 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
 
     /// Minimum wall or axis span (metres) required to treat geometry as valid.
     /// Walls shorter than this are treated as degenerate and discarded.
-    private static let minimumWallLengthMeters: Float = 0.01
+    private nonisolated static let minimumWallLengthMeters: Float = 0.01
 
     /// Lower bound for the adaptive endpoint-chaining tolerance (metres).
-    private static let polygonToleranceMin:        Float = 0.01
+    private nonisolated static let polygonToleranceMin:        Float = 0.01
     /// Fraction of the room's shortest span used as the chaining tolerance.
-    private static let polygonToleranceFraction:   Float = 0.10
+    private nonisolated static let polygonToleranceFraction:   Float = 0.10
     /// Upper bound for the adaptive endpoint-chaining tolerance (metres).
     /// This caps the tolerance so it cannot grow larger than a typical wall gap.
-    private static let polygonToleranceMax:        Float = 0.25
+    private nonisolated static let polygonToleranceMax:        Float = 0.25
 
     private nonisolated static func extractPolygon(
         from walls: [CapturedRoom.Surface],
