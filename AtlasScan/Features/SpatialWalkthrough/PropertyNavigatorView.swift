@@ -273,7 +273,7 @@ struct PropertyNavigatorView: View {
             Text("No rooms yet")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("Tap "Add Room" to start the spatial walkthrough.")
+            Text("Tap \u{201C}Add Room\u{201D} to start the spatial walkthrough.")
                 .font(.caption)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.tertiary)
