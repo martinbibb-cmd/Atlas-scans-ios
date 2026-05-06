@@ -1070,10 +1070,10 @@
 
 				AA010A00 /* MollerTrumboreIntersection.swift in Sources */,
 				AA010A01 /* PropertyNavigatorView.swift in Sources */,
-	
+				AA010A02 /* RoomLoopView.swift in Sources */,
 				AA010A03 /* SpatialPinDialView.swift in Sources */,
 				AA010A04 /* ClearanceCubeOverlayView.swift in Sources */,
-	
+				AA010A05 /* OutdoorFlueModeView.swift in Sources */,
 				AA010A06 /* VanModeReviewView.swift in Sources */,
 	
 	
