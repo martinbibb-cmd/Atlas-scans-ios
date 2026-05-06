@@ -245,7 +245,7 @@ struct PropertyNavigatorView: View {
                 .foregroundStyle(flag.met ? .green : Color(.tertiaryLabel))
             Text(flag.label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(flag.met ? .primary : .tertiary)
+                .foregroundStyle(flag.met ? Color.primary : Color(.tertiaryLabel))
         }
         .frame(maxWidth: .infinity)
     }
