@@ -83,6 +83,36 @@ struct PropertyNavigatorView: View {
         }
     }
 
+    /// Scroll body split out so the VStack's generic type chain stays within
+    /// Swift's type-checker complexity budget.
+    @ViewBuilder
+    private var scrollBody: some View {
+        propertyHeader
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+        readinessBar
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+        roomStack
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+
+        addRoomButton
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+        specialisedModes
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+        exportFooter
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+    }
+
     /// Inner navigation stack with scroll content and primary presentation layers.
     /// Kept in a separate computed property so the outer `body` chain stays short
     /// enough for Swift's type-checker.
@@ -90,30 +120,7 @@ struct PropertyNavigatorView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    propertyHeader
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        .padding(.bottom, 12)
-
-                    readinessBar
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-
-                    roomStack
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-
-                    addRoomButton
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-
-                    specialisedModes
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-
-                    exportFooter
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 32)
+                    scrollBody
                 }
             }
             .background(Color(.systemGroupedBackground))
