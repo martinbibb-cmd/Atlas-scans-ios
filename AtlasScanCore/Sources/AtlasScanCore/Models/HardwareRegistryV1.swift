@@ -104,6 +104,7 @@ public final class HardwareRegistryV1: @unchecked Sendable {
     public static let shared = HardwareRegistryV1(catalogue: .bundled)
 
     private var entries: [HardwareSpecV1]
+    private let lock = NSLock()
 
     public init(catalogue: Catalogue) {
         self.entries = catalogue.entries
@@ -112,20 +113,22 @@ public final class HardwareRegistryV1: @unchecked Sendable {
     // MARK: Lookup
 
     public func spec(for modelCode: String) -> HardwareSpecV1? {
-        entries.first { $0.modelCode?.lowercased() == modelCode.lowercased() }
+        lock.withLock { entries.first { $0.modelCode?.lowercased() == modelCode.lowercased() } }
     }
 
     public func specs(manufacturer: String) -> [HardwareSpecV1] {
-        entries.filter { $0.manufacturer.lowercased() == manufacturer.lowercased() }
+        lock.withLock { entries.filter { $0.manufacturer.lowercased() == manufacturer.lowercased() } }
     }
 
     public func allSpecs(ofType type: HardwareType) -> [HardwareSpecV1] {
-        entries.filter { $0.type == type }
+        lock.withLock { entries.filter { $0.type == type } }
     }
 
     public func register(_ spec: HardwareSpecV1) {
-        entries.removeAll { $0.id == spec.id }
-        entries.append(spec)
+        lock.withLock {
+            entries.removeAll { $0.id == spec.id }
+            entries.append(spec)
+        }
     }
 }
 

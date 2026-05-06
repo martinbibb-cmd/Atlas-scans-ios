@@ -31,6 +31,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     ) {
         Task { @MainActor in
             do {
+                // Empty options: no post-processing overrides needed for the default capture.
                 let processed = try await RoomBuilder(options: []).capturedRoom(from: data)
                 capturedRoomBinding.wrappedValue = bridgeToV2(processed)
             } catch {
@@ -42,7 +43,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private func bridgeToV2(_ room: CapturedRoom) -> RoomCaptureV2 {
         var v2 = RoomCaptureV2(displayName: "Room")
         // Map floor outline from CapturedRoom sections if available.
-        for surface in room.floors {
+        // Only the first floor surface is used; RoomPlan typically captures one per room.
+        if let surface = room.floors.first {
             let transform = surface.transform
             let corners: [SIMD3<Float>] = [
                 SIMD3(-0.5, 0,  0.5),
@@ -55,7 +57,6 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 return Vertex2D(x: Double(world.x), z: Double(world.z))
             }
             v2.ceilingHeightM = Double(surface.dimensions.y)
-            break
         }
         return v2
     }
