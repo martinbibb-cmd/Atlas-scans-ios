@@ -1,6 +1,7 @@
 import Foundation
 import RoomPlan
 import Combine
+import simd
 
 // MARK: - RoomPlanCaptureService
 //
@@ -236,13 +237,14 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
         let depth:  Double? = maxZ > minZ ? Double(maxZ - minZ) : nil
         let height: Double? = maxHeight > 0 ? Double(maxHeight) : nil
 
-        // Build a normalised rectangular outline (5% inset) when dimensions are known.
-        let outlinePoints: [NormalisedPoint] = (width != nil && depth != nil) ? [
-            NormalisedPoint(x: 0.05, y: 0.05),
-            NormalisedPoint(x: 0.95, y: 0.05),
-            NormalisedPoint(x: 0.95, y: 0.95),
-            NormalisedPoint(x: 0.05, y: 0.95),
-        ] : []
+        // Extract the actual room polygon from wall geometry.
+        // This replaces the V1 bounding-box rectangle with a true multi-vertex
+        // polygon so L-shapes, T-shapes, and alcoves are accurately represented.
+        let (outlinePoints, wallSegmentLengthsM) = RoomPlanCaptureService.extractPolygon(
+            from: room.walls,
+            minX: minX, maxX: maxX,
+            minZ: minZ, maxZ: maxZ
+        )
 
         // Convert RoomPlan detected objects to RoomPlanDetectedObject.
         let detectedObjects: [RoomPlanDetectedObject] = room.objects.compactMap { obj in
@@ -267,8 +269,160 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
             outlinePoints: outlinePoints,
             detectedObjects: detectedObjects,
             rawJSON: nil,
-            rawScanAssetRef: resolvedAssetRef
+            rawScanAssetRef: resolvedAssetRef,
+            wallSegmentLengthsM: wallSegmentLengthsM.isEmpty ? nil : wallSegmentLengthsM
         )
+    }
+
+    // MARK: - Anti-Square Polygon Extraction
+    //
+    // Extracts the true room outline polygon from wall surfaces captured by RoomPlan.
+    //
+    // RoomPlan wall coordinate conventions (Y-up, right-handed space):
+    //   • transform.columns.3 (x, z) = wall centre position on the floor plane
+    //   • transform.columns.0        = local X axis — the direction *along* the
+    //                                  wall face (i.e. parallel to the wall surface,
+    //                                  not perpendicular to it). Travelling ± halfLen
+    //                                  along this axis reaches the two wall endpoints.
+    //   • dimensions.x               = wall width in metres (distance between endpoints)
+    //
+    // From each wall we compute the two floor-plane endpoints, then chain the
+    // segments end-to-end (greedy nearest-endpoint matching) to build an ordered
+    // polygon. The result is normalised to [margin, 1−margin] preserving aspect ratio.
+    //
+    // Returns: (outlinePoints, wallSegmentLengthsM)
+    //   • outlinePoints          — normalised polygon vertices (empty on failure)
+    //   • wallSegmentLengthsM    — raw metric segment lengths in polygon order
+
+    /// Minimum wall or axis span (metres) required to treat geometry as valid.
+    /// Walls shorter than this are treated as degenerate and discarded.
+    private static let minimumWallLengthMeters: Float = 0.01
+
+    /// Lower bound for the adaptive endpoint-chaining tolerance (metres).
+    private static let polygonToleranceMin:        Float = 0.01
+    /// Fraction of the room's shortest span used as the chaining tolerance.
+    private static let polygonToleranceFraction:   Float = 0.10
+    /// Upper bound for the adaptive endpoint-chaining tolerance (metres).
+    /// This caps the tolerance so it cannot grow larger than a typical wall gap.
+    private static let polygonToleranceMax:        Float = 0.25
+
+    private nonisolated static func extractPolygon(
+        from walls: [CapturedRoom.Surface],
+        minX: Float, maxX: Float,
+        minZ: Float, maxZ: Float
+    ) -> ([NormalisedPoint], [Double]) {
+
+        // ── Step 1: Compute floor-plane endpoints for each wall ──────────────
+
+        typealias Pt = SIMD2<Float>
+        var segments: [(a: Pt, b: Pt)] = []
+
+        for wall in walls {
+            let cx    = wall.transform.columns.3.x
+            let cz    = wall.transform.columns.3.z
+            let axisX = wall.transform.columns.0.x
+            let axisZ = wall.transform.columns.0.z
+            let norm  = sqrt(axisX * axisX + axisZ * axisZ)
+            guard norm > 1e-4 else { continue }
+            let ux = axisX / norm
+            let uz = axisZ / norm
+            let halfLen = wall.dimensions.x / 2.0
+            segments.append((
+                a: Pt(cx + halfLen * ux, cz + halfLen * uz),
+                b: Pt(cx - halfLen * ux, cz - halfLen * uz)
+            ))
+        }
+
+        guard segments.count >= 3 else { return ([], []) }
+
+        // ── Step 2: Chain segments into a closed polygon ─────────────────────
+        //
+        // Strategy: greedy nearest-endpoint matching.
+        // Start with segment[0].a, connect to whichever unused endpoint (a or b)
+        // of any remaining segment is closest.  Stop when we've consumed all
+        // segments or the next match is farther than `tolerance`.
+        //
+        // Tolerance is adaptive: 10 % of the room's minimum span, capped at
+        // 25 cm, which handles the small gaps that arise from wall thickness.
+
+        let roomSpanX = maxX - minX
+        let roomSpanZ = maxZ - minZ
+        let tolerance = max(
+            RoomPlanCaptureService.polygonToleranceMin,
+            min(Float(min(roomSpanX, roomSpanZ)) * RoomPlanCaptureService.polygonToleranceFraction,
+                RoomPlanCaptureService.polygonToleranceMax)
+        )
+
+        var orderedPts: [Pt] = [segments[0].a, segments[0].b]
+        var remaining = Array(segments.dropFirst())
+
+        while !remaining.isEmpty {
+            let last = orderedPts[orderedPts.count - 1]
+            var bestIdx  = -1
+            var bestDist = Float.greatestFiniteMagnitude
+            var useEndA  = true
+
+            for (i, seg) in remaining.enumerated() {
+                let dA = simd_distance(last, seg.a)
+                let dB = simd_distance(last, seg.b)
+                if dA < bestDist { bestDist = dA; bestIdx = i; useEndA = true  }
+                if dB < bestDist { bestDist = dB; bestIdx = i; useEndA = false }
+            }
+
+            guard bestIdx >= 0, bestDist < tolerance else { break }
+
+            let seg = remaining.remove(at: bestIdx)
+            // Append the far endpoint of the matched segment.
+            orderedPts.append(useEndA ? seg.b : seg.a)
+        }
+
+        guard orderedPts.count >= 3 else { return ([], []) }
+
+        // Remove the closing point if it is a near-duplicate of the first vertex
+        // (RoomPlan sometimes closes the polygon with an extra overlapping point).
+        if let first = orderedPts.first, let last = orderedPts.last,
+           simd_distance(first, last) < tolerance {
+            orderedPts.removeLast()
+        }
+
+        guard orderedPts.count >= 3 else { return ([], []) }
+
+        // ── Step 3: Compute per-segment metric lengths ───────────────────────
+
+        let segmentLengths: [Double] = orderedPts.indices.map { i in
+            let next = (i + 1) % orderedPts.count
+            return Double(simd_distance(orderedPts[i], orderedPts[next]))
+        }
+
+        // ── Step 4: Normalise to [margin, 1−margin] preserving aspect ratio ──
+
+        let pxs = orderedPts.map { $0.x }
+        let pzs = orderedPts.map { $0.y }
+        guard let pMinX = pxs.min(), let pMaxX = pxs.max(),
+              let pMinZ = pzs.min(), let pMaxZ = pzs.max() else { return ([], []) }
+
+        let rangeX = pMaxX - pMinX
+        let rangeZ = pMaxZ - pMinZ
+        guard rangeX > RoomPlanCaptureService.minimumWallLengthMeters ||
+              rangeZ > RoomPlanCaptureService.minimumWallLengthMeters else { return ([], []) }
+
+        let margin: Float = 0.05
+        let usableSize: Float = 1.0 - 2 * margin
+        let maxRange = max(rangeX, rangeZ, RoomPlanCaptureService.minimumWallLengthMeters)
+        let scale = usableSize / maxRange
+
+        // Centre the polygon within the normalised canvas.
+        let offsetX = margin + (usableSize - rangeX * scale) / 2
+        let offsetZ = margin + (usableSize - rangeZ * scale) / 2
+
+        let normalised: [NormalisedPoint] = orderedPts.map { pt in
+            NormalisedPoint(
+                x: Double((pt.x - pMinX) * scale + offsetX),
+                y: Double((pt.y - pMinZ) * scale + offsetZ)
+            )
+        }
+
+        return (normalised, segmentLengths)
     }
 }
 

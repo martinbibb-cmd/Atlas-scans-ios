@@ -192,26 +192,22 @@ struct FloorPlanEditorView: View {
 
     private func outlineShape(size: CGFloat) -> some View {
         let points = plan.outlinePoints
-        guard points.count >= 2 else {
+        // A closed polygon requires at least 3 non-collinear vertices; fewer
+        // points cannot form a valid shape (2 points = line, 0–1 = nothing).
+        guard points.count >= 3 else {
             return AnyView(
                 Text("Add room scan to show outline")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             )
         }
-        let path = Path { p in
-            let first = CGPoint(x: points[0].x * size, y: points[0].y * size)
-            p.move(to: first)
-            for pt in points.dropFirst() {
-                p.addLine(to: CGPoint(x: pt.x * size, y: pt.y * size))
-            }
-            p.closeSubpath()
-        }
+        let renderer = CustomRoomShapeRenderer(vertices: points)
         return AnyView(
             ZStack {
-                path.fill(Color.accentColor.opacity(0.06))
-                path.stroke(Color.accentColor, lineWidth: 2)
+                renderer.fill(Color.accentColor.opacity(0.06))
+                renderer.stroke(Color.accentColor, lineWidth: 2)
             }
+            .frame(width: size, height: size)
         )
     }
 

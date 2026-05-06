@@ -150,6 +150,7 @@
 		AA010A05 /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A05 /* OutdoorFlueModeView.swift */; };
 		AA010A06 /* VanModeReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A06 /* VanModeReviewView.swift */; };
 		AA010B00 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020B00 /* GhostBoxARView.swift */; };
+		AA010A07 /* CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020A07 /* CustomRoomShapeRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -299,6 +300,7 @@
 		AA020A05 /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
 		AA020A06 /* VanModeReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeReviewView.swift; sourceTree = "<group>"; };
 		AA020B00 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
+		AA020A07 /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -648,6 +650,7 @@
 				AA020A04 /* ClearanceCubeOverlayView.swift */,
 				AA020A05 /* OutdoorFlueModeView.swift */,
 				AA020A06 /* VanModeReviewView.swift */,
+				AA020A07 /* CustomRoomShapeRenderer.swift */,
 				AA020B00 /* GhostBoxARView.swift */,
 			);
 			path = SpatialWalkthrough;
@@ -988,6 +991,7 @@
 				AA010A04 /* ClearanceCubeOverlayView.swift in Sources */,
 				AA010A05 /* OutdoorFlueModeView.swift in Sources */,
 				AA010A06 /* VanModeReviewView.swift in Sources */,
+				AA010A07 /* CustomRoomShapeRenderer.swift in Sources */,
 				AA010B00 /* GhostBoxARView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -339,13 +339,19 @@ struct PropertyNavigatorView: View {
             activeRoom = scan
         } label: {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.accentColor.opacity(0.12))
-                        .frame(width: 44, height: 44)
+                RoomPolygonThumbnail(
+                    outlinePoints: scan.floorPlan?.outlinePoints ?? [],
+                    size: 44
+                )
+                .overlay(alignment: .bottomTrailing) {
                     Text("\(number)")
-                        .font(.headline.bold())
-                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor)
+                        .clipShape(Capsule())
+                        .offset(x: 4, y: 4)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {

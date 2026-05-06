@@ -34,6 +34,14 @@ struct RoomPlanScanResult {
     /// the USDZ export failed.
     var rawScanAssetRef: String?
 
+    /// Per-segment wall lengths in metres, in polygon vertex order.
+    ///
+    /// Populated during LiDAR capture by the Anti-Square geometry engine.
+    /// Each entry corresponds to the wall segment between `outlinePoints[i]`
+    /// and `outlinePoints[(i+1) % outlinePoints.count]`.
+    /// Nil for manually entered scans or when polygon extraction fails.
+    var wallSegmentLengthsM: [Double]?
+
     init(
         widthM: Double? = nil,
         depthM: Double? = nil,
@@ -41,7 +49,8 @@ struct RoomPlanScanResult {
         outlinePoints: [NormalisedPoint] = [],
         detectedObjects: [RoomPlanDetectedObject] = [],
         rawJSON: String? = nil,
-        rawScanAssetRef: String? = nil
+        rawScanAssetRef: String? = nil,
+        wallSegmentLengthsM: [Double]? = nil
     ) {
         self.widthM = widthM
         self.depthM = depthM
@@ -50,6 +59,7 @@ struct RoomPlanScanResult {
         self.detectedObjects = detectedObjects
         self.rawJSON = rawJSON
         self.rawScanAssetRef = rawScanAssetRef
+        self.wallSegmentLengthsM = wallSegmentLengthsM
     }
 }
 
@@ -151,15 +161,16 @@ enum RoomPlanMapper {
     ) -> (scan: CapturedRoomScanDraft, pins: [CapturedObjectPinDraft]) {
 
         var scan = CapturedRoomScanDraft()
-        scan.roomLabel     = "Room \(roomIndex)"
-        scan.rawWidthM     = result.widthM
-        scan.rawDepthM     = result.depthM
-        scan.rawHeightM    = result.heightM
-        scan.rawScanAssetRef = result.rawScanAssetRef
-        scan.confidence    = .high
-        scan.captureSource = .lidar
-        scan.lidarMetadata = result.rawJSON
-        scan.reviewStatus  = .pending   // LiDAR scans require engineer review
+        scan.roomLabel            = "Room \(roomIndex)"
+        scan.rawWidthM            = result.widthM
+        scan.rawDepthM            = result.depthM
+        scan.rawHeightM           = result.heightM
+        scan.rawScanAssetRef      = result.rawScanAssetRef
+        scan.wallSegmentLengthsM  = result.wallSegmentLengthsM
+        scan.confidence           = .high
+        scan.captureSource        = .lidar
+        scan.lidarMetadata        = result.rawJSON
+        scan.reviewStatus         = .pending   // LiDAR scans require engineer review
 
         if !result.outlinePoints.isEmpty {
             var plan = FloorPlanDraft()
