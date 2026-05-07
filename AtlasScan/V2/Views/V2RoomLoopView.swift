@@ -129,10 +129,11 @@ struct V2RoomLoopView: View {
     }
 
     private func discardUnfinishedRoomEvidence() {
-        coordinator.discardUnfinishedRoomEvidence(for: prospectiveRoomId)
+        let discardedRoomId = prospectiveRoomId
+        coordinator.discardUnfinishedRoomEvidence(for: discardedRoomId)
         roomName = ""
         capturedRoom = nil
-        pendingPins = []
+        pendingPins.removeAll { $0.roomId == discardedRoomId }
         prospectiveRoomId = UUID()
         restartCurrentCapture()
     }
