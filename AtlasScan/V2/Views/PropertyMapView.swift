@@ -23,7 +23,7 @@ struct PropertyMapView: View {
             }
             .navigationTitle("Property Map")
             .toolbar { toolbarContent }
-            .sheet(isPresented: $showRoomCapture) {
+            .fullScreenCover(isPresented: $showRoomCapture) {
                 V2RoomLoopView(coordinator: coordinator)
             }
             .sheet(isPresented: $coordinator.showHandoff) {
