@@ -12,6 +12,10 @@ public final class ScanSessionCoordinator: ObservableObject {
     @Published public var saveError: Error?
 
     private let store: AtomicSessionStore
+    /// 50ms debounce coalesces rapid evidence mutations into one write while
+    /// still feeling immediate during live capture interactions.
+    private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
+    private var pendingSaveTask: Task<Void, Never>?
 
     public init(
         visitId: UUID = UUID(),
@@ -66,6 +70,16 @@ public final class ScanSessionCoordinator: ObservableObject {
         scheduleSave()
     }
 
+    public func discardUnfinishedRoomEvidence(for roomId: UUID) {
+        // Intentionally safe when called before a room is saved; missing array
+        // elements simply result in no removals while orphaned evidence is cleared.
+        session.rooms.removeAll { $0.id == roomId }
+        session.photos.removeAll { $0.roomId == roomId }
+        session.voiceNotes.removeAll { $0.roomId == roomId }
+        session.transcripts.removeAll { $0.roomId == roomId }
+        scheduleSave()
+    }
+
     public func emitQAFlag(_ flag: QAFlagV1) {
         session.emitQAFlag(flag)
         scheduleSave()
@@ -95,7 +109,15 @@ public final class ScanSessionCoordinator: ObservableObject {
     }
 
     private func scheduleSave() {
-        Task { await saveSession() }
+        pendingSaveTask?.cancel()
+        pendingSaveTask = Task { [autoSaveDebounceNanoseconds] in
+            do {
+                try await Task.sleep(nanoseconds: autoSaveDebounceNanoseconds)
+            } catch {
+                return
+            }
+            await self.saveSession()
+        }
     }
 
     private func resolvedPlacement(for room: RoomCaptureV2) -> RoomCaptureV2 {

@@ -16,6 +16,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     /// Called on the main thread each time RoomPlan publishes an incremental
     /// update. Use this to drive the live mini-map polygon.
     var onLiveVertices: (([Vertex2D]) -> Void)?
+    /// Called when capture ends but RoomPlan did not produce a usable room.
+    var onCaptureEndedWithoutRoom: (() -> Void)?
 
     /// Set to true once stopSession() has been called so updateUIViewController
     /// does not fire a second stop.
@@ -54,12 +56,18 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         error: (Error)?
     ) {
         Task { @MainActor in
+            if let error {
+                print("[RoomPlanCoordinator] Capture ended with error: \(error.localizedDescription)")
+                onCaptureEndedWithoutRoom?()
+                return
+            }
             do {
                 // Empty options: no post-processing overrides needed for the default capture.
                 let processed = try await RoomBuilder(options: []).capturedRoom(from: data)
                 capturedRoomBinding.wrappedValue = bridgeToV2(processed)
             } catch {
                 print("[RoomPlanCoordinator] RoomBuilder failed: \(error.localizedDescription)")
+                onCaptureEndedWithoutRoom?()
             }
         }
     }
