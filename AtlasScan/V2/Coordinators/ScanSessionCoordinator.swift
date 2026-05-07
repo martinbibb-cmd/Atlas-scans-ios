@@ -108,10 +108,9 @@ public final class ScanSessionCoordinator: ObservableObject {
 
     private func scheduleSave() {
         pendingSaveTask?.cancel()
-        pendingSaveTask = Task { [weak self] in
+        pendingSaveTask = Task { [autoSaveDebounceNanoseconds] in
             do {
-                guard let self else { return }
-                try await Task.sleep(nanoseconds: self.autoSaveDebounceNanoseconds)
+                try await Task.sleep(nanoseconds: autoSaveDebounceNanoseconds)
             } catch {
                 return
             }

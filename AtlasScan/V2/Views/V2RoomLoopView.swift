@@ -69,6 +69,17 @@ struct V2RoomLoopView: View {
             Button("Save") { saveRoom() }
             Button("Cancel", role: .cancel) { showCapture = true }
         })
+        .alert(
+            "Couldn’t save room",
+            isPresented: Binding(
+                get: { coordinator.saveError != nil },
+                set: { if !$0 { coordinator.saveError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(coordinator.saveError?.localizedDescription ?? "Please try again.")
+        }
         .confirmationDialog(
             "Room wasn’t finalized",
             isPresented: $showUnfinishedRoomRecovery,
@@ -102,10 +113,10 @@ struct V2RoomLoopView: View {
     }
 
     private func saveDraftRoomEvidence() {
-        let draftTimestamp = Date.now.formatted(date: .abbreviated, time: .shortened)
+        let draftDateTimeLabel = Date.now.formatted(date: .abbreviated, time: .shortened)
         var draftRoom = RoomCaptureV2(
             id: prospectiveRoomId,
-            displayName: "Unsaved Room \(draftTimestamp)"
+            displayName: "Unsaved Room \(draftDateTimeLabel)"
         )
         draftRoom.pinnedObjects = pendingPins
         coordinator.addRoom(draftRoom)
