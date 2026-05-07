@@ -12,6 +12,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     @Published public var saveError: Error?
 
     private let store: AtomicSessionStore
+    /// Coalesces rapid evidence mutations into a single write while keeping
+    /// autosave feeling immediate in the capture flow.
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private var pendingSaveTask: Task<Void, Never>?
 
@@ -69,8 +71,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     }
 
     public func discardUnfinishedRoomEvidence(for roomId: UUID) {
-        // Intentionally safe when called before a room is saved; removeAll no-ops
-        // on missing rows and still clears any orphaned evidence by room ID.
+        // Intentionally safe when called before a room is saved; missing array
+        // elements simply result in no removals while orphaned evidence is cleared.
         session.rooms.removeAll { $0.id == roomId }
         session.photos.removeAll { $0.roomId == roomId }
         session.voiceNotes.removeAll { $0.roomId == roomId }
