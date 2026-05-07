@@ -33,6 +33,7 @@ enum V2RoomLoopLifecycle {
 }
 
 struct V2RoomLoopView: View {
+    private let defaultReviewRoomName = "Room"
     @ObservedObject var coordinator: ScanSessionCoordinator
     @Environment(\.dismiss) private var dismiss
 
@@ -82,7 +83,7 @@ struct V2RoomLoopView: View {
                             .foregroundStyle(.green)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(currentReviewRoom?.displayName ?? "Room")
+                            Text(currentReviewRoom?.displayName ?? defaultReviewRoomName)
                                 .font(.title3.bold())
                             Text(review.status.badgeText)
                                 .font(.caption.weight(.semibold))
@@ -97,7 +98,7 @@ struct V2RoomLoopView: View {
                         }
 
                         if review.status == .draft && reviewRoomMissingGeometry {
-                            Label("Draft room has no RoomPlan geometry.", systemImage: "exclamationmark.triangle.fill")
+                            Label("Draft room is missing captured room structure.", systemImage: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
@@ -116,7 +117,7 @@ struct V2RoomLoopView: View {
 
                         HStack(spacing: 12) {
                             Button("Rename Room") {
-                                renameRoomName = currentReviewRoom?.displayName ?? ""
+                                renameRoomName = currentReviewRoom?.displayName ?? defaultReviewRoomName
                                 showRenamePrompt = true
                             }
                             .buttonStyle(.bordered)
@@ -258,7 +259,7 @@ struct V2RoomLoopView: View {
     }
 
     private var reviewRoomMissingGeometry: Bool {
-        (currentReviewRoom?.polygonVertices.isEmpty ?? true)
+        currentReviewRoom?.polygonVertices.isEmpty ?? true
     }
 
     private func summaryLine(_ title: String, value: Int) -> some View {
