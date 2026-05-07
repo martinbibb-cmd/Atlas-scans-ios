@@ -164,10 +164,10 @@
 		AAV20009 /* SpatialPinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30009 /* SpatialPinManager.swift */; };
 		AAV2000A /* CustomRoomShapeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000A /* CustomRoomShapeRenderer.swift */; };
 		AAV2000B /* HandoffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000B /* HandoffView.swift */; };
-		AAV2000C /* OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000C /* OutdoorFlueModeView.swift */; };
+		AAV2000C /* V2OutdoorFlueModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000C /* V2OutdoorFlueModeView.swift */; };
 		AAV2000D /* PropertyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000D /* PropertyMapView.swift */; };
 		AAV2000E /* VanModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000E /* VanModeView.swift */; };
-		AAV2000F /* RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* RoomLoopView.swift */; };
+		AAV2000F /* V2RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* V2RoomLoopView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -337,10 +337,10 @@
 		AAV30009 /* SpatialPinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinManager.swift; sourceTree = "<group>"; };
 		AAV3000A /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
 		AAV3000B /* HandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffView.swift; sourceTree = "<group>"; };
-		AAV3000C /* OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFlueModeView.swift; sourceTree = "<group>"; };
+		AAV3000C /* V2OutdoorFlueModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OutdoorFlueModeView.swift; sourceTree = "<group>"; };
 		AAV3000D /* PropertyMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyMapView.swift; sourceTree = "<group>"; };
 		AAV3000E /* VanModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeView.swift; sourceTree = "<group>"; };
-		AAV3000F /* RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomLoopView.swift; sourceTree = "<group>"; };
+		AAV3000F /* V2RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomLoopView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -778,10 +778,10 @@
 			children = (
 				AAV3000A /* CustomRoomShapeRenderer.swift */,
 				AAV3000B /* HandoffView.swift */,
-				AAV3000C /* OutdoorFlueModeView.swift */,
+				AAV3000C /* V2OutdoorFlueModeView.swift */,
 				AAV3000D /* PropertyMapView.swift */,
 				AAV3000E /* VanModeView.swift */,
-				AAV3000F /* RoomLoopView.swift */,
+				AAV3000F /* V2RoomLoopView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1088,10 +1088,10 @@
 				AAV20009 /* SpatialPinManager.swift in Sources */,
 				AAV2000A /* CustomRoomShapeRenderer.swift in Sources */,
 				AAV2000B /* HandoffView.swift in Sources */,
-				AAV2000C /* OutdoorFlueModeView.swift in Sources */,
+				AAV2000C /* V2OutdoorFlueModeView.swift in Sources */,
 				AAV2000D /* PropertyMapView.swift in Sources */,
 				AAV2000E /* VanModeView.swift in Sources */,
-				AAV2000F /* RoomLoopView.swift in Sources */,
+				AAV2000F /* V2RoomLoopView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
