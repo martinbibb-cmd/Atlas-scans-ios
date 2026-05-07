@@ -428,4 +428,63 @@ final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
             [keptRoomId]
         )
     }
+
+    @MainActor
+    func test_draftRoomRecovery_preservesEvidenceAndConsumesPendingPins() async throws {
+        let visitId = UUID()
+        let prospectiveRoomId = UUID()
+        let nextProspectiveRoomId = UUID()
+        let unrelatedPendingRoomId = UUID()
+        let coordinator = ScanSessionCoordinator(visitId: visitId, store: store)
+        defer { try? store.delete(visitId: visitId) }
+
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: prospectiveRoomId, relativeFilePath: "draft-photo.jpg")
+        )
+        coordinator.addVoiceNote(
+            VoiceNoteV1(visitId: visitId, roomId: prospectiveRoomId, processedTranscript: "draft transcript")
+        )
+
+        let expectedPin = SpatialPinV1(
+            roomId: prospectiveRoomId,
+            positionX: 0,
+            positionY: 0,
+            positionZ: 0,
+            objectType: .boiler
+        )
+        let unrelatedPendingPin = SpatialPinV1(
+            roomId: unrelatedPendingRoomId,
+            positionX: 1,
+            positionY: 0,
+            positionZ: 1,
+            objectType: .heatPump
+        )
+
+        let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
+            prospectiveRoomId: prospectiveRoomId,
+            pendingPins: [expectedPin, unrelatedPendingPin],
+            now: Date(timeIntervalSince1970: 0),
+            nextProspectiveRoomId: nextProspectiveRoomId
+        )
+
+        coordinator.addRoom(transition.draftRoom)
+        await coordinator.saveSession()
+
+        XCTAssertEqual(transition.draftRoom.id, prospectiveRoomId)
+        XCTAssertEqual(transition.draftRoom.pinnedObjects.map(\.roomId), [prospectiveRoomId])
+        XCTAssertEqual(
+            transition.remainingPendingPins.map(\.roomId),
+            [unrelatedPendingRoomId],
+            "Pending pins for the abandoned room should be consumed when saving draft evidence."
+        )
+        XCTAssertNotEqual(transition.nextProspectiveRoomId, prospectiveRoomId)
+        XCTAssertEqual(transition.nextProspectiveRoomId, nextProspectiveRoomId)
+
+        XCTAssertEqual(coordinator.session.rooms.count, 1)
+        XCTAssertEqual(coordinator.session.rooms.first?.id, prospectiveRoomId)
+        XCTAssertEqual(coordinator.session.rooms.first?.pinnedObjects.map(\.roomId), [prospectiveRoomId])
+        XCTAssertEqual(coordinator.session.photos.map(\.roomId), [prospectiveRoomId])
+        XCTAssertEqual(coordinator.session.voiceNotes.map(\.roomId), [prospectiveRoomId])
+        XCTAssertEqual(coordinator.session.transcripts.map(\.roomId), [prospectiveRoomId])
+    }
 }
