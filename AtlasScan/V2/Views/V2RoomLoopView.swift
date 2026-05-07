@@ -47,6 +47,10 @@ struct V2RoomLoopView: View {
     @State private var prospectiveRoomId = UUID()
     /// Object pins placed during the scan; attached to the room on save.
     @State private var pendingPins: [SpatialPinV1] = []
+    @State private var postCaptureReview: V2PostCaptureReviewCardModel?
+    @State private var renameRoomName = ""
+    @State private var showRenameRoomPrompt = false
+    @State private var showRoomReview = false
 
     var body: some View {
         Group {
@@ -71,26 +75,57 @@ struct V2RoomLoopView: View {
                     }
                 }
             } else {
-                // Brief pause between rooms — confirm and offer to add another.
-                VStack(spacing: 20) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("Room captured!")
-                        .font(.title2.bold())
-                    HStack(spacing: 16) {
-                        Button("Add Another Room") {
-                            capturedRoom = nil
-                            pendingPins = []
-                            prospectiveRoomId = UUID()
-                            showCapture = true
+                if let review = postCaptureReview {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Room Captured", systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.green)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(currentReviewRoom?.displayName ?? "Room")
+                                .font(.title3.bold())
+                            Text(review.status.badgeText)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(review.status.badgeColor)
                         }
-                        .buttonStyle(.borderedProminent)
-                        Button("Finish") { dismiss() }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            summaryLine("Pins", value: pinCountForReviewRoom)
+                            summaryLine("Photos", value: photoCountForReviewRoom)
+                            summaryLine("Voice notes", value: voiceNoteCountForReviewRoom)
+                            summaryLine("Transcripts", value: transcriptCountForReviewRoom)
+                        }
+
+                        if review.status == .draft && reviewRoomMissingGeometry {
+                            Label("Draft room has no RoomPlan geometry.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+
+                        HStack(spacing: 12) {
+                            Button("Continue scanning") {
+                                beginNextCapture(with: review.nextProspectiveRoomId)
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button("Review room") {
+                                showRoomReview = true
+                            }
                             .buttonStyle(.bordered)
+                        }
+
+                        Button("Rename room") {
+                            renameRoomName = currentReviewRoom?.displayName ?? ""
+                            showRenameRoomPrompt = true
+                        }
+                        .buttonStyle(.bordered)
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                } else {
+                    Color(.systemGroupedBackground)
+                        .ignoresSafeArea()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .alert("Name this room", isPresented: $showNamePrompt, actions: {
@@ -109,6 +144,11 @@ struct V2RoomLoopView: View {
         } message: {
             Text(coordinator.saveError?.localizedDescription ?? "Please try again.")
         }
+        .alert("Rename room", isPresented: $showRenameRoomPrompt, actions: {
+            TextField("Room name", text: $renameRoomName)
+            Button("Save") { renameReviewRoom() }
+            Button("Cancel", role: .cancel) {}
+        })
         .confirmationDialog(
             "Room wasn’t finalized",
             isPresented: $showUnfinishedRoomRecovery,
@@ -123,6 +163,15 @@ struct V2RoomLoopView: View {
         } message: {
             Text("This scan ended without a completed room. Retry, save current evidence as a draft room, or discard this unfinished room evidence.")
         }
+        .fullScreenCover(isPresented: $showRoomReview) {
+            if let room = currentReviewRoom {
+                NavigationStack {
+                    VanModeView(room: room, coordinator: coordinator)
+                }
+            } else {
+                EmptyView()
+            }
+        }
     }
 
     private func saveRoom() {
@@ -131,10 +180,17 @@ struct V2RoomLoopView: View {
         room.pinnedObjects = pendingPins
         coordinator.addRoom(room)
         Task { await coordinator.saveSession() }
+        let nextProspectiveRoomId = UUID()
+        postCaptureReview = V2PostCaptureReviewCardModel(
+            roomId: room.id,
+            status: .captured,
+            nextProspectiveRoomId: nextProspectiveRoomId
+        )
         roomName = ""
         capturedRoom = nil
         pendingPins = []
-        prospectiveRoomId = UUID()
+        prospectiveRoomId = nextProspectiveRoomId
+        showCapture = false
     }
 
     private func restartCurrentCapture() {
@@ -148,11 +204,16 @@ struct V2RoomLoopView: View {
         )
         coordinator.addRoom(transition.draftRoom)
         Task { await coordinator.saveSession() }
+        postCaptureReview = V2PostCaptureReviewCardModel(
+            roomId: transition.draftRoom.id,
+            status: .draft,
+            nextProspectiveRoomId: transition.nextProspectiveRoomId
+        )
         roomName = ""
         capturedRoom = nil
         pendingPins = transition.remainingPendingPins
         prospectiveRoomId = transition.nextProspectiveRoomId
-        restartCurrentCapture()
+        showCapture = false
     }
 
     private func discardUnfinishedRoomEvidence() {
@@ -163,6 +224,90 @@ struct V2RoomLoopView: View {
         pendingPins.removeAll { $0.roomId == discardedRoomId }
         prospectiveRoomId = UUID()
         restartCurrentCapture()
+    }
+
+    private var currentReviewRoom: RoomCaptureV2? {
+        guard let roomId = postCaptureReview?.roomId else { return nil }
+        return coordinator.room(withId: roomId)
+    }
+
+    private var pinCountForReviewRoom: Int {
+        currentReviewRoom?.pinnedObjects.count ?? 0
+    }
+
+    private var photoCountForReviewRoom: Int {
+        guard let roomId = postCaptureReview?.roomId else { return 0 }
+        return coordinator.session.photos.filter { $0.roomId == roomId }.count
+    }
+
+    private var voiceNoteCountForReviewRoom: Int {
+        guard let roomId = postCaptureReview?.roomId else { return 0 }
+        return coordinator.session.voiceNotes.filter { $0.roomId == roomId }.count
+    }
+
+    private var transcriptCountForReviewRoom: Int {
+        guard let roomId = postCaptureReview?.roomId else { return 0 }
+        return coordinator.session.transcripts.filter { $0.roomId == roomId }.count
+    }
+
+    private var reviewRoomMissingGeometry: Bool {
+        (currentReviewRoom?.polygonVertices.isEmpty ?? true)
+    }
+
+    private func summaryLine(_ title: String, value: Int) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("\(value)")
+                .fontWeight(.semibold)
+        }
+        .font(.subheadline)
+    }
+
+    private func beginNextCapture(with nextRoomId: UUID) {
+        postCaptureReview = nil
+        showRoomReview = false
+        capturedRoom = nil
+        pendingPins = []
+        prospectiveRoomId = nextRoomId
+        captureViewRefreshToken = UUID()
+        showCapture = true
+    }
+
+    private func renameReviewRoom() {
+        guard
+            let room = currentReviewRoom,
+            !renameRoomName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+        var renamedRoom = room
+        renamedRoom.displayName = renameRoomName.trimmingCharacters(in: .whitespacesAndNewlines)
+        coordinator.upsertRoom(renamedRoom)
+    }
+}
+
+private struct V2PostCaptureReviewCardModel {
+    let roomId: UUID
+    let status: V2PostCaptureRoomStatus
+    let nextProspectiveRoomId: UUID
+}
+
+private enum V2PostCaptureRoomStatus {
+    case captured
+    case draft
+
+    var badgeText: String {
+        switch self {
+        case .captured: return "Captured"
+        case .draft: return "Draft"
+        }
+    }
+
+    var badgeColor: Color {
+        switch self {
+        case .captured: return .green
+        case .draft: return .orange
+        }
     }
 }
 
