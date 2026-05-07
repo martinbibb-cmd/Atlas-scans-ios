@@ -24,11 +24,51 @@ public final class ScanSessionCoordinator: ObservableObject {
     // MARK: - Room management
 
     public func addRoom(_ room: RoomCaptureV2) {
-        session.addRoom(room)
+        upsertRoom(room)
+    }
+
+    public func upsertRoom(_ room: RoomCaptureV2) {
+        let resolvedRoom = resolvedPlacement(for: room)
+        if let index = session.rooms.firstIndex(where: { $0.id == resolvedRoom.id }) {
+            session.rooms[index] = resolvedRoom
+        } else {
+            session.rooms.append(resolvedRoom)
+        }
+        scheduleSave()
+    }
+
+    public func room(withId roomId: UUID) -> RoomCaptureV2? {
+        session.rooms.first(where: { $0.id == roomId })
+    }
+
+    public func updatePins(_ pins: [SpatialPinV1], for roomId: UUID) {
+        guard let index = session.rooms.firstIndex(where: { $0.id == roomId }) else { return }
+        session.rooms[index].pinnedObjects = pins
+        scheduleSave()
+    }
+
+    public func addPhoto(_ photo: PhotoEvidenceV1) {
+        session.photos.append(photo)
+        scheduleSave()
+    }
+
+    public func addVoiceNote(_ note: VoiceNoteV1) {
+        session.voiceNotes.append(note)
+        session.transcripts.append(
+            ProcessedTranscriptV1(
+                visitId: note.visitId,
+                roomId: note.roomId,
+                linkedObjectId: note.linkedObjectId,
+                transcript: note.processedTranscript,
+                extractionHint: note.extractionHint
+            )
+        )
+        scheduleSave()
     }
 
     public func emitQAFlag(_ flag: QAFlagV1) {
         session.emitQAFlag(flag)
+        scheduleSave()
     }
 
     // MARK: - Handoff
@@ -52,5 +92,73 @@ public final class ScanSessionCoordinator: ObservableObject {
 
     public func loadRecalledSession(_ recalled: SessionCaptureV2) {
         session = recalled
+    }
+
+    private func scheduleSave() {
+        Task { await saveSession() }
+    }
+
+    private func resolvedPlacement(for room: RoomCaptureV2) -> RoomCaptureV2 {
+        guard session.rooms.allSatisfy({ $0.id != room.id }) else { return room }
+        guard !session.rooms.isEmpty else { return room }
+
+        let roomBounds = bounds(for: room)
+        let existingBounds = combinedBounds(for: session.rooms)
+        let needsOffset =
+            roomBounds.minX < existingBounds.maxX + 0.1 &&
+            roomBounds.maxX > existingBounds.minX - 0.1 &&
+            roomBounds.minZ < existingBounds.maxZ + 0.1 &&
+            roomBounds.maxZ > existingBounds.minZ - 0.1
+
+        guard needsOffset else { return room }
+        let dx = existingBounds.maxX - roomBounds.minX + 0.8
+        return translated(room, dx: dx, dz: 0)
+    }
+
+    private func translated(_ room: RoomCaptureV2, dx: Double, dz: Double) -> RoomCaptureV2 {
+        var translatedRoom = room
+        translatedRoom.polygonVertices = room.polygonVertices.map {
+            Vertex2D(x: $0.x + dx, z: $0.z + dz)
+        }
+        translatedRoom.pinnedObjects = room.pinnedObjects.map { pin in
+            SpatialPinV1(
+                id: pin.id,
+                roomId: pin.roomId,
+                positionX: pin.positionX + dx,
+                positionY: pin.positionY,
+                positionZ: pin.positionZ + dz,
+                screenPositionX: pin.screenPositionX,
+                screenPositionY: pin.screenPositionY,
+                objectType: pin.objectType,
+                label: pin.label,
+                anchorConfidence: pin.anchorConfidence,
+                hardwareSpecId: pin.hardwareSpecId,
+                modelId: pin.modelId
+            )
+        }
+        return translatedRoom
+    }
+
+    private func combinedBounds(for rooms: [RoomCaptureV2]) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {
+        rooms.reduce((Double.greatestFiniteMagnitude, -Double.greatestFiniteMagnitude, Double.greatestFiniteMagnitude, -Double.greatestFiniteMagnitude)) { partial, room in
+            let roomBounds = bounds(for: room)
+            return (
+                min(partial.0, roomBounds.minX),
+                max(partial.1, roomBounds.maxX),
+                min(partial.2, roomBounds.minZ),
+                max(partial.3, roomBounds.maxZ)
+            )
+        }
+    }
+
+    private func bounds(for room: RoomCaptureV2) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {
+        let xs = room.polygonVertices.map(\.x)
+        let zs = room.polygonVertices.map(\.z)
+        return (
+            xs.min() ?? 0,
+            xs.max() ?? 0,
+            zs.min() ?? 0,
+            zs.max() ?? 0
+        )
     }
 }

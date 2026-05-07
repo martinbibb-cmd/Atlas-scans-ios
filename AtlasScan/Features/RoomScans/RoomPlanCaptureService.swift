@@ -2,6 +2,7 @@ import Foundation
 import RoomPlan
 import Combine
 import simd
+import AtlasScanCore
 
 // MARK: - RoomPlanCaptureService
 //
@@ -45,6 +46,7 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
 
     @Published private(set) var sessionState: SessionState = .ready
     @Published private(set) var capturedResult: RoomPlanScanResult?
+    @Published private(set) var liveCapturePolygon: [Vertex2D] = []
 
     // MARK: - Hardware capability
 
@@ -94,6 +96,7 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
             return
         }
         capturedResult = nil
+        liveCapturePolygon = []
         currentScanId  = UUID()   // fresh ID for each new scan so files never collide
         sessionState   = .scanning
         roomCaptureView.captureSession.run(configuration: captureConfig)
@@ -110,6 +113,7 @@ final class RoomPlanCaptureService: NSObject, ObservableObject {
     func cancelScan() {
         roomCaptureView.captureSession.stop(pauseARSession: true)
         capturedResult = nil
+        liveCapturePolygon = []
         sessionState = .cancelled
     }
 
@@ -149,7 +153,10 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
         _ session: RoomCaptureSession,
         didUpdate room: CapturedRoom
     ) {
-        // Live update — RoomCaptureView renders the in-progress geometry automatically.
+        let polygon = Self.makeLivePolygon(from: room)
+        Task { @MainActor in
+            self.liveCapturePolygon = polygon
+        }
     }
 
     nonisolated func captureSession(
@@ -177,6 +184,7 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
                 // Ignore completion if the user cancelled while processing.
                 guard self.sessionState == .processing else { return }
                 self.capturedResult = result
+                self.liveCapturePolygon = Self.vertices(from: result)
                 self.sessionState = .completed
             } catch {
                 self.sessionState = .failed(error.localizedDescription)
@@ -423,6 +431,42 @@ extension RoomPlanCaptureService: RoomCaptureSessionDelegate {
         }
 
         return (normalised, segmentLengths)
+    }
+}
+
+private extension RoomPlanCaptureService {
+    nonisolated static func makeLivePolygon(from room: CapturedRoom) -> [Vertex2D] {
+        guard let floor = room.floors.first else { return [] }
+        let transform = floor.transform
+        let corners: [SIMD4<Float>] = [
+            SIMD4(-0.5, 0,  0.5, 1),
+            SIMD4( 0.5, 0,  0.5, 1),
+            SIMD4( 0.5, 0, -0.5, 1),
+            SIMD4(-0.5, 0, -0.5, 1)
+        ]
+        return corners.map { local in
+            let world = transform * local
+            return Vertex2D(x: Double(world.x), z: Double(world.z))
+        }
+    }
+
+    nonisolated static func vertices(from result: RoomPlanScanResult) -> [Vertex2D] {
+        let width = max(result.widthM ?? 1, 0.1)
+        let depth = max(result.depthM ?? 1, 0.1)
+        guard !result.outlinePoints.isEmpty else {
+            return [
+                Vertex2D(x: -width / 2, z:  depth / 2),
+                Vertex2D(x:  width / 2, z:  depth / 2),
+                Vertex2D(x:  width / 2, z: -depth / 2),
+                Vertex2D(x: -width / 2, z: -depth / 2)
+            ]
+        }
+        return result.outlinePoints.map { point in
+            Vertex2D(
+                x: (point.x - 0.5) * width,
+                z: (0.5 - point.y) * depth
+            )
+        }
     }
 }
 
