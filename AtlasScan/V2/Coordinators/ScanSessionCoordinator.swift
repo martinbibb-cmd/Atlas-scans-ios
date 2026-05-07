@@ -12,6 +12,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     @Published public var saveError: Error?
 
     private let store: AtomicSessionStore
+    private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private var pendingSaveTask: Task<Void, Never>?
 
     public init(
@@ -109,12 +110,13 @@ public final class ScanSessionCoordinator: ObservableObject {
         pendingSaveTask?.cancel()
         pendingSaveTask = Task { [weak self] in
             do {
-                try await Task.sleep(nanoseconds: 50_000_000)
+                guard let self else { return }
+                try await Task.sleep(nanoseconds: self.autoSaveDebounceNanoseconds)
             } catch {
                 return
             }
             guard !Task.isCancelled else { return }
-            await self?.saveSession()
+            await self.saveSession()
         }
     }
 

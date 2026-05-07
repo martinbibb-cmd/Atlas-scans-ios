@@ -102,10 +102,10 @@ struct V2RoomLoopView: View {
     }
 
     private func saveDraftRoomEvidence() {
-        let draftPrefix = prospectiveRoomId.uuidString.prefix(6).uppercased()
+        let draftTimestamp = Date.now.formatted(date: .abbreviated, time: .shortened)
         var draftRoom = RoomCaptureV2(
             id: prospectiveRoomId,
-            displayName: "Draft Room \(draftPrefix)"
+            displayName: "Unsaved Room \(draftTimestamp)"
         )
         draftRoom.pinnedObjects = pendingPins
         coordinator.addRoom(draftRoom)
@@ -114,7 +114,6 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins = []
         prospectiveRoomId = UUID()
-        showCapture = true
         restartCurrentCapture()
     }
 
