@@ -370,7 +370,7 @@ final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func test_unfinishedRoomEvidence_canBeDiscardedWithoutOrphans() async throws {
+    func test_unfinishedRoomEvidence_discardAlsoRemovesRoomPins() async throws {
         let visitId = UUID()
         let unfinishedRoomId = UUID()
         let keptRoomId = UUID()
@@ -383,18 +383,49 @@ final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
         coordinator.addVoiceNote(
             VoiceNoteV1(visitId: visitId, roomId: unfinishedRoomId, processedTranscript: "unfinished note")
         )
+        var unfinishedRoom = RoomCaptureV2(id: unfinishedRoomId, displayName: "Unfinished Room")
+        unfinishedRoom.pinnedObjects = [
+            SpatialPinV1(
+                roomId: unfinishedRoomId,
+                positionX: 1,
+                positionY: 0,
+                positionZ: 1,
+                objectType: .boiler
+            )
+        ]
+        coordinator.addRoom(unfinishedRoom)
         coordinator.addPhoto(
             PhotoEvidenceV1(visitId: visitId, roomId: keptRoomId, relativeFilePath: "kept.jpg")
         )
-        coordinator.addRoom(RoomCaptureV2(id: keptRoomId, displayName: "Saved Room"))
+        var keptRoom = RoomCaptureV2(id: keptRoomId, displayName: "Saved Room")
+        keptRoom.pinnedObjects = [
+            SpatialPinV1(
+                roomId: keptRoomId,
+                positionX: 2,
+                positionY: 0,
+                positionZ: 2,
+                objectType: .heatPump
+            )
+        ]
+        coordinator.addRoom(keptRoom)
 
         coordinator.discardUnfinishedRoomEvidence(for: unfinishedRoomId)
         await coordinator.saveSession()
 
+        XCTAssertFalse(coordinator.session.rooms.contains { $0.id == unfinishedRoomId })
         XCTAssertFalse(coordinator.session.photos.contains { $0.roomId == unfinishedRoomId })
         XCTAssertFalse(coordinator.session.voiceNotes.contains { $0.roomId == unfinishedRoomId })
         XCTAssertFalse(coordinator.session.transcripts.contains { $0.roomId == unfinishedRoomId })
+        XCTAssertFalse(
+            coordinator.session.rooms
+                .flatMap(\.pinnedObjects)
+                .contains { $0.roomId == unfinishedRoomId }
+        )
         XCTAssertTrue(coordinator.session.photos.contains { $0.roomId == keptRoomId })
         XCTAssertTrue(coordinator.session.rooms.contains { $0.id == keptRoomId })
+        XCTAssertEqual(
+            coordinator.session.rooms.first(where: { $0.id == keptRoomId })?.pinnedObjects.map(\.roomId),
+            [keptRoomId]
+        )
     }
 }

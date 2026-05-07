@@ -73,6 +73,9 @@ public final class ScanSessionCoordinator: ObservableObject {
     public func discardUnfinishedRoomEvidence(for roomId: UUID) {
         // Intentionally safe when called before a room is saved; missing array
         // elements simply result in no removals while orphaned evidence is cleared.
+        session.rooms.indices.forEach { index in
+            session.rooms[index].pinnedObjects.removeAll { $0.roomId == roomId }
+        }
         session.rooms.removeAll { $0.id == roomId }
         session.photos.removeAll { $0.roomId == roomId }
         session.voiceNotes.removeAll { $0.roomId == roomId }
