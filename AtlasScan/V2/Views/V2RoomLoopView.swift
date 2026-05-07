@@ -116,7 +116,7 @@ struct V2RoomLoopView: View {
         let formattedDate = Date.now.formatted(date: .abbreviated, time: .shortened)
         var draftRoom = RoomCaptureV2(
             id: prospectiveRoomId,
-            displayName: "Unsaved Room \(formattedDate)"
+            displayName: "Draft Room \(formattedDate)"
         )
         draftRoom.pinnedObjects = pendingPins
         coordinator.addRoom(draftRoom)

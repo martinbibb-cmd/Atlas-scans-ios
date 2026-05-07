@@ -12,8 +12,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     @Published public var saveError: Error?
 
     private let store: AtomicSessionStore
-    /// Coalesces rapid evidence mutations into a single write while keeping
-    /// autosave feeling immediate in the capture flow.
+    /// 50ms debounce coalesces rapid evidence mutations into one write while
+    /// still feeling immediate during live capture interactions.
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private var pendingSaveTask: Task<Void, Never>?
 
@@ -116,7 +116,6 @@ public final class ScanSessionCoordinator: ObservableObject {
             } catch {
                 return
             }
-            guard !Task.isCancelled else { return }
             await self.saveSession()
         }
     }
