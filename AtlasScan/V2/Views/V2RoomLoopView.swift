@@ -66,9 +66,8 @@ struct V2RoomLoopView: View {
 }
 
 private struct LiveSpatialCaptureView: View {
-    private let roomPlanBaseLayer: Double = 0
     /// Layer kept above the RoomPlan base surface so Atlas HUD controls stay consistently visible.
-    private var hudOverlayLayer: Double { roomPlanBaseLayer + 1 }
+    private let hudOverlayLayer: Double = 10
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
@@ -113,7 +112,7 @@ private struct LiveSpatialCaptureView: View {
         .alert(item: $activeDockTool) { tool in
             Alert(
                 title: Text("\(tool.rawValue) workflow"),
-                message: Text("This workflow is wired from the live dock and awaiting fullscreen integration."),
+                message: Text("This workflow is wired from the live dock and awaiting full-screen integration."),
                 dismissButton: .default(Text("OK"))
             )
         }
