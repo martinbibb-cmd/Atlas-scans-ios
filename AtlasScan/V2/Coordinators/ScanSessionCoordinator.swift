@@ -67,6 +67,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     }
 
     public func discardUnfinishedRoomEvidence(for roomId: UUID) {
+        // Intentionally safe when called before a room is saved; removeAll no-ops
+        // on missing rows and still clears any orphaned evidence by room ID.
         session.rooms.removeAll { $0.id == roomId }
         session.photos.removeAll { $0.roomId == roomId }
         session.voiceNotes.removeAll { $0.roomId == roomId }

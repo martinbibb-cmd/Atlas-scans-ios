@@ -70,7 +70,7 @@ struct V2RoomLoopView: View {
             Button("Cancel", role: .cancel) { showCapture = true }
         })
         .confirmationDialog(
-            "Room wasn’t finalised",
+            "Room wasn’t finalized",
             isPresented: $showUnfinishedRoomRecovery,
             titleVisibility: .visible
         ) {
