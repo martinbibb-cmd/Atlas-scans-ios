@@ -103,7 +103,7 @@ struct V2RoomLoopView: View {
                         }
 
                         HStack(spacing: 12) {
-                            Button("Continue Scanning") {
+                            Button("Scan Next Room") {
                                 beginNextCapture(with: review.nextProspectiveRoomId)
                             }
                             .buttonStyle(.borderedProminent)
@@ -161,7 +161,7 @@ struct V2RoomLoopView: View {
             isPresented: $showUnfinishedRoomRecovery,
             titleVisibility: .visible
         ) {
-            Button("Retry scan") { restartCurrentCapture() }
+            Button("Retry scan") { refreshCaptureView() }
             Button("Save evidence as draft room") { saveDraftRoomEvidence() }
             Button("Discard unfinished room evidence", role: .destructive) {
                 discardUnfinishedRoomEvidence()
@@ -200,7 +200,7 @@ struct V2RoomLoopView: View {
         showCapture = false
     }
 
-    private func restartCurrentCapture() {
+    private func refreshCaptureView() {
         captureViewRefreshToken = UUID()
     }
 
@@ -230,7 +230,7 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins.removeAll { $0.roomId == discardedRoomId }
         prospectiveRoomId = UUID()
-        restartCurrentCapture()
+        refreshCaptureView()
     }
 
     private var currentReviewRoom: RoomCaptureV2? {
@@ -278,7 +278,7 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins = []
         prospectiveRoomId = nextRoomId
-        restartCurrentCapture()
+        refreshCaptureView()
         showCapture = true
     }
 
@@ -290,6 +290,7 @@ struct V2RoomLoopView: View {
         var renamedRoom = room
         renamedRoom.displayName = renameRoomName.trimmingCharacters(in: .whitespacesAndNewlines)
         coordinator.upsertRoom(renamedRoom)
+        Task { await coordinator.saveSession() }
     }
 }
 
