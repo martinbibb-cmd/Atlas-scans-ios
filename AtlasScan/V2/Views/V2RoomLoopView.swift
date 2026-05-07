@@ -33,7 +33,6 @@ enum V2RoomLoopLifecycle {
 }
 
 struct V2RoomLoopView: View {
-    private let defaultReviewRoomName = "Room"
     @ObservedObject var coordinator: ScanSessionCoordinator
     @Environment(\.dismiss) private var dismiss
 
@@ -76,14 +75,14 @@ struct V2RoomLoopView: View {
                     }
                 }
             } else {
-                if let review = postCaptureReview {
+                if let review = postCaptureReview, let reviewRoom = currentReviewRoom {
                     VStack(alignment: .leading, spacing: 14) {
                         Label("Room Captured", systemImage: "checkmark.circle.fill")
                             .font(.headline)
                             .foregroundStyle(.green)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(currentReviewRoom?.displayName ?? defaultReviewRoomName)
+                            Text(reviewRoom.displayName)
                                 .font(.title3.bold())
                             Text(review.status.badgeText)
                                 .font(.caption.weight(.semibold))
@@ -105,7 +104,7 @@ struct V2RoomLoopView: View {
 
                         HStack(spacing: 12) {
                             Button("Scan Next Room") {
-                                beginNextCapture(with: review.nextProspectiveRoomId)
+                                beginNextCapture()
                             }
                             .buttonStyle(.borderedProminent)
 
@@ -117,7 +116,7 @@ struct V2RoomLoopView: View {
 
                         HStack(spacing: 12) {
                             Button("Rename Room") {
-                                renameRoomName = currentReviewRoom?.displayName ?? defaultReviewRoomName
+                                renameRoomName = reviewRoom.displayName
                                 showRenamePrompt = true
                             }
                             .buttonStyle(.bordered)
@@ -273,7 +272,8 @@ struct V2RoomLoopView: View {
         .font(.subheadline)
     }
 
-    private func beginNextCapture(with nextRoomId: UUID) {
+    private func beginNextCapture() {
+        let nextRoomId = postCaptureReview?.nextProspectiveRoomId ?? UUID()
         postCaptureReview = nil
         showRoomReview = false
         capturedRoom = nil
