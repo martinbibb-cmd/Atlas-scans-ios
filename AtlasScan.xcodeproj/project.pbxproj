@@ -158,7 +158,7 @@
 		AAV20003 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30003 /* GhostBoxARView.swift */; };
 		AAV20004 /* GhostBoxRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30004 /* GhostBoxRenderer.swift */; };
 		AAV20005 /* MiniMapHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30005 /* MiniMapHUD.swift */; };
-		AAV20006 /* RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* RoomPlanCaptureView.swift */; };
+		AAV20006 /* V2RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* V2RoomPlanCaptureView.swift */; };
 		AAV20007 /* RoomPlanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30007 /* RoomPlanCoordinator.swift */; };
 		AAV20008 /* SpatialPinARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30008 /* SpatialPinARView.swift */; };
 		AAV20009 /* SpatialPinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30009 /* SpatialPinManager.swift */; };
@@ -331,7 +331,7 @@
 		AAV30003 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
 		AAV30004 /* GhostBoxRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxRenderer.swift; sourceTree = "<group>"; };
 		AAV30005 /* MiniMapHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMapHUD.swift; sourceTree = "<group>"; };
-		AAV30006 /* RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCaptureView.swift; sourceTree = "<group>"; };
+		AAV30006 /* V2RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomPlanCaptureView.swift; sourceTree = "<group>"; };
 		AAV30007 /* RoomPlanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCoordinator.swift; sourceTree = "<group>"; };
 		AAV30008 /* SpatialPinARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinARView.swift; sourceTree = "<group>"; };
 		AAV30009 /* SpatialPinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPinManager.swift; sourceTree = "<group>"; };
@@ -765,7 +765,7 @@
 				AAV30003 /* GhostBoxARView.swift */,
 				AAV30004 /* GhostBoxRenderer.swift */,
 				AAV30005 /* MiniMapHUD.swift */,
-				AAV30006 /* RoomPlanCaptureView.swift */,
+				AAV30006 /* V2RoomPlanCaptureView.swift */,
 				AAV30007 /* RoomPlanCoordinator.swift */,
 				AAV30008 /* SpatialPinARView.swift */,
 				AAV30009 /* SpatialPinManager.swift */,
@@ -1015,6 +1015,7 @@
 
 				AA0100F1 /* RoomPlanMapper.swift in Sources */,
 				AA0100F2 /* RoomPlanCaptureService.swift in Sources */,
+				AA0100F3 /* RoomPlanCaptureView.swift in Sources */,
 	
 
 				AA0100D4 /* VoiceNotesView.swift in Sources */,
@@ -1082,7 +1083,7 @@
 				AAV20003 /* GhostBoxARView.swift in Sources */,
 				AAV20004 /* GhostBoxRenderer.swift in Sources */,
 				AAV20005 /* MiniMapHUD.swift in Sources */,
-				AAV20006 /* RoomPlanCaptureView.swift in Sources */,
+				AAV20006 /* V2RoomPlanCaptureView.swift in Sources */,
 				AAV20007 /* RoomPlanCoordinator.swift in Sources */,
 				AAV20008 /* SpatialPinARView.swift in Sources */,
 				AAV20009 /* SpatialPinManager.swift in Sources */,
