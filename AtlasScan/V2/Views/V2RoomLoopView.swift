@@ -11,6 +11,11 @@ struct V2RoomLoopView: View {
     @State private var showCapture = true
     @State private var roomName = ""
     @State private var showNamePrompt = false
+    /// Pre-generated UUID shared with the live-capture view so photos, voice
+    /// notes, and pins recorded during scanning already reference this room.
+    @State private var prospectiveRoomId = UUID()
+    /// Object pins placed during the scan; attached to the room on save.
+    @State private var pendingPins: [SpatialPinV1] = []
 
     var body: some View {
         Group {
@@ -18,7 +23,12 @@ struct V2RoomLoopView: View {
                 LiveSpatialCaptureView(
                     capturedRoom: $capturedRoom,
                     rooms: coordinator.session.rooms,
-                    onExit: { dismiss() }
+                    visitId: coordinator.session.visitId,
+                    prospectiveRoomId: prospectiveRoomId,
+                    onExit: { dismiss() },
+                    onPinAdded: { pin in pendingPins.append(pin) },
+                    onPhotoAdded: { coordinator.addPhoto($0) },
+                    onVoiceNoteAdded: { coordinator.addVoiceNote($0) }
                 )
                 .ignoresSafeArea()
                 .onChange(of: capturedRoom?.id) { _, newId in
@@ -28,7 +38,7 @@ struct V2RoomLoopView: View {
                     }
                 }
             } else {
-                // Brief pause between rooms.
+                // Brief pause between rooms — confirm and offer to add another.
                 VStack(spacing: 20) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 48))
@@ -38,6 +48,8 @@ struct V2RoomLoopView: View {
                     HStack(spacing: 16) {
                         Button("Add Another Room") {
                             capturedRoom = nil
+                            pendingPins = []
+                            prospectiveRoomId = UUID()
                             showCapture = true
                         }
                         .buttonStyle(.borderedProminent)
@@ -58,37 +70,65 @@ struct V2RoomLoopView: View {
     private func saveRoom() {
         guard var room = capturedRoom else { return }
         room.displayName = roomName.isEmpty ? "Room \(coordinator.session.rooms.count + 1)" : roomName
+        room.pinnedObjects = pendingPins
         coordinator.addRoom(room)
         Task { await coordinator.saveSession() }
         roomName = ""
         capturedRoom = nil
+        pendingPins = []
+        prospectiveRoomId = UUID()
     }
 }
 
+// MARK: - LiveSpatialCaptureView
+
 private struct LiveSpatialCaptureView: View {
-    /// Layer kept above the RoomPlan base surface so Atlas HUD controls stay consistently visible.
+    /// Z-index layer that keeps Atlas HUD controls consistently above the
+    /// RoomPlan base surface.
     private let hudOverlayLayer: Double = 10
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
+    let visitId: UUID
+    let prospectiveRoomId: UUID
+    /// Called when the user dismisses the scan without saving (e.g. back gesture).
     let onExit: () -> Void
-    @State private var activeDockTool: DockTool?
+    let onPinAdded: (SpatialPinV1) -> Void
+    let onPhotoAdded: (PhotoEvidenceV1) -> Void
+    let onVoiceNoteAdded: (VoiceNoteV1) -> Void
+
+    @State private var shouldStopCapture = false
+    @State private var liveMapVertices: [Vertex2D] = []
+    @State private var pendingPinsLocal: [SpatialPinV1] = []
+    @State private var showObjectPicker = false
+    @State private var showPhotoPicker = false
+    @State private var showVoiceRecorder = false
 
     var body: some View {
         ZStack {
-            V2RoomPlanCaptureView(capturedRoom: $capturedRoom)
-                .ignoresSafeArea()
+            V2RoomPlanCaptureView(
+                capturedRoom: $capturedRoom,
+                shouldStop: $shouldStopCapture,
+                prospectiveRoomId: prospectiveRoomId,
+                onLiveVertices: { verts in liveMapVertices = verts }
+            )
+            .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                debugBanner
-
                 HStack(alignment: .top) {
-                    MiniMapHUD(rooms: rooms)
-                        .debugOverlayBorder(.red)
-                        .zIndex(hudOverlayLayer)
+                    MiniMapHUD(
+                        rooms: rooms,
+                        livePolygonVertices: liveMapVertices,
+                        pins: pendingPinsLocal
+                    )
+                    .zIndex(hudOverlayLayer)
+
                     Spacer()
-                    ObjectRadarPointersHUD()
-                        .zIndex(hudOverlayLayer)
+
+                    if !pendingPinsLocal.isEmpty {
+                        PinsCountBadge(count: pendingPinsLocal.count)
+                            .zIndex(hudOverlayLayer)
+                    }
                 }
                 .padding(.horizontal, 16)
 
@@ -98,38 +138,57 @@ private struct LiveSpatialCaptureView: View {
                     .zIndex(hudOverlayLayer)
 
                 BottomActionDock(
-                    onObject: { activeDockTool = .object },
-                    onPhoto: { activeDockTool = .photo },
-                    onVoice: { activeDockTool = .voice },
-                    onExit: onExit
+                    onObject: { showObjectPicker = true },
+                    onPhoto:  { showPhotoPicker = true },
+                    onVoice:  { showVoiceRecorder = true },
+                    onFinish: { shouldStopCapture = true }
                 )
-                    .debugOverlayBorder(.green)
-                    .zIndex(hudOverlayLayer)
+                .zIndex(hudOverlayLayer)
             }
             .padding(.bottom, 20)
         }
-        // TODO: Replace this temporary action feedback with actual photo/voice/object workflows.
-        .alert(item: $activeDockTool) { tool in
-            Alert(
-                title: Text("\(tool.rawValue) workflow"),
-                message: Text("This workflow is wired from the live dock and awaiting full-screen integration."),
-                dismissButton: .default(Text("OK"))
-            )
+        .sheet(isPresented: $showObjectPicker) {
+            V2PinPickerSheet(roomId: prospectiveRoomId) { pin in
+                pendingPinsLocal.append(pin)
+                onPinAdded(pin)
+                showObjectPicker = false
+            }
+        }
+        .fullScreenCover(isPresented: $showPhotoPicker) {
+            CameraPickerView { image in
+                savePhoto(image)
+                showPhotoPicker = false
+            } onCancel: {
+                showPhotoPicker = false
+            }
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showVoiceRecorder) {
+            V2VoiceNoteSheet(visitId: visitId, roomId: prospectiveRoomId) { note in
+                onVoiceNoteAdded(note)
+                showVoiceRecorder = false
+            }
         }
     }
 
-    @ViewBuilder
-    private var debugBanner: some View {
-#if DEBUG
-        Text("LIVE SPATIAL CAPTURE")
-            .font(.largeTitle)
-            .foregroundStyle(.red)
-            .fontWeight(.black)
-            .padding(.top, 18)
-            .zIndex(hudOverlayLayer)
-#endif
+    // MARK: - Photo save
+
+    private func savePhoto(_ image: UIImage) {
+        do {
+            let (filename, _) = try PhotoStore.shared.save(image)
+            let photo = PhotoEvidenceV1(
+                visitId: visitId,
+                roomId: prospectiveRoomId,
+                relativeFilePath: filename
+            )
+            onPhotoAdded(photo)
+        } catch {
+            print("[LiveSpatialCaptureView] Photo save failed: \(error.localizedDescription)")
+        }
     }
 }
+
+// MARK: - CenterCaptureReticleButton
 
 private struct CenterCaptureReticleButton: View {
     var body: some View {
@@ -148,24 +207,35 @@ private struct CenterCaptureReticleButton: View {
     }
 }
 
+// MARK: - BottomActionDock
+
 private struct BottomActionDock: View {
+    /// Minimum width of the Finish button so its text never wraps vertically
+    /// even on small screen widths.
+    fileprivate static let finishButtonMinWidth: CGFloat = 90
+
     let onObject: () -> Void
     let onPhoto: () -> Void
     let onVoice: () -> Void
-    let onExit: () -> Void
+    let onFinish: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
             dockButton(symbol: "mappin.circle", title: "Object", action: onObject)
-            dockButton(symbol: "camera.circle", title: "Photo", action: onPhoto)
+            dockButton(symbol: "camera.circle", title: "Photo",  action: onPhoto)
             dockButton(symbol: "waveform.circle", title: "Voice", action: onVoice)
-            Button(action: onExit) {
-                Label("Finish", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(.green.opacity(0.92), in: Capsule())
+            Button(action: onFinish) {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Finish")
+                        .lineLimit(1)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(minWidth: BottomActionDock.finishButtonMinWidth)
+                .background(.green.opacity(0.92), in: Capsule())
             }
             .buttonStyle(.plain)
         }
@@ -190,41 +260,243 @@ private struct BottomActionDock: View {
     }
 }
 
-private struct ObjectRadarPointersHUD: View {
+// MARK: - PinsCountBadge
+
+private struct PinsCountBadge: View {
+    let count: Int
+
     var body: some View {
-        VStack(alignment: .trailing, spacing: 6) {
-            Label("Object Radar", systemImage: "location.north.line")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.up")
-                Image(systemName: "arrow.up.right")
-                Image(systemName: "arrow.right")
-            }
-            .font(.caption.bold())
-            .foregroundStyle(.white.opacity(0.9))
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        Label("\(count) pin\(count == 1 ? "" : "s")", systemImage: "mappin.circle.fill")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
-private enum DockTool: String, Identifiable {
-    case object = "Object"
-    case photo = "Photo"
-    case voice = "Voice"
+// MARK: - V2PinPickerSheet
 
-    var id: String { rawValue }
+private struct V2PinPickerSheet: View {
+    let roomId: UUID
+    let onSave: (SpatialPinV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedType: PinnedObjectType = .boiler
+    @State private var label = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Object type") {
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(PinnedObjectType.allCases, id: \.self) { type in
+                            Label(type.rawValue.capitalized, systemImage: iconName(for: type))
+                                .tag(type)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                }
+                Section("Label (optional)") {
+                    TextField("e.g. Worcester Combi", text: $label)
+                }
+                Section {
+                    Text("Position will be marked as estimated. Refine in room review after scanning.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Pin Object")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add Pin") { savePinAndDismiss() }
+                }
+            }
+        }
+    }
+
+    private func savePinAndDismiss() {
+        let pin = SpatialPinV1(
+            roomId: roomId,
+            positionX: 0, positionY: 0, positionZ: 0,
+            objectType: selectedType,
+            label: label.isEmpty ? nil : label,
+            anchorConfidence: .estimated
+        )
+        onSave(pin)
+    }
+
+    private func iconName(for type: PinnedObjectType) -> String {
+        switch type {
+        case .boiler, .heatPump:    return "flame.fill"
+        case .flueTerminal:         return "arrow.up.circle.fill"
+        case .hotWaterCylinder:     return "drop.fill"
+        case .electricalPanel:      return "bolt.fill"
+        case .gasmeter:             return "gauge"
+        case .nearbyOpening:        return "door.left.hand.open"
+        case .other:                return "mappin"
+        }
+    }
 }
 
-private extension View {
-    @ViewBuilder
-    func debugOverlayBorder(_ color: Color) -> some View {
-#if DEBUG
-        self.border(color)
-#else
-        self
-#endif
+// MARK: - V2VoiceNoteSheet
+
+private struct V2VoiceNoteSheet: View {
+    let visitId: UUID
+    let roomId: UUID
+    let onSave: (VoiceNoteV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var recorder = VoiceNoteRecorderViewModel()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                stateDisplay
+                transcriptEditor
+                controlBar
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Voice Note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        recorder.discard()
+                        dismiss()
+                    }
+                }
+                if recorder.canCommit {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") { commitNote() }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: State display
+
+    private var stateDisplay: some View {
+        VStack(spacing: 8) {
+            Image(systemName: recorderIcon)
+                .font(.system(size: 48, weight: .thin))
+                .foregroundStyle(recorderColor)
+                .animation(.easeInOut, value: recorder.state)
+            Text(recorder.elapsedTimeText)
+                .font(.system(.title, design: .monospaced).bold())
+            Text(stateLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var recorderIcon: String {
+        switch recorder.state {
+        case .idle:      return "mic.circle"
+        case .recording: return "mic.fill"
+        case .paused:    return "pause.circle.fill"
+        case .stopped:   return "checkmark.circle.fill"
+        }
+    }
+
+    private var recorderColor: Color {
+        switch recorder.state {
+        case .idle:      return .secondary
+        case .recording: return .red
+        case .paused:    return .orange
+        case .stopped:   return .green
+        }
+    }
+
+    private var stateLabel: String {
+        switch recorder.state {
+        case .idle:      return "Ready to record"
+        case .recording: return "Recording…"
+        case .paused:    return "Paused"
+        case .stopped:   return "Recording complete — edit transcript below"
+        }
+    }
+
+    // MARK: Transcript editor
+
+    private var transcriptEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Transcript")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+            TextEditor(text: $recorder.transcript)
+                .frame(minHeight: 80)
+                .padding(8)
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    // MARK: Control bar
+
+    private var controlBar: some View {
+        HStack(spacing: 16) {
+            if recorder.canStart {
+                controlButton(label: "Start", symbol: "record.circle.fill", color: .red) {
+                    recorder.start(roomId: roomId)
+                }
+            }
+            if recorder.canPause {
+                controlButton(label: "Pause", symbol: "pause.circle.fill", color: .orange) {
+                    recorder.pause()
+                }
+            }
+            if recorder.canResume {
+                controlButton(label: "Resume", symbol: "play.circle.fill", color: .blue) {
+                    recorder.resume()
+                }
+            }
+            if recorder.canStop {
+                controlButton(label: "Stop", symbol: "stop.circle.fill", color: .primary) {
+                    recorder.stop()
+                }
+            }
+        }
+    }
+
+    private func controlButton(
+        label: String,
+        symbol: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 40))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Save
+
+    private func commitNote() {
+        guard let draft = recorder.commit() else { return }
+        let note = VoiceNoteV1(
+            visitId: visitId,
+            roomId: roomId,
+            processedTranscript: draft.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        onSave(note)
     }
 }
