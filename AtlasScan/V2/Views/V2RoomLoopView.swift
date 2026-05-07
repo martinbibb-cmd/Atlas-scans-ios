@@ -15,22 +15,17 @@ struct V2RoomLoopView: View {
     var body: some View {
         Group {
             if showCapture {
-                ZStack(alignment: .bottom) {
-                    V2RoomPlanCaptureView(capturedRoom: $capturedRoom)
-                        .ignoresSafeArea()
-                    MiniMapHUD(rooms: coordinator.session.rooms)
-                        .padding()
-                }
+                LiveSpatialCaptureView(
+                    capturedRoom: $capturedRoom,
+                    rooms: coordinator.session.rooms,
+                    onExit: { dismiss() }
+                )
+                .ignoresSafeArea()
                 .onChange(of: capturedRoom?.id) { _, newId in
                     if newId != nil {
                         showCapture = false
                         showNamePrompt = true
                     }
-                }
-                .overlay(alignment: .topLeading) {
-                    Button("Done") { dismiss() }
-                        .buttonStyle(.borderedProminent)
-                        .padding()
                 }
             } else {
                 // Brief pause between rooms.
@@ -67,5 +62,120 @@ struct V2RoomLoopView: View {
         Task { await coordinator.saveSession() }
         roomName = ""
         capturedRoom = nil
+    }
+}
+
+private struct LiveSpatialCaptureView: View {
+    @Binding var capturedRoom: RoomCaptureV2?
+    let rooms: [RoomCaptureV2]
+    let onExit: () -> Void
+
+    var body: some View {
+        ZStack {
+            V2RoomPlanCaptureView(capturedRoom: $capturedRoom)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text("LIVE SPATIAL CAPTURE")
+                    .font(.largeTitle)
+                    .foregroundStyle(.red)
+                    .fontWeight(.black)
+                    .padding(.top, 18)
+                    .zIndex(999)
+
+                HStack(alignment: .top) {
+                    MiniMapHUD(rooms: rooms)
+                        .border(.red)
+                        .zIndex(999)
+                    Spacer()
+                    ObjectRadarPointersHUD()
+                        .zIndex(999)
+                }
+                .padding(.horizontal, 16)
+
+                Spacer()
+
+                CenterCaptureReticleButton()
+                    .zIndex(999)
+
+                BottomActionDock(onExit: onExit)
+                    .border(.green)
+                    .zIndex(999)
+            }
+            .padding(.bottom, 20)
+        }
+    }
+}
+
+private struct CenterCaptureReticleButton: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(.white.opacity(0.9), lineWidth: 2)
+                .frame(width: 72, height: 72)
+            Circle()
+                .fill(.white.opacity(0.18))
+                .frame(width: 44, height: 44)
+            Image(systemName: "scope")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.white)
+        }
+        .shadow(color: .black.opacity(0.35), radius: 10, y: 6)
+    }
+}
+
+private struct BottomActionDock: View {
+    let onExit: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            dockButton(symbol: "mappin.circle", title: "Object")
+            dockButton(symbol: "camera.circle", title: "Photo")
+            dockButton(symbol: "waveform.circle", title: "Voice")
+            Button(action: onExit) {
+                Label("Finish", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.green.opacity(0.92), in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .padding(.horizontal, 14)
+    }
+
+    private func dockButton(symbol: String, title: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.title3)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct ObjectRadarPointersHUD: View {
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Label("Object Radar", systemImage: "location.north.line")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up")
+                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.right")
+            }
+            .font(.caption.bold())
+            .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 }
