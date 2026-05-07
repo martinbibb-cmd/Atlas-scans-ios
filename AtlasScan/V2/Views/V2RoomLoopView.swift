@@ -102,9 +102,10 @@ struct V2RoomLoopView: View {
     }
 
     private func saveDraftRoomEvidence() {
+        let draftSuffix = prospectiveRoomId.uuidString.prefix(6).uppercased()
         var draftRoom = RoomCaptureV2(
             id: prospectiveRoomId,
-            displayName: "Draft Room \(coordinator.session.rooms.count + 1)"
+            displayName: "Draft Room \(draftSuffix)"
         )
         draftRoom.pinnedObjects = pendingPins
         coordinator.addRoom(draftRoom)

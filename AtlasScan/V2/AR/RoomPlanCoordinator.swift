@@ -56,7 +56,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         error: (Error)?
     ) {
         Task { @MainActor in
-            if error != nil {
+            if let error {
+                print("[RoomPlanCoordinator] Capture ended with error: \(error.localizedDescription)")
                 onCaptureEndedWithoutRoom?()
                 return
             }
