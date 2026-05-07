@@ -49,7 +49,7 @@ struct V2RoomLoopView: View {
     @State private var pendingPins: [SpatialPinV1] = []
     @State private var postCaptureReview: V2PostCaptureReviewCardModel?
     @State private var renameRoomName = ""
-    @State private var showRenameRoomPrompt = false
+    @State private var showRenamePrompt = false
     @State private var showRoomReview = false
 
     var body: some View {
@@ -117,7 +117,7 @@ struct V2RoomLoopView: View {
                         HStack(spacing: 12) {
                             Button("Rename Room") {
                                 renameRoomName = currentReviewRoom?.displayName ?? ""
-                                showRenameRoomPrompt = true
+                                showRenamePrompt = true
                             }
                             .buttonStyle(.bordered)
 
@@ -151,7 +151,7 @@ struct V2RoomLoopView: View {
         } message: {
             Text(coordinator.saveError?.localizedDescription ?? "Please try again.")
         }
-        .alert("Rename room", isPresented: $showRenameRoomPrompt, actions: {
+        .alert("Rename room", isPresented: $showRenamePrompt, actions: {
             TextField("Room name", text: $renameRoomName)
             Button("Save") { renameReviewRoom() }
             Button("Cancel", role: .cancel) {}
@@ -278,7 +278,7 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins = []
         prospectiveRoomId = nextRoomId
-        captureViewRefreshToken = UUID()
+        restartCurrentCapture()
         showCapture = true
     }
 
