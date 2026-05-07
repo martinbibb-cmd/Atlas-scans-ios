@@ -3,6 +3,35 @@
 import SwiftUI
 import AtlasScanCore
 
+struct V2DraftRoomRecoveryTransition {
+    let draftRoom: RoomCaptureV2
+    let remainingPendingPins: [SpatialPinV1]
+    let nextProspectiveRoomId: UUID
+}
+
+enum V2RoomLoopLifecycle {
+    static func makeDraftRoomRecoveryTransition(
+        prospectiveRoomId: UUID,
+        pendingPins: [SpatialPinV1],
+        now: Date = .now,
+        nextProspectiveRoomId: UUID = UUID()
+    ) -> V2DraftRoomRecoveryTransition {
+        let formattedDate = now.formatted(date: .abbreviated, time: .shortened)
+        let roomPins = pendingPins.filter { $0.roomId == prospectiveRoomId }
+        var draftRoom = RoomCaptureV2(
+            id: prospectiveRoomId,
+            displayName: "Draft Room \(formattedDate)"
+        )
+        draftRoom.pinnedObjects = roomPins
+        let remainingPins = pendingPins.filter { $0.roomId != prospectiveRoomId }
+        return V2DraftRoomRecoveryTransition(
+            draftRoom: draftRoom,
+            remainingPendingPins: remainingPins,
+            nextProspectiveRoomId: nextProspectiveRoomId
+        )
+    }
+}
+
 struct V2RoomLoopView: View {
     @ObservedObject var coordinator: ScanSessionCoordinator
     @Environment(\.dismiss) private var dismiss
@@ -113,18 +142,16 @@ struct V2RoomLoopView: View {
     }
 
     private func saveDraftRoomEvidence() {
-        let formattedDate = Date.now.formatted(date: .abbreviated, time: .shortened)
-        var draftRoom = RoomCaptureV2(
-            id: prospectiveRoomId,
-            displayName: "Draft Room \(formattedDate)"
+        let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
+            prospectiveRoomId: prospectiveRoomId,
+            pendingPins: pendingPins
         )
-        draftRoom.pinnedObjects = pendingPins
-        coordinator.addRoom(draftRoom)
+        coordinator.addRoom(transition.draftRoom)
         Task { await coordinator.saveSession() }
         roomName = ""
         capturedRoom = nil
-        pendingPins = []
-        prospectiveRoomId = UUID()
+        pendingPins = transition.remainingPendingPins
+        prospectiveRoomId = transition.nextProspectiveRoomId
         restartCurrentCapture()
     }
 
