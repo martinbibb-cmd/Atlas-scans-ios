@@ -66,8 +66,9 @@ struct V2RoomLoopView: View {
 }
 
 private struct LiveSpatialCaptureView: View {
-    /// High overlay layer to ensure custom HUD stays above RoomPlan's rendering surface.
-    private let hudOverlayZIndex: Double = 999
+    private let roomPlanBaseLayer: Double = 0
+    /// Layer kept above the RoomPlan base surface so Atlas HUD controls stay consistently visible.
+    private var hudOverlayLayer: Double { roomPlanBaseLayer + 1 }
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
@@ -85,17 +86,17 @@ private struct LiveSpatialCaptureView: View {
                 HStack(alignment: .top) {
                     MiniMapHUD(rooms: rooms)
                         .debugOverlayBorder(.red)
-                        .zIndex(hudOverlayZIndex)
+                        .zIndex(hudOverlayLayer)
                     Spacer()
                     ObjectRadarPointersHUD()
-                        .zIndex(hudOverlayZIndex)
+                        .zIndex(hudOverlayLayer)
                 }
                 .padding(.horizontal, 16)
 
                 Spacer()
 
                 CenterCaptureReticleButton()
-                    .zIndex(hudOverlayZIndex)
+                    .zIndex(hudOverlayLayer)
 
                 BottomActionDock(
                     onObject: { activeDockTool = .object },
@@ -104,7 +105,7 @@ private struct LiveSpatialCaptureView: View {
                     onExit: onExit
                 )
                     .debugOverlayBorder(.green)
-                    .zIndex(hudOverlayZIndex)
+                    .zIndex(hudOverlayLayer)
             }
             .padding(.bottom, 20)
         }
@@ -112,7 +113,7 @@ private struct LiveSpatialCaptureView: View {
         .alert(item: $activeDockTool) { tool in
             Alert(
                 title: Text("\(tool.rawValue) workflow"),
-                message: Text("This workflow is wired from the live dock and awaiting full-screen integration."),
+                message: Text("This workflow is wired from the live dock and awaiting fullscreen integration."),
                 dismissButton: .default(Text("OK"))
             )
         }
@@ -126,7 +127,7 @@ private struct LiveSpatialCaptureView: View {
             .foregroundStyle(.red)
             .fontWeight(.black)
             .padding(.top, 18)
-            .zIndex(hudOverlayZIndex)
+            .zIndex(hudOverlayLayer)
 #endif
     }
 }
