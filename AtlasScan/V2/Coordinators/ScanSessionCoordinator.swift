@@ -66,6 +66,14 @@ public final class ScanSessionCoordinator: ObservableObject {
         scheduleSave()
     }
 
+    public func discardUnfinishedRoomEvidence(for roomId: UUID) {
+        session.rooms.removeAll { $0.id == roomId }
+        session.photos.removeAll { $0.roomId == roomId }
+        session.voiceNotes.removeAll { $0.roomId == roomId }
+        session.transcripts.removeAll { $0.roomId == roomId }
+        scheduleSave()
+    }
+
     public func emitQAFlag(_ flag: QAFlagV1) {
         session.emitQAFlag(flag)
         scheduleSave()

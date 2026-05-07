@@ -11,6 +11,8 @@ struct V2RoomLoopView: View {
     @State private var showCapture = true
     @State private var roomName = ""
     @State private var showNamePrompt = false
+    @State private var showUnfinishedRoomRecovery = false
+    @State private var captureViewRefreshToken = UUID()
     /// Pre-generated UUID shared with the live-capture view so photos, voice
     /// notes, and pins recorded during scanning already reference this room.
     @State private var prospectiveRoomId = UUID()
@@ -25,10 +27,12 @@ struct V2RoomLoopView: View {
                     rooms: coordinator.session.rooms,
                     visitId: coordinator.session.visitId,
                     prospectiveRoomId: prospectiveRoomId,
+                    refreshToken: captureViewRefreshToken,
                     onExit: { dismiss() },
                     onPinAdded: { pin in pendingPins.append(pin) },
                     onPhotoAdded: { coordinator.addPhoto($0) },
-                    onVoiceNoteAdded: { coordinator.addVoiceNote($0) }
+                    onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
+                    onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true }
                 )
                 .ignoresSafeArea()
                 .onChange(of: capturedRoom?.id) { _, newId in
@@ -65,6 +69,20 @@ struct V2RoomLoopView: View {
             Button("Save") { saveRoom() }
             Button("Cancel", role: .cancel) { showCapture = true }
         })
+        .confirmationDialog(
+            "Room wasn’t finalised",
+            isPresented: $showUnfinishedRoomRecovery,
+            titleVisibility: .visible
+        ) {
+            Button("Retry scan") { restartCurrentCapture() }
+            Button("Save evidence as draft room") { saveDraftRoomEvidence() }
+            Button("Discard unfinished room evidence", role: .destructive) {
+                discardUnfinishedRoomEvidence()
+            }
+            Button("Continue capturing", role: .cancel) {}
+        } message: {
+            Text("This scan ended without a completed room. Retry, save current evidence as a draft room, or discard this unfinished room evidence.")
+        }
     }
 
     private func saveRoom() {
@@ -77,6 +95,34 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins = []
         prospectiveRoomId = UUID()
+    }
+
+    private func restartCurrentCapture() {
+        captureViewRefreshToken = UUID()
+    }
+
+    private func saveDraftRoomEvidence() {
+        var draftRoom = RoomCaptureV2(
+            id: prospectiveRoomId,
+            displayName: "Draft Room \(coordinator.session.rooms.count + 1)"
+        )
+        draftRoom.pinnedObjects = pendingPins
+        coordinator.addRoom(draftRoom)
+        Task { await coordinator.saveSession() }
+        roomName = ""
+        capturedRoom = nil
+        pendingPins = []
+        prospectiveRoomId = UUID()
+        showCapture = false
+    }
+
+    private func discardUnfinishedRoomEvidence() {
+        coordinator.discardUnfinishedRoomEvidence(for: prospectiveRoomId)
+        roomName = ""
+        capturedRoom = nil
+        pendingPins = []
+        prospectiveRoomId = UUID()
+        restartCurrentCapture()
     }
 }
 
@@ -91,11 +137,13 @@ private struct LiveSpatialCaptureView: View {
     let rooms: [RoomCaptureV2]
     let visitId: UUID
     let prospectiveRoomId: UUID
+    let refreshToken: UUID
     /// Called when the user dismisses the scan without saving (e.g. back gesture).
     let onExit: () -> Void
     let onPinAdded: (SpatialPinV1) -> Void
     let onPhotoAdded: (PhotoEvidenceV1) -> Void
     let onVoiceNoteAdded: (VoiceNoteV1) -> Void
+    let onCaptureEndedWithoutRoom: () -> Void
 
     @State private var shouldStopCapture = false
     @State private var liveMapVertices: [Vertex2D] = []
@@ -110,8 +158,13 @@ private struct LiveSpatialCaptureView: View {
                 capturedRoom: $capturedRoom,
                 shouldStop: $shouldStopCapture,
                 prospectiveRoomId: prospectiveRoomId,
-                onLiveVertices: { verts in liveMapVertices = verts }
+                onLiveVertices: { verts in liveMapVertices = verts },
+                onCaptureEndedWithoutRoom: {
+                    shouldStopCapture = false
+                    onCaptureEndedWithoutRoom()
+                }
             )
+            .id(refreshToken)
             .ignoresSafeArea()
 
             VStack(spacing: 16) {

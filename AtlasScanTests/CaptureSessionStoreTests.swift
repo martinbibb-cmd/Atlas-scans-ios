@@ -1,5 +1,6 @@
 import XCTest
 import AtlasContracts
+import AtlasScanCore
 @testable import AtlasScan
 
 // MARK: - CaptureSessionStoreTests
@@ -298,5 +299,102 @@ final class CaptureSessionStoreTests: XCTestCase {
 
         // Cleanup
         persistence.delete(id: draft.id)
+    }
+}
+
+final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
+    private let store = AtomicSessionStore()
+
+    @MainActor
+    func test_prospectiveRoomId_linksMidScanEvidenceToSavedRoom() async throws {
+        let visitId = UUID()
+        let roomId = UUID()
+        let coordinator = ScanSessionCoordinator(visitId: visitId, store: store)
+        defer { try? store.delete(visitId: visitId) }
+
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: roomId, relativeFilePath: "mid-scan.jpg")
+        )
+        coordinator.addVoiceNote(
+            VoiceNoteV1(visitId: visitId, roomId: roomId, processedTranscript: "boiler near wall")
+        )
+
+        let pin = SpatialPinV1(
+            roomId: roomId,
+            positionX: 0, positionY: 0, positionZ: 0,
+            objectType: .boiler
+        )
+        var room = RoomCaptureV2(id: roomId, displayName: "Kitchen")
+        room.pinnedObjects = [pin]
+        coordinator.addRoom(room)
+        await coordinator.saveSession()
+
+        XCTAssertEqual(coordinator.session.rooms.first?.id, roomId)
+        XCTAssertEqual(coordinator.session.photos.map(\.roomId), [roomId])
+        XCTAssertEqual(coordinator.session.voiceNotes.map(\.roomId), [roomId])
+        XCTAssertEqual(coordinator.session.transcripts.map(\.roomId), [roomId])
+        XCTAssertEqual(coordinator.session.rooms.first?.pinnedObjects.map(\.roomId), [roomId])
+    }
+
+    @MainActor
+    func test_secondRoomCapture_usesDistinctRoomIdWithoutEvidenceBleed() async throws {
+        let visitId = UUID()
+        let firstRoomId = UUID()
+        let secondRoomId = UUID()
+        let coordinator = ScanSessionCoordinator(visitId: visitId, store: store)
+        defer { try? store.delete(visitId: visitId) }
+
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: firstRoomId, relativeFilePath: "room-1.jpg")
+        )
+        coordinator.addVoiceNote(
+            VoiceNoteV1(visitId: visitId, roomId: firstRoomId, processedTranscript: "room one note")
+        )
+        coordinator.addRoom(RoomCaptureV2(id: firstRoomId, displayName: "Room 1"))
+
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: secondRoomId, relativeFilePath: "room-2.jpg")
+        )
+        coordinator.addVoiceNote(
+            VoiceNoteV1(visitId: visitId, roomId: secondRoomId, processedTranscript: "room two note")
+        )
+        coordinator.addRoom(RoomCaptureV2(id: secondRoomId, displayName: "Room 2"))
+        await coordinator.saveSession()
+
+        XCTAssertNotEqual(firstRoomId, secondRoomId)
+        XCTAssertEqual(coordinator.session.rooms.count, 2)
+        XCTAssertEqual(coordinator.session.photos.filter { $0.roomId == firstRoomId }.count, 1)
+        XCTAssertEqual(coordinator.session.photos.filter { $0.roomId == secondRoomId }.count, 1)
+        XCTAssertEqual(coordinator.session.voiceNotes.filter { $0.roomId == firstRoomId }.count, 1)
+        XCTAssertEqual(coordinator.session.voiceNotes.filter { $0.roomId == secondRoomId }.count, 1)
+    }
+
+    @MainActor
+    func test_unfinishedRoomEvidence_canBeDiscardedWithoutOrphans() async throws {
+        let visitId = UUID()
+        let unfinishedRoomId = UUID()
+        let keptRoomId = UUID()
+        let coordinator = ScanSessionCoordinator(visitId: visitId, store: store)
+        defer { try? store.delete(visitId: visitId) }
+
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: unfinishedRoomId, relativeFilePath: "unfinished.jpg")
+        )
+        coordinator.addVoiceNote(
+            VoiceNoteV1(visitId: visitId, roomId: unfinishedRoomId, processedTranscript: "unfinished note")
+        )
+        coordinator.addPhoto(
+            PhotoEvidenceV1(visitId: visitId, roomId: keptRoomId, relativeFilePath: "kept.jpg")
+        )
+        coordinator.addRoom(RoomCaptureV2(id: keptRoomId, displayName: "Saved Room"))
+
+        coordinator.discardUnfinishedRoomEvidence(for: unfinishedRoomId)
+        await coordinator.saveSession()
+
+        XCTAssertFalse(coordinator.session.photos.contains { $0.roomId == unfinishedRoomId })
+        XCTAssertFalse(coordinator.session.voiceNotes.contains { $0.roomId == unfinishedRoomId })
+        XCTAssertFalse(coordinator.session.transcripts.contains { $0.roomId == unfinishedRoomId })
+        XCTAssertTrue(coordinator.session.photos.contains { $0.roomId == keptRoomId })
+        XCTAssertTrue(coordinator.session.rooms.contains { $0.id == keptRoomId })
     }
 }

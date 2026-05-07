@@ -20,6 +20,8 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     /// Called on the main thread with the current floor-polygon vertices each
     /// time RoomPlan publishes an incremental update.  Drive the live mini-map.
     var onLiveVertices: (([Vertex2D]) -> Void)?
+    /// Called when RoomPlan ends but no room could be produced.
+    var onCaptureEndedWithoutRoom: (() -> Void)?
 
     func makeCoordinator() -> RoomPlanCoordinator {
         RoomPlanCoordinator(capturedRoom: $capturedRoom)
@@ -33,6 +35,7 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         context.coordinator.captureView = captureView
         context.coordinator.prospectiveRoomId = prospectiveRoomId
         context.coordinator.onLiveVertices = onLiveVertices
+        context.coordinator.onCaptureEndedWithoutRoom = onCaptureEndedWithoutRoom
         context.coordinator.startSession()
         return vc
     }
