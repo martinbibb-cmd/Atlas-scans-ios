@@ -91,11 +91,22 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public let positionY: Double
     public let positionZ: Double
 
+    /// Screen-space fallback position normalised to 0...1 when a stable
+    /// world-space anchor is not yet available.
+    public var screenPositionX: Double?
+    public var screenPositionY: Double?
+
     public var objectType: PinnedObjectType
     public var label: String?
 
+    /// Confidence of the underlying placement anchor.
+    public var anchorConfidence: SpatialPinAnchorConfidence
+
     /// Hardware spec linked to this pin (e.g. the boiler model).
     public var hardwareSpecId: UUID?
+
+    /// Optional durable appliance model key from `ApplianceDefinitionV1`.
+    public var modelId: String?
 
     public init(
         id: UUID = UUID(),
@@ -103,19 +114,34 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         positionX: Double,
         positionY: Double,
         positionZ: Double,
+        screenPositionX: Double? = nil,
+        screenPositionY: Double? = nil,
         objectType: PinnedObjectType,
         label: String? = nil,
-        hardwareSpecId: UUID? = nil
+        anchorConfidence: SpatialPinAnchorConfidence = .estimated,
+        hardwareSpecId: UUID? = nil,
+        modelId: String? = nil
     ) {
         self.id = id
         self.roomId = roomId
         self.positionX = positionX
         self.positionY = positionY
         self.positionZ = positionZ
+        self.screenPositionX = screenPositionX
+        self.screenPositionY = screenPositionY
         self.objectType = objectType
         self.label = label
+        self.anchorConfidence = anchorConfidence
         self.hardwareSpecId = hardwareSpecId
+        self.modelId = modelId
     }
+}
+
+public enum SpatialPinAnchorConfidence: String, Codable, CaseIterable, Sendable {
+    case high
+    case medium
+    case low
+    case estimated
 }
 
 public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {
