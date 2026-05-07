@@ -66,6 +66,7 @@ struct V2RoomLoopView: View {
 }
 
 private struct LiveSpatialCaptureView: View {
+    /// High overlay layer to ensure custom HUD stays above RoomPlan's rendering surface.
     private let hudOverlayZIndex: Double = 999
 
     @Binding var capturedRoom: RoomCaptureV2?
@@ -111,7 +112,7 @@ private struct LiveSpatialCaptureView: View {
         .alert(item: $activeDockTool) { tool in
             Alert(
                 title: Text("\(tool.rawValue) workflow"),
-                message: Text("This workflow is wired from the live dock and awaiting full screen integration."),
+                message: Text("This workflow is wired from the live dock and awaiting full-screen integration."),
                 dismissButton: .default(Text("OK"))
             )
         }
