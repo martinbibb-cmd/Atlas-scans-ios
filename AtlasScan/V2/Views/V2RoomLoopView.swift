@@ -103,22 +103,29 @@ struct V2RoomLoopView: View {
                         }
 
                         HStack(spacing: 12) {
-                            Button("Continue scanning") {
+                            Button("Continue Scanning") {
                                 beginNextCapture(with: review.nextProspectiveRoomId)
                             }
                             .buttonStyle(.borderedProminent)
 
-                            Button("Review room") {
+                            Button("Review Room") {
                                 showRoomReview = true
                             }
                             .buttonStyle(.bordered)
                         }
 
-                        Button("Rename room") {
-                            renameRoomName = currentReviewRoom?.displayName ?? ""
-                            showRenameRoomPrompt = true
+                        HStack(spacing: 12) {
+                            Button("Rename Room") {
+                                renameRoomName = currentReviewRoom?.displayName ?? ""
+                                showRenameRoomPrompt = true
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button("Back to Map") {
+                                dismiss()
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .buttonStyle(.bordered)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
