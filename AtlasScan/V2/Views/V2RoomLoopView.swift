@@ -16,7 +16,7 @@ struct V2RoomLoopView: View {
         Group {
             if showCapture {
                 ZStack(alignment: .bottom) {
-                    RoomPlanCaptureView(capturedRoom: $capturedRoom)
+                    V2RoomPlanCaptureView(capturedRoom: $capturedRoom)
                         .ignoresSafeArea()
                     MiniMapHUD(rooms: coordinator.session.rooms)
                         .padding()
