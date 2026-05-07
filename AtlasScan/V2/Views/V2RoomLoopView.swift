@@ -69,6 +69,7 @@ private struct LiveSpatialCaptureView: View {
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
     let onExit: () -> Void
+    @State private var activeDockTool: DockTool?
 
     var body: some View {
         ZStack {
@@ -85,7 +86,7 @@ private struct LiveSpatialCaptureView: View {
 
                 HStack(alignment: .top) {
                     MiniMapHUD(rooms: rooms)
-                        .border(.red)
+                        .debugOverlayBorder(.red)
                         .zIndex(999)
                     Spacer()
                     ObjectRadarPointersHUD()
@@ -98,11 +99,23 @@ private struct LiveSpatialCaptureView: View {
                 CenterCaptureReticleButton()
                     .zIndex(999)
 
-                BottomActionDock(onExit: onExit)
-                    .border(.green)
+                BottomActionDock(
+                    onObject: { activeDockTool = .object },
+                    onPhoto: { activeDockTool = .photo },
+                    onVoice: { activeDockTool = .voice },
+                    onExit: onExit
+                )
+                    .debugOverlayBorder(.green)
                     .zIndex(999)
             }
             .padding(.bottom, 20)
+        }
+        .alert(item: $activeDockTool) { tool in
+            Alert(
+                title: Text("\(tool.rawValue) workflow"),
+                message: Text("This control is now wired into LiveSpatialCaptureView and ready for workflow integration."),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
@@ -125,13 +138,16 @@ private struct CenterCaptureReticleButton: View {
 }
 
 private struct BottomActionDock: View {
+    let onObject: () -> Void
+    let onPhoto: () -> Void
+    let onVoice: () -> Void
     let onExit: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
-            dockButton(symbol: "mappin.circle", title: "Object")
-            dockButton(symbol: "camera.circle", title: "Photo")
-            dockButton(symbol: "waveform.circle", title: "Voice")
+            dockButton(symbol: "mappin.circle", title: "Object", action: onObject)
+            dockButton(symbol: "camera.circle", title: "Photo", action: onPhoto)
+            dockButton(symbol: "waveform.circle", title: "Voice", action: onVoice)
             Button(action: onExit) {
                 Label("Finish", systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
@@ -148,15 +164,18 @@ private struct BottomActionDock: View {
         .padding(.horizontal, 14)
     }
 
-    private func dockButton(symbol: String, title: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: symbol)
-                .font(.title3)
-            Text(title)
-                .font(.caption2.weight(.semibold))
+    private func dockButton(symbol: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.title3)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
         }
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
     }
 }
 
@@ -177,5 +196,24 @@ private struct ObjectRadarPointersHUD: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private enum DockTool: String, Identifiable {
+    case object = "Object"
+    case photo = "Photo"
+    case voice = "Voice"
+
+    var id: String { rawValue }
+}
+
+private extension View {
+    @ViewBuilder
+    func debugOverlayBorder(_ color: Color) -> some View {
+#if DEBUG
+        self.border(color)
+#else
+        self
+#endif
     }
 }
