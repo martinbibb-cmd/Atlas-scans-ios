@@ -8,9 +8,10 @@ import AtlasScanCore
 struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     @Binding var capturedRoom: RoomCaptureV2?
     /// Flip to `true` to request that the RoomPlan session stops (i.e. the
-    /// user tapped "Finish").  The binding is intentionally one-directional;
-    /// once the session is stopped the coordinator sets `isStopped` to prevent
-    /// a second call from later SwiftUI updates.
+    /// user tapped "Finish").  This binding is write-only from the parent's
+    /// perspective — the parent sets it to `true` and never resets it.
+    /// `RoomPlanCoordinator.isStopped` prevents duplicate stop calls when
+    /// SwiftUI re-evaluates `updateUIViewController` after the flag is set.
     @Binding var shouldStop: Bool
     /// Pre-assigned UUID that will be used as the captured room's ID so that
     /// evidence (photos, pins, voice notes) recorded during scanning already

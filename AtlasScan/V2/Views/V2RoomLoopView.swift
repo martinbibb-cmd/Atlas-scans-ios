@@ -174,13 +174,17 @@ private struct LiveSpatialCaptureView: View {
     // MARK: - Photo save
 
     private func savePhoto(_ image: UIImage) {
-        guard let (filename, _) = try? PhotoStore.shared.save(image) else { return }
-        let photo = PhotoEvidenceV1(
-            visitId: visitId,
-            roomId: prospectiveRoomId,
-            relativeFilePath: filename
-        )
-        onPhotoAdded(photo)
+        do {
+            let (filename, _) = try PhotoStore.shared.save(image)
+            let photo = PhotoEvidenceV1(
+                visitId: visitId,
+                roomId: prospectiveRoomId,
+                relativeFilePath: filename
+            )
+            onPhotoAdded(photo)
+        } catch {
+            print("[LiveSpatialCaptureView] Photo save failed: \(error.localizedDescription)")
+        }
     }
 }
 
@@ -206,6 +210,10 @@ private struct CenterCaptureReticleButton: View {
 // MARK: - BottomActionDock
 
 private struct BottomActionDock: View {
+    /// Minimum width of the Finish button so its text never wraps vertically
+    /// even on small screen widths.
+    fileprivate static let finishButtonMinWidth: CGFloat = 90
+
     let onObject: () -> Void
     let onPhoto: () -> Void
     let onVoice: () -> Void
@@ -226,7 +234,7 @@ private struct BottomActionDock: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .frame(minWidth: 90)
+                .frame(minWidth: BottomActionDock.finishButtonMinWidth)
                 .background(.green.opacity(0.92), in: Capsule())
             }
             .buttonStyle(.plain)
