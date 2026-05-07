@@ -79,12 +79,7 @@ private struct LiveSpatialCaptureView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Text("LIVE SPATIAL CAPTURE")
-                    .font(.largeTitle)
-                    .foregroundStyle(.red)
-                    .fontWeight(.black)
-                    .padding(.top, 18)
-                    .zIndex(hudOverlayZIndex)
+                debugBanner
 
                 HStack(alignment: .top) {
                     MiniMapHUD(rooms: rooms)
@@ -112,13 +107,26 @@ private struct LiveSpatialCaptureView: View {
             }
             .padding(.bottom, 20)
         }
+        // TODO: Replace this temporary action feedback with actual photo/voice/object workflows.
         .alert(item: $activeDockTool) { tool in
             Alert(
                 title: Text("\(tool.rawValue) workflow"),
-                message: Text("This control is now wired into LiveSpatialCaptureView and ready for workflow integration."),
+                message: Text("This workflow is wired from the live dock and awaiting full screen integration."),
                 dismissButton: .default(Text("OK"))
             )
         }
+    }
+
+    @ViewBuilder
+    private var debugBanner: some View {
+#if DEBUG
+        Text("LIVE SPATIAL CAPTURE")
+            .font(.largeTitle)
+            .foregroundStyle(.red)
+            .fontWeight(.black)
+            .padding(.top, 18)
+            .zIndex(hudOverlayZIndex)
+#endif
     }
 }
 
