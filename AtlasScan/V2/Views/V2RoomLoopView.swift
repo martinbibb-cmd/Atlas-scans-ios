@@ -66,6 +66,8 @@ struct V2RoomLoopView: View {
 }
 
 private struct LiveSpatialCaptureView: View {
+    private let hudOverlayZIndex: Double = 999
+
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
     let onExit: () -> Void
@@ -82,22 +84,22 @@ private struct LiveSpatialCaptureView: View {
                     .foregroundStyle(.red)
                     .fontWeight(.black)
                     .padding(.top, 18)
-                    .zIndex(999)
+                    .zIndex(hudOverlayZIndex)
 
                 HStack(alignment: .top) {
                     MiniMapHUD(rooms: rooms)
                         .debugOverlayBorder(.red)
-                        .zIndex(999)
+                        .zIndex(hudOverlayZIndex)
                     Spacer()
                     ObjectRadarPointersHUD()
-                        .zIndex(999)
+                        .zIndex(hudOverlayZIndex)
                 }
                 .padding(.horizontal, 16)
 
                 Spacer()
 
                 CenterCaptureReticleButton()
-                    .zIndex(999)
+                    .zIndex(hudOverlayZIndex)
 
                 BottomActionDock(
                     onObject: { activeDockTool = .object },
@@ -106,7 +108,7 @@ private struct LiveSpatialCaptureView: View {
                     onExit: onExit
                 )
                     .debugOverlayBorder(.green)
-                    .zIndex(999)
+                    .zIndex(hudOverlayZIndex)
             }
             .padding(.bottom, 20)
         }
