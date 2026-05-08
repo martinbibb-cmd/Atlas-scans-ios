@@ -25,6 +25,8 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
 
     /// Ceiling height above floor (metres).
     public var ceilingHeightM: Double
+    /// Raw ceiling-height sample from capture before normalization/QA handling.
+    public var rawCapturedCeilingHeightM: Double?
 
     // ── Fabric ───────────────────────────────────────────────────────────────
     public var fabricCapture: FloorPlanFabricCaptureV1?
@@ -45,6 +47,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         polygonVertices: [Vertex2D] = [],
         floorLevelY: Double = 0.0,
         ceilingHeightM: Double = 2.4,
+        rawCapturedCeilingHeightM: Double? = nil,
         capturedAt: Date = Date()
     ) {
         self.id = id
@@ -52,6 +55,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.polygonVertices = polygonVertices
         self.floorLevelY = floorLevelY
         self.ceilingHeightM = ceilingHeightM
+        self.rawCapturedCeilingHeightM = rawCapturedCeilingHeightM
         self.fabricCapture = nil
         self.pinnedObjects = []
         self.usdzAssetPath = nil
@@ -65,6 +69,11 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         RoomPolygon(vertices: polygonVertices).area
     }
 
+    /// True when the room has a valid closed floor outline polygon.
+    public var hasClosedFloorPolygon: Bool {
+        polygonVertices.count >= 3 && floorAreaM2 > 0.0001
+    }
+
     /// Wall segments derived from the polygon vertices (for fabric tagging).
     public var wallSegments: [WallSegmentV1] {
         guard polygonVertices.count >= 2 else { return [] }
@@ -74,7 +83,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
                 roomId: id,
                 startVertex: polygonVertices[i],
                 endVertex: polygonVertices[next],
-                fabric: fabricCapture?.segments[safe: i]?.fabric ?? .internalWall
+                fabric: fabricCapture?.segments[safe: i]?.fabric ?? .externalWall
             )
         }
     }
@@ -107,6 +116,21 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
 
     /// Optional durable appliance model key from `ApplianceDefinitionV1`.
     public var modelId: String?
+
+    /// True when the world-space position is not at origin.
+    public var hasNonZeroWorldPosition: Bool {
+        abs(positionX) > 0.0001 || abs(positionY) > 0.0001 || abs(positionZ) > 0.0001
+    }
+
+    /// True when the pin has a usable world-space anchor.
+    public var hasResolvedWorldAnchor: Bool {
+        switch anchorConfidence {
+        case .screenOnly:
+            return false
+        case .raycastEstimated, .high, .medium, .low, .estimated:
+            return hasNonZeroWorldPosition
+        }
+    }
 
     public init(
         id: UUID = UUID(),
@@ -142,6 +166,8 @@ public enum SpatialPinAnchorConfidence: String, Codable, CaseIterable, Sendable 
     case medium
     case low
     case estimated
+    case raycastEstimated = "raycast_estimated"
+    case screenOnly = "screen_only"
 }
 
 public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {

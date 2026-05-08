@@ -63,12 +63,23 @@ struct PropertyMapView: View {
         HStack {
             V2CustomRoomShapeRenderer(vertices: room.polygonVertices)
                 .fill(Color.accentColor.opacity(0.15))
-                .stroke(Color.accentColor, lineWidth: 1.5)
+                .overlay(
+                    V2CustomRoomShapeRenderer(vertices: room.polygonVertices)
+                        .stroke(Color.accentColor, lineWidth: 1.5)
+                )
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
             VStack(alignment: .leading, spacing: 2) {
                 Text(room.displayName).font(.headline)
-                Text(String(format: "%.1f m²", room.floorAreaM2)).font(.caption).foregroundStyle(.secondary)
+                if room.hasClosedFloorPolygon {
+                    Text(String(format: "%.1f m²", room.floorAreaM2))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Room outline incomplete")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
         }
     }
