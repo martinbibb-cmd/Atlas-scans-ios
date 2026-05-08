@@ -33,6 +33,8 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
 
     // ── Pinned objects ───────────────────────────────────────────────────────
     public var pinnedObjects: [SpatialPinV1]
+    public var ghostAppliancePlacements: [GhostAppliancePlacementV1]
+    public var customApplianceDefinitions: [CustomApplianceDefinitionV1]
 
     // ── Van-mode asset ───────────────────────────────────────────────────────
     /// Relative path under `Documents/captures/{visitId}/` to the .usdz mesh.
@@ -58,6 +60,8 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.rawCapturedCeilingHeightM = rawCapturedCeilingHeightM
         self.fabricCapture = nil
         self.pinnedObjects = []
+        self.ghostAppliancePlacements = []
+        self.customApplianceDefinitions = []
         self.usdzAssetPath = nil
         self.capturedAt = capturedAt
     }
@@ -86,6 +90,140 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
                 fabric: fabricCapture?.segments[safe: i]?.fabric ?? .externalWall
             )
         }
+    }
+}
+
+public enum GhostPlacementPlaneV1: String, Codable, CaseIterable, Sendable {
+    case wall
+    case floor
+    case ceiling
+    case worktop
+    case unknown
+}
+
+public struct GhostApplianceClearanceOffsetsMmV1: Codable, Equatable, Sendable {
+    public let top: Int
+    public let bottom: Int
+    public let front: Int
+    public let back: Int
+    public let left: Int
+    public let right: Int
+
+    public init(
+        top: Int = 0,
+        bottom: Int = 0,
+        front: Int = 0,
+        back: Int = 0,
+        left: Int = 0,
+        right: Int = 0
+    ) {
+        self.top = top
+        self.bottom = bottom
+        self.front = front
+        self.back = back
+        self.left = left
+        self.right = right
+    }
+}
+
+public struct GhostApplianceDimensionsMmV1: Codable, Equatable, Sendable {
+    public let width: Int
+    public let height: Int
+    public let depth: Int
+
+    public init(width: Int, height: Int, depth: Int) {
+        self.width = width
+        self.height = height
+        self.depth = depth
+    }
+}
+
+public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
+    public let id: UUID
+    public let roomId: UUID
+    public let capturePointId: UUID
+    public let applianceModelId: String
+    public let customApplianceDefinitionId: String?
+    public let placementPlane: GhostPlacementPlaneV1
+    public let planeNormalX: Double
+    public let planeNormalY: Double
+    public let planeNormalZ: Double
+    public let worldPositionX: Double
+    public let worldPositionY: Double
+    public let worldPositionZ: Double
+    public let rotationYaw: Double
+    public let dimensionsMm: GhostApplianceDimensionsMmV1
+    public let clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1
+    public let anchorConfidence: SpatialPinAnchorConfidence
+    public let createdAt: Date
+    public let notes: String?
+
+    public init(
+        id: UUID = UUID(),
+        roomId: UUID,
+        capturePointId: UUID,
+        applianceModelId: String,
+        customApplianceDefinitionId: String? = nil,
+        placementPlane: GhostPlacementPlaneV1 = .unknown,
+        planeNormalX: Double = 0,
+        planeNormalY: Double = 0,
+        planeNormalZ: Double = 0,
+        worldPositionX: Double = 0,
+        worldPositionY: Double = 0,
+        worldPositionZ: Double = 0,
+        rotationYaw: Double = 0,
+        dimensionsMm: GhostApplianceDimensionsMmV1,
+        clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1 = .init(),
+        anchorConfidence: SpatialPinAnchorConfidence = .screenOnly,
+        createdAt: Date = Date(),
+        notes: String? = nil
+    ) {
+        self.id = id
+        self.roomId = roomId
+        self.capturePointId = capturePointId
+        self.applianceModelId = applianceModelId
+        self.customApplianceDefinitionId = customApplianceDefinitionId
+        self.placementPlane = placementPlane
+        self.planeNormalX = planeNormalX
+        self.planeNormalY = planeNormalY
+        self.planeNormalZ = planeNormalZ
+        self.worldPositionX = worldPositionX
+        self.worldPositionY = worldPositionY
+        self.worldPositionZ = worldPositionZ
+        self.rotationYaw = rotationYaw
+        self.dimensionsMm = dimensionsMm
+        self.clearanceOffsetsMm = clearanceOffsetsMm
+        self.anchorConfidence = anchorConfidence
+        self.createdAt = createdAt
+        self.notes = notes
+    }
+}
+
+public struct CustomApplianceDefinitionV1: Codable, Identifiable, Equatable, Sendable {
+    public let id: String
+    public let brand: String
+    public let modelName: String
+    public let applianceType: String
+    public let dimensionsMm: GhostApplianceDimensionsMmV1
+    public let clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1
+    public let createdAt: Date
+
+    public init(
+        id: String = "custom-\(UUID().uuidString.lowercased())",
+        brand: String,
+        modelName: String,
+        applianceType: String,
+        dimensionsMm: GhostApplianceDimensionsMmV1,
+        clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.brand = brand
+        self.modelName = modelName
+        self.applianceType = applianceType
+        self.dimensionsMm = dimensionsMm
+        self.clearanceOffsetsMm = clearanceOffsetsMm
+        self.createdAt = createdAt
     }
 }
 

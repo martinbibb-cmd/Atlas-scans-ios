@@ -46,7 +46,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             return LiveCapturePointProbeResultV1(
                 screenPoint: CGPointCodable(x: 0.5, y: 0.5),
                 worldPosition: nil,
-                anchorConfidence: .screenOnly
+                anchorConfidence: .screenOnly,
+                hitNormal: nil
             )
         }
 
@@ -64,7 +65,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
-                anchorConfidence: .screenOnly
+                anchorConfidence: .screenOnly,
+                hitNormal: nil
             )
         }
 
@@ -73,11 +75,18 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
-                anchorConfidence: .screenOnly
+                anchorConfidence: .screenOnly,
+                hitNormal: nil
             )
         }
 
         let position = result.worldTransform.columns.3
+        let forward = result.worldTransform.columns.2
+        let normal = SIMD3(
+            Double(-forward.x),
+            Double(-forward.y),
+            Double(-forward.z)
+        )
         let confidence: SpatialPinAnchorConfidence
         switch result.target {
         case .estimatedPlane:
@@ -91,7 +100,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         return LiveCapturePointProbeResultV1(
             screenPoint: normalizedPoint,
             worldPosition: SIMD3(Double(position.x), Double(position.y), Double(position.z)),
-            anchorConfidence: confidence
+            anchorConfidence: confidence,
+            hitNormal: normal
         )
     }
 

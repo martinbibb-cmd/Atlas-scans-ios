@@ -161,6 +161,28 @@ public final class ScanSessionCoordinator: ObservableObject {
                 modelId: pin.modelId
             )
         }
+        translatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map { placement in
+            GhostAppliancePlacementV1(
+                id: placement.id,
+                roomId: placement.roomId,
+                capturePointId: placement.capturePointId,
+                applianceModelId: placement.applianceModelId,
+                customApplianceDefinitionId: placement.customApplianceDefinitionId,
+                placementPlane: placement.placementPlane,
+                planeNormalX: placement.planeNormalX,
+                planeNormalY: placement.planeNormalY,
+                planeNormalZ: placement.planeNormalZ,
+                worldPositionX: placement.worldPositionX + dx,
+                worldPositionY: placement.worldPositionY,
+                worldPositionZ: placement.worldPositionZ + dz,
+                rotationYaw: placement.rotationYaw,
+                dimensionsMm: placement.dimensionsMm,
+                clearanceOffsetsMm: placement.clearanceOffsetsMm,
+                anchorConfidence: placement.anchorConfidence,
+                createdAt: placement.createdAt,
+                notes: placement.notes
+            )
+        }
         return translatedRoom
     }
 
