@@ -58,10 +58,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             y: bounds.height > 0 ? center.y / bounds.height : 0.5
         )
 
-        guard
-            let frame = captureView.captureSession.arSession.currentFrame,
-            let query = frame.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any)
-        else {
+        guard let frame = captureView.captureSession.arSession.currentFrame else {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
@@ -69,6 +66,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 hitNormal: nil
             )
         }
+        let query = frame.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any)
 
         let results = captureView.captureSession.arSession.raycast(query)
         guard let result = results.first else {
