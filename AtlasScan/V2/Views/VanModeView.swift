@@ -365,6 +365,6 @@ struct VanModeView: View {
 
 private extension GhostApplianceClearanceOffsetsMmV1 {
     var formattedSummary: String {
-        "Clearance: Top:\(top)mm, Bottom:\(bottom)mm, Front:\(front)mm, Back:\(back)mm, Left:\(left)mm, Right:\(right)mm"
+        "Clearance: Top: \(top)mm, Bottom: \(bottom)mm, Front: \(front)mm, Back: \(back)mm, Left: \(left)mm, Right: \(right)mm"
     }
 }
