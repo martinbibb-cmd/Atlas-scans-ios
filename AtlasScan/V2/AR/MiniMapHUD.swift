@@ -97,7 +97,7 @@ struct MiniMapHUD: View {
     private var minimapPins: [SpatialPinV1] {
         let savedPins = rooms.flatMap(\.pinnedObjects)
         let activePins = pins
-        let uniquePins = dedupeByUUID(primary: savedPins, secondary: activePins)
+        let uniquePins = V2IdentifiableDedupe.byUUID(primary: savedPins, secondary: activePins)
 
         return uniquePins.filter {
             switch $0.objectType {
@@ -112,20 +112,7 @@ struct MiniMapHUD: View {
     private var minimapGhostPlacements: [GhostAppliancePlacementV1] {
         let savedGhosts = rooms.flatMap(\.ghostAppliancePlacements)
         let activeGhosts = ghostPlacements
-        return dedupeByUUID(primary: savedGhosts, secondary: activeGhosts)
-    }
-
-    private func dedupeByUUID<T: Identifiable>(primary: [T], secondary: [T]) -> [T] where T.ID == UUID {
-        var seen: Set<UUID> = []
-        var deduped: [T] = []
-        deduped.reserveCapacity(primary.count + secondary.count)
-        for item in primary where seen.insert(item.id).inserted {
-            deduped.append(item)
-        }
-        for item in secondary where seen.insert(item.id).inserted {
-            deduped.append(item)
-        }
-        return deduped
+        return V2IdentifiableDedupe.byUUID(primary: savedGhosts, secondary: activeGhosts)
     }
 
     private func color(for type: PinnedObjectType) -> Color {

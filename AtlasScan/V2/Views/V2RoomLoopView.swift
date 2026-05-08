@@ -397,7 +397,7 @@ private struct LiveSpatialCaptureView: View {
     /// RoomPlan base surface.
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
-    private let maxOffscreenPointers = 5
+    private let maxVisibleOffscreenPointers = 5
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -547,7 +547,7 @@ private struct LiveSpatialCaptureView: View {
                 if !offscreenPointerItems.isEmpty {
                     OffscreenPointerOverlay(
                         items: offscreenPointerItems,
-                        maxVisiblePointers: maxOffscreenPointers,
+                        maxVisiblePointers: maxVisibleOffscreenPointers,
                         onTap: handlePointerTap,
                         onLongPressDelete: handlePointerDelete
                     )
@@ -883,8 +883,8 @@ private struct LiveSpatialCaptureView: View {
         let activeSavedRoom = rooms.first(where: { $0.id == prospectiveRoomId })
         let savedPins = activeSavedRoom?.pinnedObjects ?? []
         let savedGhosts = activeSavedRoom?.ghostAppliancePlacements ?? []
-        let allPins = dedupeByUUID(primary: savedPins, secondary: pendingPinsLocal)
-        let allGhosts = dedupeByUUID(primary: savedGhosts, secondary: pendingGhostPlacementsLocal)
+        let allPins = V2IdentifiableDedupe.byUUID(primary: savedPins, secondary: pendingPinsLocal)
+        let allGhosts = V2IdentifiableDedupe.byUUID(primary: savedGhosts, secondary: pendingGhostPlacementsLocal)
         let roomCapturePoints = capturePointsById.values.filter { $0.roomId == prospectiveRoomId }
         let capturePointMap = Dictionary(uniqueKeysWithValues: roomCapturePoints.map { ($0.id, $0) })
         let recentDateByEvidenceId = Dictionary(
@@ -966,7 +966,7 @@ private struct LiveSpatialCaptureView: View {
             else {
                 continue
             }
-            let createdAt = parsePointerDate(photo.capturedAt)
+            let createdAt = parseEvidenceTimestamp(photo.capturedAt)
             items.append(
                 OffscreenPointerItemV1(
                     id: UUID(),
@@ -997,7 +997,7 @@ private struct LiveSpatialCaptureView: View {
             else {
                 continue
             }
-            let createdAt = parsePointerDate(note.recordedAt)
+            let createdAt = parseEvidenceTimestamp(note.recordedAt)
             let noteType: OffscreenPointerItemV1.EvidenceType = noteSourceIDs.contains(note.id) ? .note : .voiceNote
             items.append(
                 OffscreenPointerItemV1(
@@ -1019,7 +1019,7 @@ private struct LiveSpatialCaptureView: View {
 
         return items
             .sorted(by: offscreenPrioritySort)
-            .prefix(maxOffscreenPointers)
+            .prefix(maxVisibleOffscreenPointers)
             .map { $0 }
     }
 
@@ -1052,19 +1052,6 @@ private struct LiveSpatialCaptureView: View {
         return sqrt(dx * dx + dy * dy)
     }
 
-    private func dedupeByUUID<T: Identifiable>(primary: [T], secondary: [T]) -> [T] where T.ID == UUID {
-        var seen: Set<UUID> = []
-        var deduped: [T] = []
-        deduped.reserveCapacity(primary.count + secondary.count)
-        for item in primary where seen.insert(item.id).inserted {
-            deduped.append(item)
-        }
-        for item in secondary where seen.insert(item.id).inserted {
-            deduped.append(item)
-        }
-        return deduped
-    }
-
     private func normalizedScreenPoint(x: Double?, y: Double?) -> CGPointCodable? {
         guard let x, let y else { return nil }
         return CGPointCodable(x: x, y: y)
@@ -1083,14 +1070,14 @@ private struct LiveSpatialCaptureView: View {
         return fallback
     }
 
-    private func parsePointerDate(_ timestamp: String) -> Date {
+    private func parseEvidenceTimestamp(_ timestamp: String) -> Date {
         if let primary = Self.pointerDateFormatter.date(from: timestamp) {
             return primary
         }
         if let fractional = Self.pointerDateFormatterFractional.date(from: timestamp) {
             return fractional
         }
-        print("[LiveSpatialCaptureView] Unable to parse pointer timestamp: \(timestamp)")
+        print("[LiveSpatialCaptureView] Unable to parse evidence timestamp: \(timestamp)")
         return .distantPast
     }
 

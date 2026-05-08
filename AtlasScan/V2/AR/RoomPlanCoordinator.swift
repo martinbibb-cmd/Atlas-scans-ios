@@ -120,6 +120,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             orientation: .portrait,
             viewportSize: viewportSize
         )
+        // Reject points behind the camera plane.
         guard projected.z > 0 else { return nil }
 
         return CGPointCodable(
