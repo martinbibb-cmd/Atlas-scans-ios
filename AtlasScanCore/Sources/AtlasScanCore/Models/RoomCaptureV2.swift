@@ -522,6 +522,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         selectedTemplateId = try container.decodeIfPresent(String.self, forKey: .selectedTemplateId)
         manualEntry = try container.decodeIfPresent(SpatialPinManualEntryV1.self, forKey: .manualEntry)
         anchorConfidence = try container.decodeIfPresent(SpatialPinAnchorConfidence.self, forKey: .anchorConfidence) ?? .screenOnly
+        // reviewStatus fallback intentionally depends on decoded anchorConfidence:
+        // screen-only records default to needs-review, anchored records default to confirmed.
         reviewStatus = try container.decodeIfPresent(SpatialPinReviewStatus.self, forKey: .reviewStatus)
             ?? (anchorConfidence == .screenOnly ? .needsReview : .confirmed)
         provenance = try container.decodeIfPresent(SpatialPinProvenance.self, forKey: .provenance) ?? .manualCapture

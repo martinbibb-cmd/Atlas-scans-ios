@@ -1523,7 +1523,7 @@ private struct V2PinPickerSheet: View {
     @State private var selectedBoilerType: BoilerType = .combi
     @State private var selectedCylinderType: CylinderType = .openVented
     @State private var selectedTemplateId: String?
-    @State private var selectedComponent: EquipmentOption = heatingComponents.first!
+    @State private var selectedComponent: EquipmentOption = defaultEquipmentOption
     @State private var customLabel = ""
 
     @State private var manualManufacturer = ""
@@ -1601,6 +1601,13 @@ private struct V2PinPickerSheet: View {
         .init(id: "manual_emitter", title: "Manual emitter entry", objectType: .other, templateId: nil),
     ]
 
+    private static let defaultEquipmentOption = EquipmentOption(
+        id: "pump",
+        title: "Pump",
+        objectType: .other,
+        templateId: nil
+    )
+
     private var boilerTemplates: [EquipmentOption] {
         let defs = MasterHardwareRegistry.registry
             .definitions(forCategory: "boiler")
@@ -1659,7 +1666,7 @@ private struct V2PinPickerSheet: View {
         NavigationStack {
             Form {
                 Section("Room") {
-                    Text("Linked room: \(roomId.uuidString.prefix(8))…")
+                    Text("Current room confirmed before placement.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1811,12 +1818,11 @@ private struct V2PinPickerSheet: View {
             : customLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         let pin = SpatialPinV1(
             roomId: roomId,
+            locationContext: selectedLocationContext,
             capturePointId: capturePoint?.id,
             positionX: worldPosition?.x ?? 0,
             positionY: worldPosition?.y ?? 0,
             positionZ: worldPosition?.z ?? 0,
-            screenPositionX: nil,
-            screenPositionY: nil,
             objectType: option.objectType,
             label: title,
             objectCategory: selectedCategory,
@@ -1824,8 +1830,7 @@ private struct V2PinPickerSheet: View {
             manualEntry: manualEntry,
             anchorConfidence: confidence,
             reviewStatus: reviewStatus,
-            provenance: .manualCapture,
-            locationContext: selectedLocationContext
+            provenance: .manualCapture
         )
         onSave(pin)
         dismiss()
