@@ -145,7 +145,7 @@ public enum MasterHardwareRegistry {
             modelId:     "combi_generic",
             brand:       "Generic",
             family:      "Combi Boiler",
-            displayName: "Boiler placeholder — needs identification",
+            displayName: "Boiler placeholder — needs identification (standard)",
             category:    "boiler",
             dimensions:  ApplianceDimensionsV1(widthMm: 600, depthMm: 500, heightMm: 750),
             clearanceRules: ApplianceClearanceRulesV1(
@@ -162,7 +162,7 @@ public enum MasterHardwareRegistry {
             modelId:     "combi_compact",
             brand:       "Generic",
             family:      "Combi Boiler",
-            displayName: "Boiler placeholder — needs identification",
+            displayName: "Boiler placeholder — needs identification (compact)",
             category:    "boiler",
             dimensions:  ApplianceDimensionsV1(widthMm: 440, depthMm: 360, heightMm: 700),
             clearanceRules: ApplianceClearanceRulesV1(

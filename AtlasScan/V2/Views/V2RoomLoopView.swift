@@ -1666,7 +1666,7 @@ private struct V2PinPickerSheet: View {
         NavigationStack {
             Form {
                 Section("Room") {
-                    Text("Current room confirmed before placement.")
+                    Text("Equipment will be added to the current room.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

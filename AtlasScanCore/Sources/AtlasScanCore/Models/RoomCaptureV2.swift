@@ -464,7 +464,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         objectCategory: PinObjectCategoryV1 = .heatingSystemComponents,
         selectedTemplateId: String? = nil,
         manualEntry: SpatialPinManualEntryV1? = nil,
-        anchorConfidence: SpatialPinAnchorConfidence = .raycastEstimated,
+        anchorConfidence: SpatialPinAnchorConfidence = .screenOnly,
         reviewStatus: SpatialPinReviewStatus = .needsReview,
         provenance: SpatialPinProvenance = .manualCapture,
         hardwareSpecId: UUID? = nil,
