@@ -123,10 +123,12 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         let worldPoint = SIMD4<Float>(Float(worldPosition.x), Float(worldPosition.y), Float(worldPosition.z), 1)
         let cameraSpacePoint = simd_inverse(frame.camera.transform) * worldPoint
         guard cameraSpacePoint.z < 0 else { return nil }
+        let reciprocalWidth = 1.0 / viewportSize.width
+        let reciprocalHeight = 1.0 / viewportSize.height
 
         return CGPointCodable(
-            x: Double(projected.x / viewportSize.width),
-            y: Double(projected.y / viewportSize.height)
+            x: Double(projected.x * reciprocalWidth),
+            y: Double(projected.y * reciprocalHeight)
         )
     }
 
