@@ -449,6 +449,32 @@ final class FloorPlanFabricBuilderTests: XCTestCase {
         XCTAssertTrue(walls.allSatisfy { $0.lengthM == nil }, "Walls without scan dimensions must have nil lengthM")
     }
 
+    func test_derivedWallDrafts_emptyPolygonSegments_fallsBackToRectangularWalls() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 4.0
+        scan.rawDepthM = 3.0
+        scan.wallSegmentLengthsM = []
+
+        let walls = scan.derivedWallDrafts()
+
+        XCTAssertEqual(walls.count, 4)
+        XCTAssertEqual(walls.map(\.wallIndex), [1, 2, 3, 4])
+        XCTAssertEqual(walls.map(\.lengthM), [4.0, 3.0, 4.0, 3.0])
+    }
+
+    func test_derivedWallDrafts_validPolygonSegments_disableRectangularFallback() {
+        var scan = CapturedRoomScanDraft()
+        scan.rawWidthM = 10.0
+        scan.rawDepthM = 10.0
+        scan.wallSegmentLengthsM = [2.2, 1.8, 2.5, 1.9, 2.0]
+
+        let walls = scan.derivedWallDrafts()
+
+        XCTAssertEqual(walls.count, 5, "Polygon-derived wall count must match segment count")
+        XCTAssertEqual(walls.map(\.wallIndex), [1, 2, 3, 4, 5])
+        XCTAssertEqual(walls.map(\.lengthM), [2.2, 1.8, 2.5, 1.9, 2.0])
+    }
+
     // MARK: - applyDerivedWalls helper
 
     func test_applyDerivedWalls_populatesBoundariesWhenEmpty() {
