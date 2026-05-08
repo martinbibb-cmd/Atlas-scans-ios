@@ -35,6 +35,7 @@ struct VanModeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 roomOverview
+                evidenceByPointSection
                 fabricSection
                 pinsSection
                 ghostPlacementsSection
@@ -119,6 +120,180 @@ struct VanModeView: View {
                     .foregroundStyle(.orange)
             }
         }
+    }
+
+    // MARK: - Evidence by Capture Point
+
+    /// All evidence for the current room, grouped by capturePointId.
+    private var evidenceByPointSection: some View {
+        let groups = capturePointGroups
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Evidence by Capture Point").font(.headline)
+            if groups.isEmpty {
+                Text("No evidence captured yet.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                ForEach(groups) { group in
+                    capturePointGroupView(group)
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func capturePointGroupView(_ group: CapturePointEvidenceGroup) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "scope")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.accentColor)
+                Text(group.label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.accentColor)
+            }
+
+            ForEach(group.pins) { pin in
+                evidenceRow(
+                    icon: iconName(for: pin.objectType),
+                    title: pin.label ?? pin.objectType.rawValue.capitalized,
+                    subtitle: pin.anchorConfidence == .screenOnly ? "Screen only — needs review" : nil,
+                    needsReview: pin.anchorConfidence == .screenOnly,
+                    onDelete: {
+                        coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(pin: pin))
+                    }
+                )
+            }
+
+            ForEach(roomPhotos.filter { $0.capturePointId == group.capturePointId }) { photo in
+                evidenceRow(
+                    icon: "photo.fill",
+                    title: "Photo",
+                    subtitle: nil,
+                    needsReview: false,
+                    onDelete: {
+                        coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(photo: photo))
+                    }
+                )
+            }
+
+            ForEach(roomVoiceNotes.filter { $0.capturePointId == group.capturePointId }) { note in
+                let preview = note.processedTranscript.isEmpty ? nil : String(note.processedTranscript.prefix(50))
+                evidenceRow(
+                    icon: "mic.fill",
+                    title: "Voice note",
+                    subtitle: preview,
+                    needsReview: false,
+                    onDelete: {
+                        coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(voiceNote: note))
+                    }
+                )
+            }
+
+            ForEach(group.ghosts) { placement in
+                let dims = placement.dimensionsMm
+                evidenceRow(
+                    icon: "cube.transparent.fill",
+                    title: ghostModelLabel(for: placement),
+                    subtitle: "\(dims.width)×\(dims.height)×\(dims.depth) mm",
+                    needsReview: placement.needsReview,
+                    onDelete: {
+                        coordinator.deleteEvidenceItem(
+                            RecentCaptureItemV1.from(ghost: placement, displayLabel: ghostModelLabel(for: placement))
+                        )
+                    }
+                )
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func evidenceRow(
+        icon: String,
+        title: String,
+        subtitle: String?,
+        needsReview: Bool,
+        onDelete: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(needsReview ? .orange : .secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                if needsReview {
+                    Text("Needs review")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.orange)
+                }
+            }
+            Spacer()
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.caption2)
+            }
+            .buttonStyle(.bordered)
+            .tint(.red)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var capturePointGroups: [CapturePointEvidenceGroup] {
+        var groups: [UUID?: CapturePointEvidenceGroup] = [:]
+
+        for pin in currentRoom.pinnedObjects {
+            let key = pin.capturePointId
+            if groups[key] == nil {
+                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
+            }
+            groups[key]?.pins.append(pin)
+        }
+
+        for photo in roomPhotos {
+            let key = photo.capturePointId
+            if groups[key] == nil {
+                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
+            }
+            // Photos are displayed inline from `roomPhotos`; group creation ensures the key exists.
+        }
+
+        for note in roomVoiceNotes {
+            let key = note.capturePointId
+            if groups[key] == nil {
+                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
+            }
+        }
+
+        for ghost in currentRoom.ghostAppliancePlacements {
+            let key = ghost.capturePointId
+            if groups[key] == nil {
+                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
+            }
+            groups[key]?.ghosts.append(ghost)
+        }
+
+        // A group is non-empty if it was created (any evidence references its capturePointId).
+        return groups.values
+            .sorted { ($0.capturePointId?.uuidString ?? "").lexicographicallyPrecedes($1.capturePointId?.uuidString ?? "") }
+    }
+
+    private var roomPhotos: [PhotoEvidenceV1] {
+        coordinator.session.photos.filter { $0.roomId == currentRoom.id }
+    }
+
+    private var roomVoiceNotes: [VoiceNoteV1] {
+        coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }
     }
 
     private var fabricSection: some View {
@@ -411,6 +586,24 @@ struct VanModeView: View {
     private func pluralLabel(_ count: Int, singular: String, plural: String? = nil) -> String {
         let word = count == 1 ? singular : (plural ?? "\(singular)s")
         return "\(count) \(word)"
+    }
+}
+
+// MARK: - CapturePointEvidenceGroup
+
+/// Groups all evidence for one capture point within a room, used by VanModeView.
+private struct CapturePointEvidenceGroup: Identifiable {
+    let capturePointId: UUID?
+    var pins: [SpatialPinV1] = []
+    var ghosts: [GhostAppliancePlacementV1] = []
+
+    var id: String { capturePointId?.uuidString ?? "unanchored" }
+
+    var label: String {
+        if let id = capturePointId {
+            return "Point \(id.uuidString.prefix(8))…"
+        }
+        return "Unanchored evidence"
     }
 }
 

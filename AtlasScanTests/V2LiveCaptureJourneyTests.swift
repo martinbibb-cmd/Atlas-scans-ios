@@ -260,4 +260,106 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         XCTAssertEqual(coordinator.session.rooms.first(where: { $0.id == keptRoomId })?.ghostAppliancePlacements.count, 1,
                        "Ghost placements for other rooms must be preserved.")
     }
+
+    // MARK: - deleteEvidenceItem
+
+    func test_deleteEvidenceItem_removesPhotoFromSession() async throws {
+        let roomId = UUID()
+        let photo = PhotoEvidenceV1(visitId: visitId, roomId: roomId, relativeFilePath: "test.jpg")
+        coordinator.addPhoto(photo)
+        XCTAssertEqual(coordinator.session.photos.count, 1)
+
+        let item = RecentCaptureItemV1.from(photo: photo)
+        coordinator.deleteEvidenceItem(item)
+
+        XCTAssertTrue(coordinator.session.photos.isEmpty, "Photo should be removed from session.")
+    }
+
+    func test_deleteEvidenceItem_removesVoiceNoteAndCompanionTranscript() async throws {
+        let roomId = UUID()
+        let capturePointId = UUID()
+        let note = VoiceNoteV1(
+            visitId: visitId,
+            roomId: roomId,
+            capturePointId: capturePointId,
+            processedTranscript: "Test transcript unique-\(UUID().uuidString)"
+        )
+        coordinator.addVoiceNote(note)
+        XCTAssertEqual(coordinator.session.voiceNotes.count, 1)
+        XCTAssertEqual(coordinator.session.transcripts.count, 1)
+
+        let item = RecentCaptureItemV1.from(voiceNote: note)
+        coordinator.deleteEvidenceItem(item)
+
+        XCTAssertTrue(coordinator.session.voiceNotes.isEmpty, "Voice note should be removed.")
+        XCTAssertTrue(coordinator.session.transcripts.isEmpty, "Companion transcript should be removed.")
+    }
+
+    func test_deleteEvidenceItem_removesPinFromSavedRoom() async throws {
+        let roomId = UUID()
+        let pin = SpatialPinV1(
+            roomId: roomId,
+            positionX: 1, positionY: 0, positionZ: 1,
+            objectType: .boiler,
+            anchorConfidence: .raycastEstimated
+        )
+        var room = RoomCaptureV2(id: roomId, displayName: "Boiler Room")
+        room.pinnedObjects = [pin]
+        coordinator.addRoom(room)
+
+        let item = RecentCaptureItemV1.from(pin: pin)
+        coordinator.deleteEvidenceItem(item)
+
+        let savedRoom = coordinator.room(withId: roomId)
+        XCTAssertTrue(savedRoom?.pinnedObjects.isEmpty ?? false, "Pin should be removed from saved room.")
+    }
+
+    func test_deleteEvidenceItem_removesGhostFromSavedRoom() async throws {
+        let roomId = UUID()
+        let ghost = GhostAppliancePlacementV1(
+            roomId: roomId,
+            capturePointId: UUID(),
+            applianceModelId: "test-model",
+            dimensionsMm: .init(width: 600, height: 750, depth: 350),
+            anchorConfidence: .screenOnly
+        )
+        var room = RoomCaptureV2(id: roomId, displayName: "Test Room")
+        room.ghostAppliancePlacements = [ghost]
+        coordinator.addRoom(room)
+
+        let item = RecentCaptureItemV1.from(ghost: ghost, displayLabel: "Test Appliance")
+        coordinator.deleteEvidenceItem(item)
+
+        let savedRoom = coordinator.room(withId: roomId)
+        XCTAssertTrue(savedRoom?.ghostAppliancePlacements.isEmpty ?? false,
+                      "Ghost placement should be removed from saved room.")
+    }
+
+    func test_deleteEvidenceItem_doesNotRemoveRoomRecord() async throws {
+        let roomId = UUID()
+        let photo = PhotoEvidenceV1(visitId: visitId, roomId: roomId, relativeFilePath: "photo.jpg")
+        coordinator.addPhoto(photo)
+        var room = RoomCaptureV2(id: roomId, displayName: "Protected Room")
+        coordinator.addRoom(room)
+
+        let item = RecentCaptureItemV1.from(photo: photo)
+        coordinator.deleteEvidenceItem(item)
+
+        XCTAssertNotNil(coordinator.room(withId: roomId),
+                        "deleteEvidenceItem must never remove the room record itself.")
+    }
+
+    func test_deleteEvidenceItem_unknownIdIsNoOp() async throws {
+        let roomId = UUID()
+        let photo = PhotoEvidenceV1(visitId: visitId, roomId: roomId, relativeFilePath: "photo.jpg")
+        coordinator.addPhoto(photo)
+
+        // Delete using a different (unrelated) evidence id.
+        let fakePhoto = PhotoEvidenceV1(visitId: visitId, roomId: roomId, relativeFilePath: "other.jpg")
+        let item = RecentCaptureItemV1.from(photo: fakePhoto)
+        coordinator.deleteEvidenceItem(item)
+
+        XCTAssertEqual(coordinator.session.photos.count, 1,
+                       "Deleting an unknown id must not affect unrelated evidence.")
+    }
 }
