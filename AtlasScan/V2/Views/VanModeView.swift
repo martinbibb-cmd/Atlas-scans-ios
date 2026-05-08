@@ -90,12 +90,12 @@ struct VanModeView: View {
                     HStack {
                         Text("Wall \(i + 1)").font(.subheadline)
                         Spacer()
-                        Menu(seg.fabric.displayName) {
+                        Menu(wallFabricLabel(seg.fabric)) {
                             ForEach(WallFabric.allCases, id: \.self) { fabric in
                                 Button {
                                     setWallFabric(fabric, at: i)
                                 } label: {
-                                    Label(fabric.displayName, systemImage: fabric.symbolName)
+                                    Label(wallFabricLabel(fabric), systemImage: wallFabricSymbol(fabric))
                                 }
                             }
                         }
@@ -227,5 +227,21 @@ struct VanModeView: View {
         segments[index].fabric = fabric
         updatedRoom.fabricCapture = FloorPlanFabricCaptureV1(roomId: updatedRoom.id, segments: segments)
         coordinator.upsertRoom(updatedRoom)
+    }
+
+    private func wallFabricLabel(_ fabric: WallFabric) -> String {
+        switch fabric {
+        case .externalWall: return "External Wall"
+        case .internalWall: return "Internal Wall"
+        case .partyWall: return "Party Wall"
+        }
+    }
+
+    private func wallFabricSymbol(_ fabric: WallFabric) -> String {
+        switch fabric {
+        case .externalWall: return "house.fill"
+        case .internalWall: return "rectangle.split.2x1"
+        case .partyWall: return "building.2.fill"
+        }
     }
 }

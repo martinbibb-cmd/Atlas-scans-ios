@@ -212,6 +212,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
 
         let vertices = orderedPts.map { Vertex2D(x: Double($0.x), z: Double($0.y)) }
         let polygon = RoomPolygon(vertices: vertices)
-        return polygon.area > minimumAreaM2 ? polygon.normalised.vertices : []
+        guard polygon.area > minimumAreaM2 else { return [] }
+        return polygon.signedArea >= 0 ? vertices : vertices.reversed()
     }
 }
