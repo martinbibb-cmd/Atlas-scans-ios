@@ -486,7 +486,7 @@ private struct LiveSpatialCaptureView: View {
                     GhostPlacementOverlay(
                         placement: placement,
                         label: ghostLabel(for: placement),
-                        screenPoint: pendingCapturePoint?.screenPoint
+                        screenPoint: placement.screenPoint
                     )
                     .zIndex(hudOverlayLayer + 5)
                 }
@@ -536,9 +536,6 @@ private struct LiveSpatialCaptureView: View {
         ) {
             Button("Wall mounted") { placeGhostAppliance(on: .wall) }
             Button("Floor standing") { placeGhostAppliance(on: .floor) }
-            Button("Worktop/base-unit") { placeGhostAppliance(on: .worktop) }
-            Button("Ceiling/high-level") { placeGhostAppliance(on: .ceiling) }
-            Button("Unknown / screen-only") { placeGhostAppliance(on: .unknown) }
             Button("Cancel", role: .cancel) {}
         }
         .fullScreenCover(isPresented: $showPhotoPicker) {
@@ -630,14 +627,21 @@ private struct LiveSpatialCaptureView: View {
 
     private func placeGhostAppliance(on plane: GhostPlacementPlaneV1) {
         guard let capturePoint = pendingCapturePoint, let definition = selectedGhostApplianceDefinition else { return }
-        let world = capturePoint.worldPosition ?? SIMD3<Double>(0, 0, 0)
-        let planeNormal = resolvedPlaneNormal(for: plane, capturePoint: capturePoint)
+        let resolvedPlane = resolvedPlacementPlane(for: plane, capturePoint: capturePoint)
+        let planeNormal = resolvedPlaneNormal(for: resolvedPlane, capturePoint: capturePoint)
+        let world = resolvedGhostWorldPosition(
+            for: definition.dimensionsMm,
+            plane: resolvedPlane,
+            capturePoint: capturePoint,
+            planeNormal: planeNormal
+        )
         let placement = GhostAppliancePlacementV1(
             roomId: prospectiveRoomId,
             capturePointId: capturePoint.id,
             applianceModelId: definition.modelId,
             customApplianceDefinitionId: definition.customDefinitionId,
-            placementPlane: plane,
+            screenPoint: capturePoint.screenPoint,
+            placementPlane: resolvedPlane,
             planeNormalX: planeNormal.x,
             planeNormalY: planeNormal.y,
             planeNormalZ: planeNormal.z,
@@ -647,7 +651,7 @@ private struct LiveSpatialCaptureView: View {
             rotationYaw: 0,
             dimensionsMm: definition.dimensionsMm,
             clearanceOffsetsMm: definition.clearanceOffsetsMm,
-            anchorConfidence: capturePoint.anchorConfidence,
+            anchorConfidence: capturePoint.worldPosition == nil ? .screenOnly : capturePoint.anchorConfidence,
             notes: definition.note
         )
         pendingGhostPlacementsLocal.append(placement)
@@ -660,6 +664,21 @@ private struct LiveSpatialCaptureView: View {
         }
         recentGhostModelIds = updatedRecentModelIds
         selectedGhostApplianceDefinition = nil
+    }
+
+    private func resolvedPlacementPlane(
+        for requestedPlane: GhostPlacementPlaneV1,
+        capturePoint: LiveCapturePointV1
+    ) -> GhostPlacementPlaneV1 {
+        guard capturePoint.worldPosition != nil else { return .unknown }
+        switch requestedPlane {
+        case .wall:
+            return capturePoint.hitNormal == nil ? .unknown : .wall
+        case .floor:
+            return .floor
+        case .ceiling, .worktop, .unknown:
+            return .unknown
+        }
     }
 
     private func resolvedPlaneNormal(
@@ -676,6 +695,44 @@ private struct LiveSpatialCaptureView: View {
         case .unknown:
             return capturePoint.hitNormal ?? SIMD3<Double>(0, 0, 0)
         }
+    }
+
+    private func resolvedGhostWorldPosition(
+        for dimensions: GhostApplianceDimensionsMmV1,
+        plane: GhostPlacementPlaneV1,
+        capturePoint: LiveCapturePointV1,
+        planeNormal: SIMD3<Double>
+    ) -> SIMD3<Double> {
+        guard var world = capturePoint.worldPosition else { return SIMD3<Double>(0, 0, 0) }
+        let dimensionsM = SIMD3<Double>(
+            Double(dimensions.width) / 1_000,
+            Double(dimensions.height) / 1_000,
+            Double(dimensions.depth) / 1_000
+        )
+
+        switch plane {
+        case .wall:
+            let outward = normalizedVector(
+                SIMD3<Double>(planeNormal.x, 0, planeNormal.z),
+                fallback: SIMD3<Double>(0, 0, -1)
+            )
+            world += outward * (dimensionsM.z / 2)
+        case .floor:
+            world.y += dimensionsM.y / 2
+        case .ceiling, .worktop, .unknown:
+            break
+        }
+
+        return world
+    }
+
+    private func normalizedVector(
+        _ vector: SIMD3<Double>,
+        fallback: SIMD3<Double>
+    ) -> SIMD3<Double> {
+        let length = simd_length(vector)
+        guard length > 0.000_1 else { return fallback }
+        return vector / length
     }
 
     private func ghostLabel(for placement: GhostAppliancePlacementV1) -> String {
@@ -875,11 +932,6 @@ private struct CapturePointStatusBadge: View {
             ? "Screen only — needs review"
             : "Point captured"
     }
-}
-
-struct CGPointCodable: Codable, Equatable, Sendable {
-    let x: Double
-    let y: Double
 }
 
 struct LiveCapturePointProbeResultV1 {

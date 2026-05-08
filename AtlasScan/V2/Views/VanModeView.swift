@@ -1,6 +1,7 @@
 /// VanModeView — Full review of a captured room from the van (post-scan).
 
 import SwiftUI
+import simd
 import AtlasScanCore
 import AtlasContracts
 
@@ -12,6 +13,7 @@ struct VanModeView: View {
     var onFinishVisit: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @State private var placementBeingRefined: GhostAppliancePlacementV1?
 
     private var currentRoom: RoomCaptureV2 {
         coordinator.room(withId: room.id) ?? room
@@ -43,6 +45,15 @@ struct VanModeView: View {
         .navigationTitle(currentRoom.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarLeading) { backButton } }
+        .sheet(item: $placementBeingRefined) { placement in
+            V2GhostPlacementRefinementSheet(
+                title: ghostModelLabel(for: placement),
+                placement: placement
+            ) { updatedPlacement in
+                saveRefinedGhostPlacement(updatedPlacement)
+            }
+            .presentationDetents([.medium])
+        }
         .safeAreaInset(edge: .bottom) {
             reviewNavigationBar
         }
@@ -216,10 +227,16 @@ struct VanModeView: View {
                         Text("\(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        Text("Capture point: \(placement.capturePointId.uuidString)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         Text(anchorStatusLabel(placement.anchorConfidence))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        if placement.anchorConfidence == .screenOnly || placement.placementPlane == .unknown {
+                        Text(String(format: "Yaw %.0f° · Screen (%.0f%%, %.0f%%)", placement.rotationYaw, placement.screenPoint.x * 100, placement.screenPoint.y * 100))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if placement.needsReview {
                             Text("Needs review")
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.orange)
@@ -227,10 +244,11 @@ struct VanModeView: View {
                         Text(clearanceSummary(placement.clearanceOffsetsMm))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Button("Refine in AR") {}
+                        Button("Refine placement") {
+                            placementBeingRefined = placement
+                        }
                             .font(.caption2.weight(.semibold))
                             .buttonStyle(.bordered)
-                            .disabled(true)
                     }
                     .padding(.vertical, 4)
                     Divider()
@@ -364,6 +382,14 @@ struct VanModeView: View {
         coordinator.upsertRoom(updatedRoom)
     }
 
+    private func saveRefinedGhostPlacement(_ placement: GhostAppliancePlacementV1) {
+        var updatedRoom = currentRoom
+        guard let index = updatedRoom.ghostAppliancePlacements.firstIndex(where: { $0.id == placement.id }) else { return }
+        updatedRoom.ghostAppliancePlacements[index] = placement
+        coordinator.upsertRoom(updatedRoom)
+        Task { await coordinator.saveSession() }
+    }
+
     private func wallFabricLabel(_ fabric: WallFabric) -> String {
         switch fabric {
         case .externalWall: return "External Wall"
@@ -404,5 +430,165 @@ private extension GhostApplianceClearanceOffsetsMmV1 {
             .map { "\($0.0): \($0.1)mm" }
             .joined(separator: ", ")
         return "Clearance: \(summary)"
+    }
+}
+
+private struct V2GhostPlacementRefinementSheet: View {
+    let title: String
+    let onSave: (GhostAppliancePlacementV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draftPlacement: GhostAppliancePlacementV1
+
+    private let nudgeStepM: Double = 0.05
+    private let rotationStepDegrees: Double = 15
+
+    init(
+        title: String,
+        placement: GhostAppliancePlacementV1,
+        onSave: @escaping (GhostAppliancePlacementV1) -> Void
+    ) {
+        self.title = title
+        self.onSave = onSave
+        _draftPlacement = State(initialValue: placement)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Placement") {
+                    Text(title)
+                    Text("\(draftPlacement.dimensionsMm.width)x\(draftPlacement.dimensionsMm.height)x\(draftPlacement.dimensionsMm.depth) mm")
+                        .foregroundStyle(.secondary)
+                    Text(placementSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if draftPlacement.needsReview {
+                        Label("Needs review", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+
+                Section("Rotate") {
+                    HStack {
+                        Button("-15°") { rotate(by: -rotationStepDegrees) }
+                        Spacer()
+                        Text("\(Int(draftPlacement.rotationYaw.rounded()))°")
+                            .font(.headline.monospacedDigit())
+                        Spacer()
+                        Button("+15°") { rotate(by: rotationStepDegrees) }
+                    }
+                }
+
+                Section("Nudge") {
+                    HStack {
+                        Button("Left") { nudge(by: horizontalVector * -nudgeStepM) }
+                        Spacer()
+                        Button("Right") { nudge(by: horizontalVector * nudgeStepM) }
+                    }
+                    HStack {
+                        Button(verticalMinusLabel) { nudge(by: verticalVector * -nudgeStepM) }
+                        Spacer()
+                        Button(verticalPlusLabel) { nudge(by: verticalVector * nudgeStepM) }
+                    }
+                    HStack {
+                        Button(depthMinusLabel) { nudge(by: depthVector * -nudgeStepM) }
+                        Spacer()
+                        Button(depthPlusLabel) { nudge(by: depthVector * nudgeStepM) }
+                    }
+                }
+            }
+            .navigationTitle("Refine placement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(draftPlacement)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var placementSummary: String {
+        String(
+            format: "World (%.2f, %.2f, %.2f) · Capture %@",
+            draftPlacement.worldPositionX,
+            draftPlacement.worldPositionY,
+            draftPlacement.worldPositionZ,
+            draftPlacement.capturePointId.uuidString
+        )
+    }
+
+    private var verticalPlusLabel: String {
+        draftPlacement.placementPlane == .wall ? "Up" : "Raise"
+    }
+
+    private var verticalMinusLabel: String {
+        draftPlacement.placementPlane == .wall ? "Down" : "Lower"
+    }
+
+    private var depthPlusLabel: String {
+        draftPlacement.placementPlane == .wall ? "Away from wall" : "Forward"
+    }
+
+    private var depthMinusLabel: String {
+        draftPlacement.placementPlane == .wall ? "Toward wall" : "Back"
+    }
+
+    private var horizontalVector: SIMD3<Double> {
+        switch draftPlacement.placementPlane {
+        case .wall:
+            let up = SIMD3<Double>(0, 1, 0)
+            let normal = planeNormal
+            return normalized(simd_cross(up, normal), fallback: SIMD3<Double>(1, 0, 0))
+        case .floor, .ceiling, .worktop, .unknown:
+            return SIMD3<Double>(1, 0, 0)
+        }
+    }
+
+    private var verticalVector: SIMD3<Double> {
+        SIMD3<Double>(0, 1, 0)
+    }
+
+    private var depthVector: SIMD3<Double> {
+        switch draftPlacement.placementPlane {
+        case .wall:
+            return planeNormal
+        case .floor, .ceiling, .worktop, .unknown:
+            return SIMD3<Double>(0, 0, -1)
+        }
+    }
+
+    private var planeNormal: SIMD3<Double> {
+        normalized(
+            SIMD3<Double>(
+                draftPlacement.planeNormalX,
+                draftPlacement.planeNormalY,
+                draftPlacement.planeNormalZ
+            ),
+            fallback: SIMD3<Double>(0, 0, -1)
+        )
+    }
+
+    private func rotate(by delta: Double) {
+        draftPlacement = draftPlacement.translated(rotationYawDelta: delta)
+    }
+
+    private func nudge(by delta: SIMD3<Double>) {
+        draftPlacement = draftPlacement.translated(dx: delta.x, dy: delta.y, dz: delta.z)
+    }
+
+    private func normalized(
+        _ vector: SIMD3<Double>,
+        fallback: SIMD3<Double>
+    ) -> SIMD3<Double> {
+        let length = simd_length(vector)
+        guard length > 0.000_1 else { return fallback }
+        return vector / length
     }
 }

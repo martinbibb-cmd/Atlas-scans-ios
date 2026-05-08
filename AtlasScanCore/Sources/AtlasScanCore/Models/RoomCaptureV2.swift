@@ -144,6 +144,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
     public let capturePointId: UUID
     public let applianceModelId: String
     public let customApplianceDefinitionId: String?
+    public let screenPoint: CGPointCodable
     public let placementPlane: GhostPlacementPlaneV1
     public let planeNormalX: Double
     public let planeNormalY: Double
@@ -164,6 +165,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         capturePointId: UUID,
         applianceModelId: String,
         customApplianceDefinitionId: String? = nil,
+        screenPoint: CGPointCodable = .init(x: 0.5, y: 0.5),
         placementPlane: GhostPlacementPlaneV1 = .unknown,
         planeNormalX: Double = 0,
         planeNormalY: Double = 0,
@@ -183,6 +185,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         self.capturePointId = capturePointId
         self.applianceModelId = applianceModelId
         self.customApplianceDefinitionId = customApplianceDefinitionId
+        self.screenPoint = screenPoint
         self.placementPlane = placementPlane
         self.planeNormalX = planeNormalX
         self.planeNormalY = planeNormalY
@@ -196,6 +199,88 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         self.anchorConfidence = anchorConfidence
         self.createdAt = createdAt
         self.notes = notes
+    }
+
+    public var worldPosition: SIMD3<Double> {
+        SIMD3(worldPositionX, worldPositionY, worldPositionZ)
+    }
+
+    public var needsReview: Bool {
+        anchorConfidence == .screenOnly || placementPlane == .unknown
+    }
+
+    public func translated(
+        dx: Double = 0,
+        dy: Double = 0,
+        dz: Double = 0,
+        rotationYawDelta: Double = 0
+    ) -> GhostAppliancePlacementV1 {
+        GhostAppliancePlacementV1(
+            id: id,
+            roomId: roomId,
+            capturePointId: capturePointId,
+            applianceModelId: applianceModelId,
+            customApplianceDefinitionId: customApplianceDefinitionId,
+            screenPoint: screenPoint,
+            placementPlane: placementPlane,
+            planeNormalX: planeNormalX,
+            planeNormalY: planeNormalY,
+            planeNormalZ: planeNormalZ,
+            worldPositionX: worldPositionX + dx,
+            worldPositionY: worldPositionY + dy,
+            worldPositionZ: worldPositionZ + dz,
+            rotationYaw: rotationYaw + rotationYawDelta,
+            dimensionsMm: dimensionsMm,
+            clearanceOffsetsMm: clearanceOffsetsMm,
+            anchorConfidence: anchorConfidence,
+            createdAt: createdAt,
+            notes: notes
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case roomId
+        case capturePointId
+        case applianceModelId
+        case customApplianceDefinitionId
+        case screenPoint
+        case placementPlane
+        case planeNormalX
+        case planeNormalY
+        case planeNormalZ
+        case worldPositionX
+        case worldPositionY
+        case worldPositionZ
+        case rotationYaw
+        case dimensionsMm
+        case clearanceOffsetsMm
+        case anchorConfidence
+        case createdAt
+        case notes
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        roomId = try container.decode(UUID.self, forKey: .roomId)
+        capturePointId = try container.decode(UUID.self, forKey: .capturePointId)
+        applianceModelId = try container.decode(String.self, forKey: .applianceModelId)
+        customApplianceDefinitionId = try container.decodeIfPresent(String.self, forKey: .customApplianceDefinitionId)
+        screenPoint = try container.decodeIfPresent(CGPointCodable.self, forKey: .screenPoint) ?? .init(x: 0.5, y: 0.5)
+        placementPlane = try container.decode(GhostPlacementPlaneV1.self, forKey: .placementPlane)
+        planeNormalX = try container.decode(Double.self, forKey: .planeNormalX)
+        planeNormalY = try container.decode(Double.self, forKey: .planeNormalY)
+        planeNormalZ = try container.decode(Double.self, forKey: .planeNormalZ)
+        worldPositionX = try container.decode(Double.self, forKey: .worldPositionX)
+        worldPositionY = try container.decode(Double.self, forKey: .worldPositionY)
+        worldPositionZ = try container.decode(Double.self, forKey: .worldPositionZ)
+        rotationYaw = try container.decode(Double.self, forKey: .rotationYaw)
+        dimensionsMm = try container.decode(GhostApplianceDimensionsMmV1.self, forKey: .dimensionsMm)
+        clearanceOffsetsMm = try container.decode(GhostApplianceClearanceOffsetsMmV1.self, forKey: .clearanceOffsetsMm)
+        anchorConfidence = try container.decode(SpatialPinAnchorConfidence.self, forKey: .anchorConfidence)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
     }
 }
 
