@@ -129,7 +129,7 @@ struct V2RoomLoopView: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             summaryLine("Pins", value: pinCountForReviewRoom)
-                            summaryLine("Ghost appliances", value: ghostPlacementsCountForReviewRoom)
+                            summaryLine("Possible appliances", value: ghostPlacementsCountForReviewRoom)
                             summaryLine("Photos", value: photoCountForReviewRoom)
                             summaryLine("Voice notes", value: voiceNoteCountForReviewRoom)
                             summaryLine("Transcripts", value: transcriptCountForReviewRoom)
@@ -596,7 +596,7 @@ private struct LiveSpatialCaptureView: View {
             titleVisibility: .visible
         ) {
             Button("Tag object") { showObjectPicker = true }
-            Button("Ghost appliance") { showGhostAppliancePicker = true }
+            Button("Possible appliance found — needs review") { showGhostAppliancePicker = true }
             Button("Take photo") { showPhotoPicker = true }
             Button("Add voice note") { showVoiceRecorder = true }
             Button("Measure space") { measureUsingPendingPoint() }
@@ -689,7 +689,7 @@ private struct LiveSpatialCaptureView: View {
             return "No capture point selected."
         }
         if point.anchorConfidence == .screenOnly {
-            return "Screen only — needs review."
+            return "Room note only — not spatially anchored."
         }
         return "Point anchored and ready."
     }
@@ -744,7 +744,7 @@ private struct LiveSpatialCaptureView: View {
                     : ""
                 measurementFeedback = String(format: "Measured %.2f m%@", measurement.distanceMeters, vText)
             } else {
-                measurementFeedback = "Measurement saved — one or both points are screen-only. Needs review."
+                measurementFeedback = "Measurement saved — one or both points are room-note-only and not spatially anchored."
             }
             showMeasurementFeedback = true
             return
@@ -758,7 +758,7 @@ private struct LiveSpatialCaptureView: View {
         _ a: SpatialPinAnchorConfidence,
         _ b: SpatialPinAnchorConfidence
     ) -> SpatialPinAnchorConfidence {
-        let order: [SpatialPinAnchorConfidence] = [.screenOnly, .low, .estimated, .raycastEstimated, .medium, .high]
+        let order: [SpatialPinAnchorConfidence] = [.screenOnly, .low, .estimated, .raycastEstimated, .worldLocked, .medium, .high]
         let ai = order.firstIndex(of: a) ?? 0
         let bi = order.firstIndex(of: b) ?? 0
         return order[min(ai, bi)]
@@ -1464,7 +1464,7 @@ private struct CapturePointStatusBadge: View {
 
     private var statusText: String {
         point.anchorConfidence == .screenOnly
-            ? "Screen only — needs review"
+            ? "Room note only — not spatially anchored"
             : "Point captured"
     }
 }
@@ -1518,70 +1518,382 @@ private struct V2PinPickerSheet: View {
     let onSave: (SpatialPinV1) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedType: PinnedObjectType = .boiler
-    @State private var label = ""
+    @State private var selectedCategory: PinObjectCategoryV1 = .heatSource
+    @State private var selectedLocationContext: PinPlacementLocationContext = .unknownNeedsReview
+    @State private var selectedBoilerType: BoilerType = .combi
+    @State private var selectedCylinderType: CylinderType = .openVented
+    @State private var selectedTemplateId: String?
+    @State private var selectedComponent: EquipmentOption = heatingComponents.first!
+    @State private var customLabel = ""
+
+    @State private var manualManufacturer = ""
+    @State private var manualModel = ""
+    @State private var manualType = ""
+    @State private var manualWidthMm = ""
+    @State private var manualHeightMm = ""
+    @State private var manualDepthMm = ""
+    @State private var manualFlueOrientation = ""
+    @State private var manualNotes = ""
+
+    private enum BoilerType: String, CaseIterable, Identifiable {
+        case combi
+        case system
+        case regular
+        case manualUnknown = "manual_unknown"
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .combi: return "Combi"
+            case .system: return "System"
+            case .regular: return "Regular"
+            case .manualUnknown: return "Manual / unknown"
+            }
+        }
+    }
+
+    private enum CylinderType: String, CaseIterable, Identifiable {
+        case openVented = "open_vented"
+        case unvented
+        case thermalStore = "thermal_store"
+        case smart
+        case unknownManual = "unknown_manual"
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .openVented: return "Open vented cylinder"
+            case .unvented: return "Unvented cylinder"
+            case .thermalStore: return "Thermal store"
+            case .smart: return "Smart cylinder"
+            case .unknownManual: return "Unknown / manual cylinder"
+            }
+        }
+    }
+
+    private struct EquipmentOption: Identifiable, Hashable {
+        let id: String
+        let title: String
+        let objectType: PinnedObjectType
+        let templateId: String?
+    }
+
+    private static let heatingComponents: [EquipmentOption] = [
+        .init(id: "pump", title: "Pump", objectType: .other, templateId: nil),
+        .init(id: "zone_valve", title: "Zone valve", objectType: .other, templateId: nil),
+        .init(id: "motorised_valve", title: "Motorised valve", objectType: .other, templateId: nil),
+        .init(id: "filter", title: "Filter", objectType: .other, templateId: nil),
+        .init(id: "expansion_vessel", title: "Expansion vessel", objectType: .other, templateId: nil),
+        .init(id: "buffer_header", title: "Buffer / low loss header", objectType: .other, templateId: nil),
+        .init(id: "controls", title: "Controls", objectType: .other, templateId: nil),
+    ]
+
+    private static let flueExternalItems: [EquipmentOption] = [
+        .init(id: "flue_terminal", title: "Flue terminal", objectType: .flueTerminal, templateId: nil),
+        .init(id: "plume_kit", title: "Plume kit", objectType: .other, templateId: nil),
+        .init(id: "condensate_discharge", title: "Condensate discharge", objectType: .other, templateId: nil),
+        .init(id: "gas_meter", title: "Gas meter", objectType: .gasmeter, templateId: nil),
+        .init(id: "external_clearance_item", title: "External clearance item", objectType: .other, templateId: nil),
+    ]
+
+    private static let emitterItems: [EquipmentOption] = [
+        .init(id: "radiator", title: "Radiator", objectType: .other, templateId: nil),
+        .init(id: "towel_rail", title: "Towel rail", objectType: .other, templateId: nil),
+        .init(id: "ufh_manifold", title: "Underfloor heating manifold", objectType: .other, templateId: nil),
+        .init(id: "manual_emitter", title: "Manual emitter entry", objectType: .other, templateId: nil),
+    ]
+
+    private var boilerTemplates: [EquipmentOption] {
+        let defs = MasterHardwareRegistry.registry
+            .definitions(forCategory: "boiler")
+            .filter { definition in
+                switch selectedBoilerType {
+                case .combi:
+                    return definition.family.localizedCaseInsensitiveContains("Combi")
+                case .system:
+                    return definition.family.localizedCaseInsensitiveContains("System")
+                case .regular:
+                    return definition.family.localizedCaseInsensitiveContains("Regular")
+                case .manualUnknown:
+                    return false
+                }
+            }
+            .sorted { $0.brand == $1.brand ? $0.displayName < $1.displayName : $0.brand < $1.brand }
+        return defs.map { def in
+            EquipmentOption(
+                id: def.modelId,
+                title: "\(def.brand) \(def.displayName)",
+                objectType: .boiler,
+                templateId: def.modelId
+            )
+        }
+    }
+
+    private var cylinderTemplates: [EquipmentOption] {
+        let defs = MasterHardwareRegistry.registry
+            .definitions(forCategory: "cylinder")
+            .filter { definition in
+                switch selectedCylinderType {
+                case .openVented:
+                    return definition.family.localizedCaseInsensitiveContains("Open Vented")
+                case .unvented:
+                    return definition.family.localizedCaseInsensitiveContains("Unvented")
+                case .thermalStore:
+                    return definition.family.localizedCaseInsensitiveContains("Thermal Store")
+                case .smart:
+                    return definition.family.localizedCaseInsensitiveContains("Smart")
+                case .unknownManual:
+                    return false
+                }
+            }
+            .sorted { $0.brand == $1.brand ? $0.displayName < $1.displayName : $0.brand < $1.brand }
+        return defs.map { def in
+            EquipmentOption(
+                id: def.modelId,
+                title: "\(def.brand) \(def.displayName)",
+                objectType: .hotWaterCylinder,
+                templateId: def.modelId
+            )
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Object type") {
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(PinnedObjectType.allCases, id: \.self) { type in
-                            Label(type.rawValue.capitalized, systemImage: iconName(for: type))
-                                .tag(type)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                }
-                Section("Label (optional)") {
-                    TextField("e.g. Worcester Combi", text: $label)
-                }
-                Section {
-                    Text("Pin will be saved as screen-only until anchored in AR review.")
+                Section("Room") {
+                    Text("Linked room: \(roomId.uuidString.prefix(8))…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                Section("Location context") {
+                    Picker("Location", selection: $selectedLocationContext) {
+                        ForEach(PinPlacementLocationContext.allCases, id: \.self) { context in
+                            Text(contextLabel(context)).tag(context)
+                        }
+                    }
+                }
+                Section("Object category") {
+                    Picker("Category", selection: $selectedCategory) {
+                        Text("Heat source").tag(PinObjectCategoryV1.heatSource)
+                        Text("Hot water storage").tag(PinObjectCategoryV1.hotWaterStorage)
+                        Text("Heating system components").tag(PinObjectCategoryV1.heatingSystemComponents)
+                        Text("Flue / external").tag(PinObjectCategoryV1.flueExternal)
+                        Text("Emitters").tag(PinObjectCategoryV1.emitters)
+                    }
+                }
+
+                switch selectedCategory {
+                case .heatSource:
+                    boilerSelectionSection
+                case .hotWaterStorage:
+                    cylinderSelectionSection
+                case .heatingSystemComponents:
+                    componentSelectionSection("Heating system components", options: Self.heatingComponents)
+                case .flueExternal:
+                    componentSelectionSection("Flue / external", options: Self.flueExternalItems)
+                case .emitters:
+                    componentSelectionSection("Emitters", options: Self.emitterItems)
+                }
+                Section("Review") {
+                    Text(capturePoint?.anchorConfidence == .screenOnly
+                         ? "Room note only — not spatially anchored."
+                         : "Placement anchored to room with confidence.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Label override (optional)") {
+                    TextField("Custom label", text: $customLabel)
+                }
             }
-            .navigationTitle("Pin Object")
+            .navigationTitle("Add Equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add Pin") { savePinAndDismiss() }
+                    Button("Save") { savePinAndDismiss() }
                 }
             }
         }
     }
 
+    @ViewBuilder
+    private var boilerSelectionSection: some View {
+        Section("Boiler type") {
+            Picker("Type", selection: $selectedBoilerType) {
+                ForEach(BoilerType.allCases) { type in
+                    Text(type.title).tag(type)
+                }
+            }
+        }
+        if selectedBoilerType == .manualUnknown {
+            manualEntrySection(title: "Manual boiler entry")
+        } else {
+            Section("Boiler template") {
+                Picker("Template", selection: $selectedTemplateId) {
+                    ForEach(boilerTemplates) { option in
+                        Text(option.title).tag(Optional(option.id))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cylinderSelectionSection: some View {
+        Section("Cylinder category") {
+            Picker("Category", selection: $selectedCylinderType) {
+                ForEach(CylinderType.allCases) { type in
+                    Text(type.title).tag(type)
+                }
+            }
+        }
+        if selectedCylinderType == .unknownManual {
+            manualEntrySection(title: "Manual cylinder entry")
+        } else {
+            Section("Cylinder template") {
+                Picker("Template", selection: $selectedTemplateId) {
+                    ForEach(cylinderTemplates) { option in
+                        Text(option.title).tag(Optional(option.id))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func componentSelectionSection(_ title: String, options: [EquipmentOption]) -> some View {
+        Section(title) {
+            Picker("Item", selection: $selectedComponent) {
+                ForEach(options) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func manualEntrySection(title: String) -> some View {
+        Section(title) {
+            TextField("Manufacturer", text: $manualManufacturer)
+            TextField("Model", text: $manualModel)
+            TextField("Type", text: $manualType)
+            TextField("Width (mm)", text: $manualWidthMm).keyboardType(.numberPad)
+            TextField("Height (mm)", text: $manualHeightMm).keyboardType(.numberPad)
+            TextField("Depth (mm)", text: $manualDepthMm).keyboardType(.numberPad)
+            TextField("Flue orientation", text: $manualFlueOrientation)
+            TextField("Notes", text: $manualNotes, axis: .vertical)
+            Text("Photo evidence recommended")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func contextLabel(_ context: PinPlacementLocationContext) -> String {
+        switch context {
+        case .wall: return "Wall"
+        case .floor: return "Floor"
+        case .ceiling: return "Ceiling"
+        case .cupboard: return "Cupboard"
+        case .airingCupboard: return "Airing cupboard"
+        case .externalWall: return "External wall"
+        case .unknownNeedsReview: return "Unknown — needs review"
+        }
+    }
+
     private func savePinAndDismiss() {
         let worldPosition = capturePoint?.worldPosition
+        let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence == .screenOnly ? .screenOnly : .raycastEstimated
+        let reviewStatus: SpatialPinReviewStatus = confidence == .screenOnly ? .needsReview : .confirmed
+        let option = selectedOption()
+        let manualEntry = selectedManualEntry()
+        let title = customLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? option.title
+            : customLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         let pin = SpatialPinV1(
             roomId: roomId,
             capturePointId: capturePoint?.id,
             positionX: worldPosition?.x ?? 0,
             positionY: worldPosition?.y ?? 0,
             positionZ: worldPosition?.z ?? 0,
-            screenPositionX: capturePoint?.screenPoint.x ?? 0.5,
-            screenPositionY: capturePoint?.screenPoint.y ?? 0.5,
-            objectType: selectedType,
-            label: label.isEmpty ? nil : label,
-            anchorConfidence: capturePoint?.anchorConfidence ?? .screenOnly
+            screenPositionX: nil,
+            screenPositionY: nil,
+            objectType: option.objectType,
+            label: title,
+            objectCategory: selectedCategory,
+            selectedTemplateId: option.templateId,
+            manualEntry: manualEntry,
+            anchorConfidence: confidence,
+            reviewStatus: reviewStatus,
+            provenance: .manualCapture,
+            locationContext: selectedLocationContext
         )
         onSave(pin)
+        dismiss()
     }
 
-    private func iconName(for type: PinnedObjectType) -> String {
-        switch type {
-        case .boiler, .heatPump:    return "flame.fill"
-        case .flueTerminal:         return "arrow.up.circle.fill"
-        case .hotWaterCylinder:     return "drop.fill"
-        case .electricalPanel:      return "bolt.fill"
-        case .gasmeter:             return "gauge"
-        case .nearbyOpening:        return "door.left.hand.open"
-        case .other:                return "mappin"
+    private func selectedOption() -> EquipmentOption {
+        switch selectedCategory {
+        case .heatSource:
+            if selectedBoilerType == .manualUnknown {
+                return EquipmentOption(
+                    id: "boiler_manual_unknown",
+                    title: "Boiler placeholder — needs identification",
+                    objectType: .boiler,
+                    templateId: nil
+                )
+            }
+            let options = boilerTemplates
+            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? EquipmentOption(
+                id: "boiler_manual_unknown",
+                title: "Boiler placeholder — needs identification",
+                objectType: .boiler,
+                templateId: nil
+            )
+        case .hotWaterStorage:
+            if selectedCylinderType == .unknownManual {
+                return EquipmentOption(
+                    id: "cylinder_manual_unknown",
+                    title: "Cylinder placeholder — needs identification",
+                    objectType: .hotWaterCylinder,
+                    templateId: nil
+                )
+            }
+            let options = cylinderTemplates
+            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? EquipmentOption(
+                id: "cylinder_manual_unknown",
+                title: "Cylinder placeholder — needs identification",
+                objectType: .hotWaterCylinder,
+                templateId: nil
+            )
+        case .heatingSystemComponents, .flueExternal, .emitters:
+            return selectedComponent
         }
+    }
+
+    private func selectedManualEntry() -> SpatialPinManualEntryV1? {
+        guard selectedBoilerType == .manualUnknown || selectedCylinderType == .unknownManual else {
+            return nil
+        }
+        return SpatialPinManualEntryV1(
+            manufacturer: trimmed(manualManufacturer),
+            model: trimmed(manualModel),
+            type: trimmed(manualType),
+            widthMm: intValue(manualWidthMm),
+            heightMm: intValue(manualHeightMm),
+            depthMm: intValue(manualDepthMm),
+            flueOrientation: trimmed(manualFlueOrientation),
+            notes: trimmed(manualNotes),
+            photoEvidenceRecommended: true
+        )
+    }
+
+    private func trimmed(_ text: String) -> String? {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    private func intValue(_ text: String) -> Int? {
+        Int(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
 
@@ -1695,7 +2007,7 @@ private struct V2GhostAppliancePickerSheet: View {
                 }
             }
             .searchable(text: $searchText, prompt: "Search model, brand, type")
-            .navigationTitle("Ghost Appliance")
+            .navigationTitle("Possible appliance found — needs review")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -248,7 +248,7 @@ private extension SpatialEvidenceGraphV1 {
     static let anchorConfidenceScreenOnly = "screen_only"
     static let anchorConfidenceEstimated = "estimated"
     static let warningRoomOutlineIncomplete = "Room outline incomplete"
-    static let warningScreenOnlyNeedsReview = "Screen-only evidence needs review"
+    static let warningScreenOnlyNeedsReview = "Room-note-only evidence needs review"
     static let warningUnknownSurfaceSemantic = "Unknown surface semantic"
 
     static func isUnknownSurface(_ semantic: String?) -> Bool {
@@ -438,7 +438,7 @@ private extension SpatialEvidenceGraphV1 {
                     unresolved.append(
                         UnresolvedSpatialEvidenceV1(
                             kind: "ghost_appliance_needs_review",
-                            message: "Ghost appliance needs review",
+                            message: "Possible appliance found — needs review",
                             roomId: room.roomId,
                             capturePointId: point.capturePointId,
                             evidenceId: ghost.id

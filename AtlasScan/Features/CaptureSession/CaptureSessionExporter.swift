@@ -336,8 +336,13 @@ enum CaptureSessionExporter {
             type: pin.type.rawValue,
             label: pin.label,
             roomId: pin.roomId?.uuidString,
+            locationContext: pin.attachedWallId == nil ? "unknown_needs_review" : "wall",
+            locationId: pin.attachedWallId?.uuidString ?? pin.capturePointId?.uuidString,
+            objectCategory: pin.type.serviceCategory.rawValue,
             linkedPhotoId: pin.linkedPhotoId?.uuidString,
-            approximatePositionRef: position
+            approximatePositionRef: position,
+            reviewStatus: pin.reviewStatus.rawValue,
+            provenance: pin.pinSource?.rawValue
         )
     }
 

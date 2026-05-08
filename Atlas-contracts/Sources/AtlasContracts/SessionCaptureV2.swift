@@ -371,6 +371,20 @@ public struct CapturedObjectPinV2: Codable, Sendable {
 
     /// UUID of the room this pin is associated with; nil for session-level pins.
     public let roomId: String?
+    /// UUID of the visit this pin belongs to (when emitted by room-linked capture flows).
+    public let visitId: String?
+    /// UUID of an external area when object evidence is attached outside a room.
+    public let externalAreaId: String?
+    /// Location context in the room/external area (`wall`, `floor`, `ceiling`, etc.).
+    public let locationContext: String?
+    /// Location identifier in the selected context (e.g. capture point / wall id).
+    public let locationId: String?
+    /// Grouped object category used during selection flow.
+    public let objectCategory: String?
+    /// Selected template identifier when a catalog template was chosen.
+    public let selectedTemplateId: String?
+    /// Manual-entry details when no template was selected.
+    public let manualEntry: CapturedObjectManualEntryV2?
 
     /// UUID of the capture point this pin is associated with; nil when unanchored.
     public let capturePointId: String?
@@ -390,29 +404,85 @@ public struct CapturedObjectPinV2: Codable, Sendable {
 
     /// True when this pin requires engineer review.
     public let needsReview: Bool
+    /// Explicit review status (`confirmed` / `needs_review`).
+    public let reviewStatus: String?
+    /// Capture provenance (`manual_capture` / `room_scan_inference`).
+    public let provenance: String?
 
     public init(
         id: String,
         type: String,
         label: String?,
         roomId: String?,
+        visitId: String? = nil,
+        externalAreaId: String? = nil,
+        locationContext: String? = nil,
+        locationId: String? = nil,
+        objectCategory: String? = nil,
+        selectedTemplateId: String? = nil,
+        manualEntry: CapturedObjectManualEntryV2? = nil,
         capturePointId: String? = nil,
         linkedPhotoId: String?,
         approximatePositionRef: ScanPoint3D?,
         anchorConfidence: String? = nil,
         surfaceSemantic: String? = nil,
-        needsReview: Bool = false
+        needsReview: Bool = false,
+        reviewStatus: String? = nil,
+        provenance: String? = nil
     ) {
         self.id = id
         self.type = type
         self.label = label
         self.roomId = roomId
+        self.visitId = visitId
+        self.externalAreaId = externalAreaId
+        self.locationContext = locationContext
+        self.locationId = locationId
+        self.objectCategory = objectCategory
+        self.selectedTemplateId = selectedTemplateId
+        self.manualEntry = manualEntry
         self.capturePointId = capturePointId
         self.linkedPhotoId = linkedPhotoId
         self.approximatePositionRef = approximatePositionRef
         self.anchorConfidence = anchorConfidence
         self.surfaceSemantic = surfaceSemantic
         self.needsReview = needsReview
+        self.reviewStatus = reviewStatus
+        self.provenance = provenance
+    }
+}
+
+public struct CapturedObjectManualEntryV2: Codable, Sendable {
+    public let manufacturer: String?
+    public let model: String?
+    public let type: String?
+    public let widthMm: Int?
+    public let heightMm: Int?
+    public let depthMm: Int?
+    public let flueOrientation: String?
+    public let notes: String?
+    public let photoEvidenceRecommended: Bool?
+
+    public init(
+        manufacturer: String? = nil,
+        model: String? = nil,
+        type: String? = nil,
+        widthMm: Int? = nil,
+        heightMm: Int? = nil,
+        depthMm: Int? = nil,
+        flueOrientation: String? = nil,
+        notes: String? = nil,
+        photoEvidenceRecommended: Bool? = nil
+    ) {
+        self.manufacturer = manufacturer
+        self.model = model
+        self.type = type
+        self.widthMm = widthMm
+        self.heightMm = heightMm
+        self.depthMm = depthMm
+        self.flueOrientation = flueOrientation
+        self.notes = notes
+        self.photoEvidenceRecommended = photoEvidenceRecommended
     }
 }
 

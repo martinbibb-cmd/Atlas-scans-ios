@@ -42,7 +42,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
 
     static func from(pin: SpatialPinV1) -> RecentCaptureItemV1 {
         let subtitle: String? = pin.anchorConfidence == .screenOnly
-            ? "Screen only — needs review"
+            ? "Room note only — not spatially anchored"
             : nil
         return RecentCaptureItemV1(
             id: UUID(),
@@ -284,7 +284,7 @@ struct V2RecentItemDetailSheet: View {
                 }
 
                 if item.needsReview {
-                    Label("Needs review — anchor is screen-only or placement unknown", systemImage: "exclamationmark.triangle.fill")
+                    Label("Needs review — room note only or placement unknown", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
@@ -347,7 +347,7 @@ struct V2RecentItemDetailSheet: View {
         case .photo:          return "Photo"
         case .voiceNote:      return "Voice Note"
         case .note:           return "Note"
-        case .ghostAppliance: return "Ghost Appliance"
+        case .ghostAppliance: return "Possible appliance found — needs review"
         case .measurement:    return "Measurement"
         }
     }

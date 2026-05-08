@@ -161,7 +161,7 @@ struct VanModeView: View {
                 evidenceRow(
                     icon: iconName(for: pin.objectType),
                     title: pin.label ?? pin.objectType.rawValue.capitalized,
-                    subtitle: pin.anchorConfidence == .screenOnly ? "Screen only — needs review" : nil,
+                    subtitle: pin.anchorConfidence == .screenOnly ? "Room note only — not spatially anchored" : nil,
                     needsReview: pin.anchorConfidence == .screenOnly,
                     onDelete: {
                         coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(pin: pin))
@@ -368,7 +368,7 @@ struct VanModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
                         if pin.anchorConfidence == .screenOnly {
-                            Text("Screen only — needs review")
+                            Text("Room note only — not spatially anchored")
                                 .font(.caption2)
                                 .foregroundStyle(.orange)
                         } else if pin.hasResolvedWorldAnchor {
@@ -414,7 +414,7 @@ struct VanModeView: View {
 
     private var ghostPlacementsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Ghost Appliances (\(currentRoom.ghostAppliancePlacements.count))").font(.headline)
+            Text("Possible appliances (\(currentRoom.ghostAppliancePlacements.count))").font(.headline)
             if currentRoom.ghostAppliancePlacements.isEmpty {
                 Text("No ghost appliance placements captured.")
                     .foregroundStyle(.secondary)
@@ -604,7 +604,8 @@ struct VanModeView: View {
         case .low: return "Anchor confidence: low"
         case .estimated: return "Anchor confidence: estimated"
         case .raycastEstimated: return "Anchor confidence: raycast estimated"
-        case .screenOnly: return "Anchor confidence: screen only"
+        case .worldLocked: return "Anchor confidence: world locked"
+        case .screenOnly: return "Anchor confidence: room-note-only (not spatially anchored)"
         }
     }
 

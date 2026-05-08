@@ -145,7 +145,7 @@ public enum MasterHardwareRegistry {
             modelId:     "combi_generic",
             brand:       "Generic",
             family:      "Combi Boiler",
-            displayName: "Generic combi",
+            displayName: "Boiler placeholder — needs identification",
             category:    "boiler",
             dimensions:  ApplianceDimensionsV1(widthMm: 600, depthMm: 500, heightMm: 750),
             clearanceRules: ApplianceClearanceRulesV1(
@@ -162,7 +162,7 @@ public enum MasterHardwareRegistry {
             modelId:     "combi_compact",
             brand:       "Generic",
             family:      "Combi Boiler",
-            displayName: "Compact combi",
+            displayName: "Boiler placeholder — needs identification",
             category:    "boiler",
             dimensions:  ApplianceDimensionsV1(widthMm: 440, depthMm: 360, heightMm: 700),
             clearanceRules: ApplianceClearanceRulesV1(
@@ -283,44 +283,10 @@ public enum MasterHardwareRegistry {
 
     public static let cylinderDefinitions: [ApplianceDefinitionV1] = [
         ApplianceDefinitionV1(
-            modelId:     "cylinder_unvented_standard",
-            brand:       "Generic",
-            family:      "Unvented Cylinder",
-            displayName: "Standard unvented cylinder",
-            category:    "cylinder",
-            dimensions:  ApplianceDimensionsV1(widthMm: 550, depthMm: 550, heightMm: 1200),
-            clearanceRules: ApplianceClearanceRulesV1(
-                installMinFrontMm: 250,
-                frontMm:           500,
-                sideMm:            100,
-                rearMm:             50,
-                topMm:             300,
-                minCeilingHeightMm: 1900
-            ),
-            guidanceNote: "Standard unvented cylinder ~450 mm dia. G3 — confirm tundish and pressure relief access."
-        ),
-        ApplianceDefinitionV1(
-            modelId:     "cylinder_unvented_slim",
-            brand:       "Generic",
-            family:      "Unvented Cylinder",
-            displayName: "Slim unvented cylinder",
-            category:    "cylinder",
-            dimensions:  ApplianceDimensionsV1(widthMm: 400, depthMm: 400, heightMm: 1500),
-            clearanceRules: ApplianceClearanceRulesV1(
-                installMinFrontMm: 250,
-                frontMm:           500,
-                sideMm:            100,
-                rearMm:             50,
-                topMm:             300,
-                minCeilingHeightMm: 1900
-            ),
-            guidanceNote: "Slim-profile unvented cylinder. Same front access required; height likely exceeds 1.8 m."
-        ),
-        ApplianceDefinitionV1(
-            modelId:     "cylinder_vented_standard",
-            brand:       "Generic",
-            family:      "Vented Cylinder",
-            displayName: "Standard vented cylinder",
+            modelId:     "gledhill_open_vented_copper_117l",
+            brand:       "Gledhill",
+            family:      "Open Vented Cylinder",
+            displayName: "Copper open vented 117L",
             category:    "cylinder",
             dimensions:  ApplianceDimensionsV1(widthMm: 450, depthMm: 450, heightMm: 1100),
             clearanceRules: ApplianceClearanceRulesV1(
@@ -331,7 +297,109 @@ public enum MasterHardwareRegistry {
                 topMm:             300,
                 minCeilingHeightMm: 1800
             ),
-            guidanceNote: "Vented hot-water cylinder. Check cold-feed header tank location and overflow route."
+            guidanceNote: "Open vented cylinder. Keep feed/expansion path and overflow route accessible."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "gledhill_unvented_stainless_210l",
+            brand:       "Gledhill",
+            family:      "Unvented Cylinder",
+            displayName: "Stainless unvented 210L",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 550, depthMm: 550, heightMm: 1470),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 250,
+                frontMm:           500,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             300,
+                minCeilingHeightMm: 1900
+            ),
+            guidanceNote: "Unvented cylinder (G3). Confirm tundish/relief discharge and service-valve access."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "gledhill_boilermate_a_classic",
+            brand:       "Gledhill",
+            family:      "Thermal Store",
+            displayName: "BoilerMate A-Class thermal store",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 600, depthMm: 600, heightMm: 1750),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 300,
+                frontMm:           600,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             350,
+                minCeilingHeightMm: 2000
+            ),
+            guidanceNote: "Thermal store / BoilerMate-style unit. Verify store type before downstream sizing logic."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "mixergy_direct_unvented_210l",
+            brand:       "Mixergy",
+            family:      "Smart Cylinder",
+            displayName: "Direct smart cylinder 210L (unvented)",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 550, depthMm: 550, heightMm: 1450),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 250,
+                frontMm:           500,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             300,
+                minCeilingHeightMm: 1900
+            ),
+            guidanceNote: "Mixergy direct (unvented). Keep controls and immersion access clear."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "mixergy_indirect_unvented_210l",
+            brand:       "Mixergy",
+            family:      "Smart Cylinder",
+            displayName: "Indirect smart cylinder 210L (unvented)",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 550, depthMm: 550, heightMm: 1500),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 250,
+                frontMm:           500,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             300,
+                minCeilingHeightMm: 1900
+            ),
+            guidanceNote: "Mixergy indirect cylinder with coil. Record coil arrangement for heat source pairing."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "mixergy_hp_ready_indirect_250l",
+            brand:       "Mixergy",
+            family:      "Smart Cylinder",
+            displayName: "Heat-pump-ready indirect 250L (unvented)",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 600, depthMm: 600, heightMm: 1700),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 300,
+                frontMm:           600,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             300,
+                minCeilingHeightMm: 2000
+            ),
+            guidanceNote: "HP-ready smart cylinder with larger coil volume. Confirm vented vs unvented setup explicitly."
+        ),
+        ApplianceDefinitionV1(
+            modelId:     "cylinder_placeholder_manual",
+            brand:       "Unknown",
+            family:      "Unknown / Manual Cylinder",
+            displayName: "Cylinder placeholder — needs identification",
+            category:    "cylinder",
+            dimensions:  ApplianceDimensionsV1(widthMm: 500, depthMm: 500, heightMm: 1200),
+            clearanceRules: ApplianceClearanceRulesV1(
+                installMinFrontMm: 250,
+                frontMm:           500,
+                sideMm:            100,
+                rearMm:             50,
+                topMm:             300,
+                minCeilingHeightMm: 1800
+            ),
+            guidanceNote: "Placeholder cylinder entry. Engineer identification required before customer-visible output."
         ),
     ]
 
