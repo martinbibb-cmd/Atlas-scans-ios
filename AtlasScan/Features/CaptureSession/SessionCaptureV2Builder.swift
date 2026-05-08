@@ -151,12 +151,17 @@ enum SessionCaptureV2Builder {
             type: pin.type.rawValue,
             label: pin.label,
             roomId: pin.roomId?.uuidString,
+            locationContext: pin.attachedWallId == nil ? "unknown_needs_review" : "wall",
+            locationId: pin.attachedWallId?.uuidString ?? pin.capturePointId?.uuidString,
+            objectCategory: pin.type.serviceCategory.rawValue,
             capturePointId: pin.capturePointId?.uuidString,
             linkedPhotoId: pin.linkedPhotoId?.uuidString,
             approximatePositionRef: position,
             anchorConfidence: pin.pinConfidence?.rawValue,
             surfaceSemantic: nil,
-            needsReview: pin.reviewStatus != .confirmed || pin.pinConfidence == .needsReview
+            needsReview: pin.reviewStatus != .confirmed || pin.pinConfidence == .needsReview,
+            reviewStatus: pin.reviewStatus.rawValue,
+            provenance: pin.pinSource?.rawValue
         )
     }
 

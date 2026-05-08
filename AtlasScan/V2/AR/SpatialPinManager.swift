@@ -36,8 +36,6 @@ final class SpatialPinManager: NSObject {
                 positionX: 0,
                 positionY: 0,
                 positionZ: 0,
-                screenPositionX: Double(loc.x / max(arView.bounds.width, 1)),
-                screenPositionY: Double(loc.y / max(arView.bounds.height, 1)),
                 objectType: pendingType,
                 anchorConfidence: .screenOnly
             )

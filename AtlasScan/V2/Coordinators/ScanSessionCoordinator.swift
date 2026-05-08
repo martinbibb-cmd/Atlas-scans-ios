@@ -193,6 +193,9 @@ public final class ScanSessionCoordinator: ObservableObject {
             SpatialPinV1(
                 id: pin.id,
                 roomId: pin.roomId,
+                visitId: pin.visitId,
+                externalAreaId: pin.externalAreaId,
+                locationContext: pin.locationContext,
                 capturePointId: pin.capturePointId,
                 positionX: pin.positionX + dx,
                 positionY: pin.positionY,
@@ -201,9 +204,15 @@ public final class ScanSessionCoordinator: ObservableObject {
                 screenPositionY: pin.screenPositionY,
                 objectType: pin.objectType,
                 label: pin.label,
+                objectCategory: pin.objectCategory,
+                selectedTemplateId: pin.selectedTemplateId,
+                manualEntry: pin.manualEntry,
                 anchorConfidence: pin.anchorConfidence,
+                reviewStatus: pin.reviewStatus,
+                provenance: pin.provenance,
                 hardwareSpecId: pin.hardwareSpecId,
-                modelId: pin.modelId
+                modelId: pin.modelId,
+                surfaceSemantic: pin.surfaceSemantic
             )
         }
         translatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map { placement in

@@ -396,6 +396,9 @@ public struct CustomApplianceDefinitionV1: Codable, Identifiable, Equatable, Sen
 public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public let id: UUID
     public let roomId: UUID
+    public var visitId: UUID?
+    public var externalAreaId: UUID?
+    public var locationContext: PinPlacementLocationContext
     public var capturePointId: UUID?
 
     /// 3-D world-space position (Y-up, metric metres).
@@ -403,16 +406,21 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public let positionY: Double
     public let positionZ: Double
 
-    /// Screen-space fallback position normalised to 0...1 when a stable
-    /// world-space anchor is not yet available.
+    /// Screen-space aim marker normalised to 0...1.
+    /// UI-only context that must not be treated as persistent spatial truth.
     public var screenPositionX: Double?
     public var screenPositionY: Double?
 
     public var objectType: PinnedObjectType
     public var label: String?
+    public var objectCategory: PinObjectCategoryV1
+    public var selectedTemplateId: String?
+    public var manualEntry: SpatialPinManualEntryV1?
 
     /// Confidence of the underlying placement anchor.
     public var anchorConfidence: SpatialPinAnchorConfidence
+    public var reviewStatus: SpatialPinReviewStatus
+    public var provenance: SpatialPinProvenance
 
     /// Hardware spec linked to this pin (e.g. the boiler model).
     public var hardwareSpecId: UUID?
@@ -434,7 +442,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         switch anchorConfidence {
         case .screenOnly:
             return false
-        case .raycastEstimated, .high, .medium, .low, .estimated:
+        case .raycastEstimated, .worldLocked, .high, .medium, .low, .estimated:
             return hasNonZeroWorldPosition
         }
     }
@@ -442,6 +450,9 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public init(
         id: UUID = UUID(),
         roomId: UUID,
+        visitId: UUID? = nil,
+        externalAreaId: UUID? = nil,
+        locationContext: PinPlacementLocationContext = .unknownNeedsReview,
         capturePointId: UUID? = nil,
         positionX: Double,
         positionY: Double,
@@ -450,13 +461,21 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         screenPositionY: Double? = nil,
         objectType: PinnedObjectType,
         label: String? = nil,
-        anchorConfidence: SpatialPinAnchorConfidence = .estimated,
+        objectCategory: PinObjectCategoryV1 = .heatingSystemComponents,
+        selectedTemplateId: String? = nil,
+        manualEntry: SpatialPinManualEntryV1? = nil,
+        anchorConfidence: SpatialPinAnchorConfidence = .screenOnly,
+        reviewStatus: SpatialPinReviewStatus = .needsReview,
+        provenance: SpatialPinProvenance = .manualCapture,
         hardwareSpecId: UUID? = nil,
         modelId: String? = nil,
         surfaceSemantic: SurfaceSemanticV1? = nil
     ) {
         self.id = id
         self.roomId = roomId
+        self.visitId = visitId
+        self.externalAreaId = externalAreaId
+        self.locationContext = locationContext
         self.capturePointId = capturePointId
         self.positionX = positionX
         self.positionY = positionY
@@ -465,10 +484,52 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         self.screenPositionY = screenPositionY
         self.objectType = objectType
         self.label = label
+        self.objectCategory = objectCategory
+        self.selectedTemplateId = selectedTemplateId
+        self.manualEntry = manualEntry
         self.anchorConfidence = anchorConfidence
+        self.reviewStatus = reviewStatus
+        self.provenance = provenance
         self.hardwareSpecId = hardwareSpecId
         self.modelId = modelId
         self.surfaceSemantic = surfaceSemantic
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, roomId, visitId, externalAreaId, locationContext, capturePointId
+        case positionX, positionY, positionZ, screenPositionX, screenPositionY
+        case objectType, label, objectCategory, selectedTemplateId, manualEntry
+        case anchorConfidence, reviewStatus, provenance
+        case hardwareSpecId, modelId, surfaceSemantic
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        roomId = try container.decode(UUID.self, forKey: .roomId)
+        visitId = try container.decodeIfPresent(UUID.self, forKey: .visitId)
+        externalAreaId = try container.decodeIfPresent(UUID.self, forKey: .externalAreaId)
+        locationContext = try container.decodeIfPresent(PinPlacementLocationContext.self, forKey: .locationContext) ?? .unknownNeedsReview
+        capturePointId = try container.decodeIfPresent(UUID.self, forKey: .capturePointId)
+        positionX = try container.decodeIfPresent(Double.self, forKey: .positionX) ?? 0
+        positionY = try container.decodeIfPresent(Double.self, forKey: .positionY) ?? 0
+        positionZ = try container.decodeIfPresent(Double.self, forKey: .positionZ) ?? 0
+        screenPositionX = try container.decodeIfPresent(Double.self, forKey: .screenPositionX)
+        screenPositionY = try container.decodeIfPresent(Double.self, forKey: .screenPositionY)
+        objectType = try container.decodeIfPresent(PinnedObjectType.self, forKey: .objectType) ?? .other
+        label = try container.decodeIfPresent(String.self, forKey: .label)
+        objectCategory = try container.decodeIfPresent(PinObjectCategoryV1.self, forKey: .objectCategory) ?? .heatingSystemComponents
+        selectedTemplateId = try container.decodeIfPresent(String.self, forKey: .selectedTemplateId)
+        manualEntry = try container.decodeIfPresent(SpatialPinManualEntryV1.self, forKey: .manualEntry)
+        anchorConfidence = try container.decodeIfPresent(SpatialPinAnchorConfidence.self, forKey: .anchorConfidence) ?? .screenOnly
+        // reviewStatus fallback intentionally depends on decoded anchorConfidence:
+        // screen-only records default to needs-review, anchored records default to confirmed.
+        reviewStatus = try container.decodeIfPresent(SpatialPinReviewStatus.self, forKey: .reviewStatus)
+            ?? (anchorConfidence == .screenOnly ? .needsReview : .confirmed)
+        provenance = try container.decodeIfPresent(SpatialPinProvenance.self, forKey: .provenance) ?? .manualCapture
+        hardwareSpecId = try container.decodeIfPresent(UUID.self, forKey: .hardwareSpecId)
+        modelId = try container.decodeIfPresent(String.self, forKey: .modelId)
+        surfaceSemantic = try container.decodeIfPresent(SurfaceSemanticV1.self, forKey: .surfaceSemantic)
     }
 }
 
@@ -478,6 +539,7 @@ public enum SpatialPinAnchorConfidence: String, Codable, CaseIterable, Sendable 
     case low
     case estimated
     case raycastEstimated = "raycast_estimated"
+    case worldLocked = "world_locked"
     case screenOnly = "screen_only"
 }
 
@@ -490,6 +552,68 @@ public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {
     case electricalPanel
     case gasmeter
     case other
+}
+
+public enum PinPlacementLocationContext: String, Codable, CaseIterable, Sendable {
+    case wall
+    case floor
+    case ceiling
+    case cupboard
+    case airingCupboard = "airing_cupboard"
+    case externalWall = "external_wall"
+    case unknownNeedsReview = "unknown_needs_review"
+}
+
+public enum PinObjectCategoryV1: String, Codable, CaseIterable, Sendable {
+    case heatSource = "heat_source"
+    case hotWaterStorage = "hot_water_storage"
+    case heatingSystemComponents = "heating_system_components"
+    case flueExternal = "flue_external"
+    case emitters = "emitters"
+}
+
+public enum SpatialPinReviewStatus: String, Codable, CaseIterable, Sendable {
+    case confirmed
+    case needsReview = "needs_review"
+}
+
+public enum SpatialPinProvenance: String, Codable, CaseIterable, Sendable {
+    case manualCapture = "manual_capture"
+    case roomScanInference = "room_scan_inference"
+}
+
+public struct SpatialPinManualEntryV1: Codable, Equatable, Sendable {
+    public let manufacturer: String?
+    public let model: String?
+    public let type: String?
+    public let widthMm: Int?
+    public let heightMm: Int?
+    public let depthMm: Int?
+    public let flueOrientation: String?
+    public let notes: String?
+    public let photoEvidenceRecommended: Bool
+
+    public init(
+        manufacturer: String? = nil,
+        model: String? = nil,
+        type: String? = nil,
+        widthMm: Int? = nil,
+        heightMm: Int? = nil,
+        depthMm: Int? = nil,
+        flueOrientation: String? = nil,
+        notes: String? = nil,
+        photoEvidenceRecommended: Bool = true
+    ) {
+        self.manufacturer = manufacturer
+        self.model = model
+        self.type = type
+        self.widthMm = widthMm
+        self.heightMm = heightMm
+        self.depthMm = depthMm
+        self.flueOrientation = flueOrientation
+        self.notes = notes
+        self.photoEvidenceRecommended = photoEvidenceRecommended
+    }
 }
 
 // MARK: - SpatialMeasurementV1
