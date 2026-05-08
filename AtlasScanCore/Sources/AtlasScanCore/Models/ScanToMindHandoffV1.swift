@@ -74,6 +74,16 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     public let handoffId: UUID
     public let visitId: UUID
 
+    /// Equipment evidence groups derived from the session's spatial pins.
+    ///
+    /// Groups all room pins by function (heat source, hot water storage,
+    /// flue/external, emitters, heating components) and applies identity and
+    /// anchor-confidence classification rules.
+    ///
+    /// Atlas Mind uses this to display structured equipment evidence cards
+    /// instead of a flat generic object-pin list.
+    public let equipmentEvidenceGroups: EquipmentEvidenceGroupsV1
+
     public init(
         session: SessionCaptureV2,
         readiness: VisitReadinessV1,
@@ -86,6 +96,31 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         self.handedOffAt = ISO8601DateFormatter().string(from: handedOffAt)
         self.handoffId = handoffId
         self.visitId = session.visitId
+        self.equipmentEvidenceGroups = EquipmentEvidenceMapper.buildGroups(
+            from: session.rooms,
+            photos: session.photos,
+            visitId: session.visitId.uuidString
+        )
+    }
+
+    // MARK: - Custom Codable (backward compat)
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, session, readiness, handedOffAt, handoffId, visitId
+        case equipmentEvidenceGroups
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try c.decode(String.self, forKey: .schemaVersion)
+        session = try c.decode(SessionCaptureV2.self, forKey: .session)
+        readiness = try c.decode(VisitReadinessV1.self, forKey: .readiness)
+        handedOffAt = try c.decode(String.self, forKey: .handedOffAt)
+        handoffId = try c.decode(UUID.self, forKey: .handoffId)
+        visitId = try c.decode(UUID.self, forKey: .visitId)
+        // Backward-compat: derive from session rooms when field absent in older payloads.
+        equipmentEvidenceGroups = try c.decodeIfPresent(EquipmentEvidenceGroupsV1.self, forKey: .equipmentEvidenceGroups)
+            ?? EquipmentEvidenceMapper.buildGroups(from: session.rooms, photos: session.photos, visitId: visitId.uuidString)
     }
 }
 

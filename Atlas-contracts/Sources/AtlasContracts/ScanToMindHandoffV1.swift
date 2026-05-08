@@ -85,6 +85,16 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     /// Engineer-visible unresolved evidence items that require review.
     public let unresolvedEvidence: [UnresolvedSpatialEvidenceV1]
 
+    /// Equipment evidence groups derived from the capture's object pins.
+    ///
+    /// Groups the session's pins by function (heat source, hot water storage,
+    /// flue/external, emitters, heating components) and applies identity and
+    /// anchor-confidence classification rules.
+    ///
+    /// Atlas Mind consumes this to display structured equipment evidence cards
+    /// instead of a flat generic object-pin list.
+    public let equipmentEvidenceGroups: EquipmentEvidenceGroupsV1
+
     // MARK: Init
 
     public init(
@@ -93,7 +103,8 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         reason: ScanToMindHandoffReasonV1,
         exportedAt: String,
         spatialEvidenceGraph: SpatialEvidenceGraphV1? = nil,
-        unresolvedEvidence: [UnresolvedSpatialEvidenceV1]? = nil
+        unresolvedEvidence: [UnresolvedSpatialEvidenceV1]? = nil,
+        equipmentEvidenceGroups: EquipmentEvidenceGroupsV1? = nil
     ) {
         let evidenceGraph = spatialEvidenceGraph
             ?? SpatialEvidenceGraphV1.fromCapture(capture, visitId: visit.visitId)
@@ -107,6 +118,34 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         self.capture = capture
         self.spatialEvidenceGraph = evidenceGraph
         self.unresolvedEvidence = unresolvedEvidence ?? evidenceGraph.defaultUnresolvedEvidence()
+        self.equipmentEvidenceGroups = equipmentEvidenceGroups
+            ?? EquipmentEvidenceMapper.buildGroups(from: capture.objectPins, visitId: visit.visitId)
+    }
+
+    // MARK: - Custom Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, schemaVersion, sourceApp, targetApp
+        case exportedAt, reason, visit, capture
+        case spatialEvidenceGraph, unresolvedEvidence
+        case equipmentEvidenceGroups
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try c.decode(String.self, forKey: .kind)
+        schemaVersion = try c.decode(Int.self, forKey: .schemaVersion)
+        sourceApp = try c.decode(String.self, forKey: .sourceApp)
+        targetApp = try c.decode(String.self, forKey: .targetApp)
+        exportedAt = try c.decode(String.self, forKey: .exportedAt)
+        reason = try c.decode(ScanToMindHandoffReasonV1.self, forKey: .reason)
+        visit = try c.decode(HandoffVisitSnapshotV1.self, forKey: .visit)
+        capture = try c.decode(SessionCaptureV2.self, forKey: .capture)
+        spatialEvidenceGraph = try c.decode(SpatialEvidenceGraphV1.self, forKey: .spatialEvidenceGraph)
+        unresolvedEvidence = try c.decode([UnresolvedSpatialEvidenceV1].self, forKey: .unresolvedEvidence)
+        // Backward-compat: derive from capture.objectPins when absent in older payloads.
+        equipmentEvidenceGroups = try c.decodeIfPresent(EquipmentEvidenceGroupsV1.self, forKey: .equipmentEvidenceGroups)
+            ?? EquipmentEvidenceMapper.buildGroups(from: capture.objectPins, visitId: visit.visitId)
     }
 }
 
