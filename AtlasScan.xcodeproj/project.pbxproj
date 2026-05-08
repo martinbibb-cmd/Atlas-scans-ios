@@ -171,6 +171,7 @@
 		AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30010 /* V2LiveCaptureJourneyTests.swift */; };
 		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
+		AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30013 /* V2OffscreenPointerOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -347,6 +348,7 @@
 		AAV30010 /* V2LiveCaptureJourneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2LiveCaptureJourneyTests.swift; sourceTree = "<group>"; };
 		AAV30011 /* V2RecentCaptureStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RecentCaptureStrip.swift; sourceTree = "<group>"; };
 		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
+		AAV30013 /* V2OffscreenPointerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OffscreenPointerOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -789,6 +791,7 @@
 				AAV3000E /* VanModeView.swift */,
 				AAV3000F /* V2RoomLoopView.swift */,
 				AAV30011 /* V2RecentCaptureStrip.swift */,
+				AAV30013 /* V2OffscreenPointerOverlay.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1103,6 +1106,7 @@
 				AAV2000E /* VanModeView.swift in Sources */,
 				AAV2000F /* V2RoomLoopView.swift in Sources */,
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
+				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

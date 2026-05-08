@@ -79,7 +79,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     /// Safe to call with pending (pre-room-save) evidence; those items simply
     /// will not be found in the session arrays and no change is made.
     /// The room record itself is never removed by this method.
-    public func deleteEvidenceItem(_ item: RecentCaptureItemV1) {
+    func deleteEvidenceItem(_ item: RecentCaptureItemV1) {
         switch item.evidenceType {
         case .photo:
             session.photos.removeAll { $0.id == item.sourceEvidenceId }
