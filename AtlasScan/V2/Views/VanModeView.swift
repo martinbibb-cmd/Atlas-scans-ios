@@ -2,6 +2,7 @@
 
 import SwiftUI
 import AtlasScanCore
+import AtlasContracts
 
 struct VanModeView: View {
     var room: RoomCaptureV2
@@ -22,6 +23,7 @@ struct VanModeView: View {
                 roomOverview
                 fabricSection
                 pinsSection
+                ghostPlacementsSection
                 qaSection
             }
             .padding()
@@ -59,6 +61,7 @@ struct VanModeView: View {
                     HStack(spacing: 16) {
                         Label("\(currentRoom.wallSegments.count) walls", systemImage: "line.3.horizontal")
                         Label("\(currentRoom.pinnedObjects.count) pins", systemImage: "mappin.circle")
+                        Label("\(currentRoom.ghostAppliancePlacements.count) ghost boxes", systemImage: "cube.transparent")
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -174,6 +177,53 @@ struct VanModeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    private var ghostPlacementsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Ghost Appliances (\(currentRoom.ghostAppliancePlacements.count))").font(.headline)
+            if currentRoom.ghostAppliancePlacements.isEmpty {
+                Text("No ghost appliance placements captured.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                ForEach(currentRoom.ghostAppliancePlacements) { placement in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Label(ghostModelLabel(for: placement), systemImage: "cube.transparent")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Text(placementPlaneLabel(placement.placementPlane))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("\(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(anchorStatusLabel(placement.anchorConfidence))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if placement.anchorConfidence == .screenOnly || placement.placementPlane == .unknown {
+                            Text("Needs review")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.orange)
+                        }
+                        Text(clearanceSummary(placement.clearanceOffsetsMm))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Button("Refine in AR") {}
+                            .font(.caption2.weight(.semibold))
+                            .buttonStyle(.bordered)
+                            .disabled(true)
+                    }
+                    .padding(.vertical, 4)
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     private var backButton: some View {
         Button("Back") { dismiss() }
     }
@@ -262,6 +312,31 @@ struct VanModeView: View {
         }
     }
 
+    private func placementPlaneLabel(_ plane: GhostPlacementPlaneV1) -> String {
+        switch plane {
+        case .wall: return "Wall"
+        case .floor: return "Floor"
+        case .ceiling: return "Ceiling"
+        case .worktop: return "Worktop"
+        case .unknown: return "Unknown"
+        }
+    }
+
+    private func ghostModelLabel(for placement: GhostAppliancePlacementV1) -> String {
+        if let customId = placement.customApplianceDefinitionId,
+           let custom = currentRoom.customApplianceDefinitions.first(where: { $0.id == customId }) {
+            return "\(custom.brand) \(custom.modelName)"
+        }
+        if let definition = MasterHardwareRegistry.registry.definition(for: placement.applianceModelId) {
+            return "\(definition.brand) \(definition.displayName)"
+        }
+        return placement.applianceModelId
+    }
+
+    private func clearanceSummary(_ clearance: GhostApplianceClearanceOffsetsMmV1) -> String {
+        clearance.formattedSummary
+    }
+
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {
         var updatedRoom = currentRoom
         var segments = updatedRoom.wallSegments
@@ -285,5 +360,24 @@ struct VanModeView: View {
         case .internalWall: return "rectangle.split.2x1"
         case .partyWall: return "building.2.fill"
         }
+    }
+}
+
+private extension GhostApplianceClearanceOffsetsMmV1 {
+    var formattedSummary: String {
+        let entries: [(String, Int)] = [
+            ("Top", top),
+            ("Bottom", bottom),
+            ("Front", front),
+            ("Back", back),
+            ("Left", left),
+            ("Right", right),
+        ]
+        let nonZero = entries.filter { $0.1 != 0 }
+        guard !nonZero.isEmpty else { return "Clearance: none specified" }
+        let summary = nonZero
+            .map { "\($0.0): \($0.1)mm" }
+            .joined(separator: ", ")
+        return "Clearance: \(summary)"
     }
 }

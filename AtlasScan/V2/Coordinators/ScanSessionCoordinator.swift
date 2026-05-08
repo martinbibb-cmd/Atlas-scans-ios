@@ -161,7 +161,33 @@ public final class ScanSessionCoordinator: ObservableObject {
                 modelId: pin.modelId
             )
         }
+        translatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map { placement in
+            translated(placement, dx: dx, dz: dz)
+        }
         return translatedRoom
+    }
+
+    private func translated(_ placement: GhostAppliancePlacementV1, dx: Double, dz: Double) -> GhostAppliancePlacementV1 {
+        GhostAppliancePlacementV1(
+            id: placement.id,
+            roomId: placement.roomId,
+            capturePointId: placement.capturePointId,
+            applianceModelId: placement.applianceModelId,
+            customApplianceDefinitionId: placement.customApplianceDefinitionId,
+            placementPlane: placement.placementPlane,
+            planeNormalX: placement.planeNormalX,
+            planeNormalY: placement.planeNormalY,
+            planeNormalZ: placement.planeNormalZ,
+            worldPositionX: placement.worldPositionX + dx,
+            worldPositionY: placement.worldPositionY,
+            worldPositionZ: placement.worldPositionZ + dz,
+            rotationYaw: placement.rotationYaw,
+            dimensionsMm: placement.dimensionsMm,
+            clearanceOffsetsMm: placement.clearanceOffsetsMm,
+            anchorConfidence: placement.anchorConfidence,
+            createdAt: placement.createdAt,
+            notes: placement.notes
+        )
     }
 
     private func combinedBounds(for rooms: [RoomCaptureV2]) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {

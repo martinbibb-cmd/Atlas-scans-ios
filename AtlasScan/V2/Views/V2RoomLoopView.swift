@@ -3,10 +3,12 @@
 import SwiftUI
 import simd
 import AtlasScanCore
+import AtlasContracts
 
 struct V2DraftRoomRecoveryTransition {
     let draftRoom: RoomCaptureV2
     let remainingPendingPins: [SpatialPinV1]
+    let remainingGhostPlacements: [GhostAppliancePlacementV1]
     let nextProspectiveRoomId: UUID
 }
 
@@ -14,6 +16,7 @@ enum V2RoomLoopLifecycle {
     static func makeDraftRoomRecoveryTransition(
         prospectiveRoomId: UUID,
         pendingPins: [SpatialPinV1],
+        pendingGhostPlacements: [GhostAppliancePlacementV1],
         now: Date = .now,
         nextProspectiveRoomId: UUID = UUID()
     ) -> V2DraftRoomRecoveryTransition {
@@ -24,10 +27,13 @@ enum V2RoomLoopLifecycle {
             displayName: "Draft Room \(formattedDate)"
         )
         draftRoom.pinnedObjects = roomPins
+        draftRoom.ghostAppliancePlacements = pendingGhostPlacements.filter { $0.roomId == prospectiveRoomId }
         let remainingPins = pendingPins.filter { $0.roomId != prospectiveRoomId }
+        let remainingGhostPlacements = pendingGhostPlacements.filter { $0.roomId != prospectiveRoomId }
         return V2DraftRoomRecoveryTransition(
             draftRoom: draftRoom,
             remainingPendingPins: remainingPins,
+            remainingGhostPlacements: remainingGhostPlacements,
             nextProspectiveRoomId: nextProspectiveRoomId
         )
     }
@@ -48,6 +54,8 @@ struct V2RoomLoopView: View {
     @State private var prospectiveRoomId = UUID()
     /// Object pins placed during the scan; attached to the room on save.
     @State private var pendingPins: [SpatialPinV1] = []
+    @State private var pendingGhostPlacements: [GhostAppliancePlacementV1] = []
+    @State private var pendingCustomApplianceDefinitions: [CustomApplianceDefinitionV1] = []
     @State private var postCaptureReview: V2PostCaptureReviewCardModel?
     @State private var renameRoomName = ""
     @State private var showRenamePrompt = false
@@ -64,6 +72,11 @@ struct V2RoomLoopView: View {
                     refreshToken: captureViewRefreshToken,
                     onExit: { dismiss() },
                     onPinAdded: { pin in pendingPins.append(pin) },
+                    onGhostPlacementAdded: { placement in pendingGhostPlacements.append(placement) },
+                    customApplianceDefinitions: allCustomApplianceDefinitions,
+                    onCustomApplianceDefinitionAdded: { definition in
+                        pendingCustomApplianceDefinitions.append(definition)
+                    },
                     onPhotoAdded: { coordinator.addPhoto($0) },
                     onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
                     onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true }
@@ -92,6 +105,7 @@ struct V2RoomLoopView: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             summaryLine("Pins", value: pinCountForReviewRoom)
+                            summaryLine("Ghost appliances", value: ghostPlacementsCountForReviewRoom)
                             summaryLine("Photos", value: photoCountForReviewRoom)
                             summaryLine("Voice notes", value: voiceNoteCountForReviewRoom)
                             summaryLine("Transcripts", value: transcriptCountForReviewRoom)
@@ -202,6 +216,8 @@ struct V2RoomLoopView: View {
         guard var room = capturedRoom else { return }
         room.displayName = roomName.isEmpty ? "Room \(coordinator.session.rooms.count + 1)" : roomName
         room.pinnedObjects = pendingPins
+        room.ghostAppliancePlacements = pendingGhostPlacements
+        room.customApplianceDefinitions = pendingCustomApplianceDefinitions
         coordinator.addRoom(room)
         Task { await coordinator.saveSession() }
         let nextProspectiveRoomId = UUID()
@@ -213,6 +229,8 @@ struct V2RoomLoopView: View {
         roomName = ""
         capturedRoom = nil
         pendingPins = []
+        pendingGhostPlacements = []
+        pendingCustomApplianceDefinitions = []
         prospectiveRoomId = nextProspectiveRoomId
         showCapture = false
     }
@@ -224,18 +242,23 @@ struct V2RoomLoopView: View {
     private func saveDraftRoomEvidence() {
         let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
             prospectiveRoomId: prospectiveRoomId,
-            pendingPins: pendingPins
+            pendingPins: pendingPins,
+            pendingGhostPlacements: pendingGhostPlacements
         )
-        coordinator.addRoom(transition.draftRoom)
+        var draftRoom = transition.draftRoom
+        draftRoom.customApplianceDefinitions = pendingCustomApplianceDefinitions
+        coordinator.addRoom(draftRoom)
         Task { await coordinator.saveSession() }
         postCaptureReview = V2PostCaptureReviewCardModel(
-            roomId: transition.draftRoom.id,
+            roomId: draftRoom.id,
             status: .draft,
             nextProspectiveRoomId: transition.nextProspectiveRoomId
         )
         roomName = ""
         capturedRoom = nil
         pendingPins = transition.remainingPendingPins
+        pendingGhostPlacements = transition.remainingGhostPlacements
+        pendingCustomApplianceDefinitions.removeAll()
         prospectiveRoomId = transition.nextProspectiveRoomId
         showCapture = false
     }
@@ -246,6 +269,8 @@ struct V2RoomLoopView: View {
         roomName = ""
         capturedRoom = nil
         pendingPins.removeAll { $0.roomId == discardedRoomId }
+        pendingGhostPlacements.removeAll { $0.roomId == discardedRoomId }
+        pendingCustomApplianceDefinitions.removeAll()
         prospectiveRoomId = UUID()
         refreshCaptureView()
     }
@@ -257,6 +282,20 @@ struct V2RoomLoopView: View {
 
     private var pinCountForReviewRoom: Int {
         currentReviewRoom?.pinnedObjects.count ?? 0
+    }
+
+    private var ghostPlacementsCountForReviewRoom: Int {
+        currentReviewRoom?.ghostAppliancePlacements.count ?? 0
+    }
+
+    private var allCustomApplianceDefinitions: [CustomApplianceDefinitionV1] {
+        let roomDefinitions = coordinator.session.rooms.flatMap(\.customApplianceDefinitions)
+        return dedupeCustomDefinitions(roomDefinitions + pendingCustomApplianceDefinitions)
+    }
+
+    private func dedupeCustomDefinitions(_ definitions: [CustomApplianceDefinitionV1]) -> [CustomApplianceDefinitionV1] {
+        var seen: Set<String> = []
+        return definitions.filter { seen.insert($0.id).inserted }
     }
 
     private var photoCountForReviewRoom: Int {
@@ -343,6 +382,7 @@ private struct LiveSpatialCaptureView: View {
     /// Z-index layer that keeps Atlas HUD controls consistently above the
     /// RoomPlan base surface.
     private let hudOverlayLayer: Double = 10
+    private let maxRecentModelCount = 6
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
@@ -352,6 +392,9 @@ private struct LiveSpatialCaptureView: View {
     /// Called when the user dismisses the scan without saving (e.g. back gesture).
     let onExit: () -> Void
     let onPinAdded: (SpatialPinV1) -> Void
+    let onGhostPlacementAdded: (GhostAppliancePlacementV1) -> Void
+    let customApplianceDefinitions: [CustomApplianceDefinitionV1]
+    let onCustomApplianceDefinitionAdded: (CustomApplianceDefinitionV1) -> Void
     let onPhotoAdded: (PhotoEvidenceV1) -> Void
     let onVoiceNoteAdded: (VoiceNoteV1) -> Void
     let onCaptureEndedWithoutRoom: () -> Void
@@ -359,6 +402,7 @@ private struct LiveSpatialCaptureView: View {
     @State private var shouldStopCapture = false
     @State private var liveMapVertices: [Vertex2D] = []
     @State private var pendingPinsLocal: [SpatialPinV1] = []
+    @State private var pendingGhostPlacementsLocal: [GhostAppliancePlacementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
     @State private var pendingCapturePoint: LiveCapturePointV1?
     @State private var measurementStartPoint: LiveCapturePointV1?
@@ -366,9 +410,13 @@ private struct LiveSpatialCaptureView: View {
     @State private var showCapturePointMenu = false
     @State private var showMeasurementFeedback = false
     @State private var showObjectPicker = false
+    @State private var showGhostAppliancePicker = false
+    @State private var showPlacementPlanePicker = false
+    @State private var selectedGhostApplianceDefinition: GhostApplianceCandidate?
     @State private var showPhotoPicker = false
     @State private var showVoiceRecorder = false
     @State private var showObservationNote = false
+    @State private var recentGhostModelIds: [String] = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -407,6 +455,9 @@ private struct LiveSpatialCaptureView: View {
                             if !pendingPinsLocal.isEmpty {
                                 PinsCountBadge(count: pendingPinsLocal.count)
                             }
+                            if !pendingGhostPlacementsLocal.isEmpty {
+                                GhostPlacementsCountBadge(count: pendingGhostPlacementsLocal.count)
+                            }
                         }
                         .zIndex(hudOverlayLayer)
                     }
@@ -430,6 +481,15 @@ private struct LiveSpatialCaptureView: View {
                         y: geometry.size.height / 2
                     )
                     .zIndex(hudOverlayLayer + 10)
+
+                ForEach(pendingGhostPlacementsLocal) { placement in
+                    GhostPlacementOverlay(
+                        placement: placement,
+                        label: ghostLabel(for: placement),
+                        screenPoint: pendingCapturePoint?.screenPoint
+                    )
+                    .zIndex(hudOverlayLayer + 5)
+                }
             }
         }
         .confirmationDialog(
@@ -438,6 +498,7 @@ private struct LiveSpatialCaptureView: View {
             titleVisibility: .visible
         ) {
             Button("Tag object") { showObjectPicker = true }
+            Button("Ghost appliance") { showGhostAppliancePicker = true }
             Button("Take photo") { showPhotoPicker = true }
             Button("Add voice note") { showVoiceRecorder = true }
             Button("Measure space") { measureUsingPendingPoint() }
@@ -455,6 +516,30 @@ private struct LiveSpatialCaptureView: View {
                 onPinAdded(pin)
                 showObjectPicker = false
             }
+        }
+        .sheet(isPresented: $showGhostAppliancePicker) {
+            V2GhostAppliancePickerSheet(
+                customDefinitions: customApplianceDefinitions,
+                recentModelIds: recentGhostModelIds
+            ) { selected in
+                selectedGhostApplianceDefinition = selected
+                showGhostAppliancePicker = false
+                showPlacementPlanePicker = true
+            } onCustomDefinitionCreated: { definition in
+                onCustomApplianceDefinitionAdded(definition)
+            }
+        }
+        .confirmationDialog(
+            "Placement plane",
+            isPresented: $showPlacementPlanePicker,
+            titleVisibility: .visible
+        ) {
+            Button("Wall mounted") { placeGhostAppliance(on: .wall) }
+            Button("Floor standing") { placeGhostAppliance(on: .floor) }
+            Button("Worktop/base-unit") { placeGhostAppliance(on: .worktop) }
+            Button("Ceiling/high-level") { placeGhostAppliance(on: .ceiling) }
+            Button("Unknown / screen-only") { placeGhostAppliance(on: .unknown) }
+            Button("Cancel", role: .cancel) {}
         }
         .fullScreenCover(isPresented: $showPhotoPicker) {
             CameraPickerView { image in
@@ -508,13 +593,15 @@ private struct LiveSpatialCaptureView: View {
         let probe = capturePointProbe?() ?? LiveCapturePointProbeResultV1(
             screenPoint: CGPointCodable(x: 0.5, y: 0.5),
             worldPosition: nil,
-            anchorConfidence: .screenOnly
+            anchorConfidence: .screenOnly,
+            hitNormal: nil
         )
         pendingCapturePoint = LiveCapturePointV1(
             roomId: prospectiveRoomId,
             screenPoint: probe.screenPoint,
             worldPosition: probe.worldPosition,
-            anchorConfidence: probe.anchorConfidence
+            anchorConfidence: probe.anchorConfidence,
+            hitNormal: probe.hitNormal
         )
         showCapturePointMenu = true
     }
@@ -539,6 +626,67 @@ private struct LiveSpatialCaptureView: View {
         measurementStartPoint = pendingCapturePoint
         measurementFeedback = "Measurement start point set. Capture another point, then select Measure space again from the menu."
         showMeasurementFeedback = true
+    }
+
+    private func placeGhostAppliance(on plane: GhostPlacementPlaneV1) {
+        guard let capturePoint = pendingCapturePoint, let definition = selectedGhostApplianceDefinition else { return }
+        let world = capturePoint.worldPosition ?? SIMD3<Double>(0, 0, 0)
+        let planeNormal = resolvedPlaneNormal(for: plane, capturePoint: capturePoint)
+        let placement = GhostAppliancePlacementV1(
+            roomId: prospectiveRoomId,
+            capturePointId: capturePoint.id,
+            applianceModelId: definition.modelId,
+            customApplianceDefinitionId: definition.customDefinitionId,
+            placementPlane: plane,
+            planeNormalX: planeNormal.x,
+            planeNormalY: planeNormal.y,
+            planeNormalZ: planeNormal.z,
+            worldPositionX: world.x,
+            worldPositionY: world.y,
+            worldPositionZ: world.z,
+            rotationYaw: 0,
+            dimensionsMm: definition.dimensionsMm,
+            clearanceOffsetsMm: definition.clearanceOffsetsMm,
+            anchorConfidence: capturePoint.anchorConfidence,
+            notes: definition.note
+        )
+        pendingGhostPlacementsLocal.append(placement)
+        onGhostPlacementAdded(placement)
+        var updatedRecentModelIds = recentGhostModelIds
+        updatedRecentModelIds.removeAll { $0 == definition.modelId }
+        updatedRecentModelIds.insert(definition.modelId, at: 0)
+        if updatedRecentModelIds.count > maxRecentModelCount {
+            updatedRecentModelIds.removeSubrange(maxRecentModelCount...)
+        }
+        recentGhostModelIds = updatedRecentModelIds
+        selectedGhostApplianceDefinition = nil
+    }
+
+    private func resolvedPlaneNormal(
+        for plane: GhostPlacementPlaneV1,
+        capturePoint: LiveCapturePointV1
+    ) -> SIMD3<Double> {
+        switch plane {
+        case .wall:
+            return capturePoint.hitNormal ?? SIMD3<Double>(0, 0, -1)
+        case .floor, .worktop:
+            return SIMD3<Double>(0, 1, 0)
+        case .ceiling:
+            return SIMD3<Double>(0, -1, 0)
+        case .unknown:
+            return capturePoint.hitNormal ?? SIMD3<Double>(0, 0, 0)
+        }
+    }
+
+    private func ghostLabel(for placement: GhostAppliancePlacementV1) -> String {
+        if let customId = placement.customApplianceDefinitionId,
+           let custom = customApplianceDefinitions.first(where: { $0.id == customId }) {
+            return "\(custom.brand) \(custom.modelName)"
+        }
+        if let definition = MasterHardwareRegistry.registry.definition(for: placement.applianceModelId) {
+            return "\(definition.brand) \(definition.displayName)"
+        }
+        return placement.applianceModelId
     }
 
     private func savePhoto(_ image: UIImage, capturePoint: LiveCapturePointV1?) {
@@ -650,6 +798,66 @@ private struct PinsCountBadge: View {
     }
 }
 
+private struct GhostPlacementsCountBadge: View {
+    let count: Int
+
+    var body: some View {
+        Label("\(count) ghost appliance\(count == 1 ? "" : "s")", systemImage: "cube.transparent.fill")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct GhostPlacementOverlay: View {
+    let placement: GhostAppliancePlacementV1
+    let label: String
+    let screenPoint: CGPointCodable?
+
+    private var overlaySize: CGSize {
+        let width = max(CGFloat(placement.dimensionsMm.width) / 10, 50)
+        let height = max(CGFloat(placement.dimensionsMm.height) / 10, 60)
+        return CGSize(width: min(width, 180), height: min(height, 220))
+    }
+
+    private var needsReview: Bool {
+        placement.anchorConfidence == .screenOnly || placement.placementPlane == .unknown
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.cyan.opacity(0.22))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.cyan.opacity(0.9), lineWidth: 2))
+                    .frame(width: overlaySize.width, height: overlaySize.height)
+                Text("\(label) · \(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                if needsReview {
+                    Text("Needs review")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.orange, in: Capsule())
+                }
+            }
+            .padding(8)
+            .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .position(
+                x: (screenPoint?.x ?? 0.5) * geometry.size.width,
+                y: (screenPoint?.y ?? 0.5) * geometry.size.height
+            )
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 private struct CapturePointStatusBadge: View {
     let point: LiveCapturePointV1
 
@@ -678,6 +886,7 @@ struct LiveCapturePointProbeResultV1 {
     let screenPoint: CGPointCodable
     let worldPosition: SIMD3<Double>?
     let anchorConfidence: SpatialPinAnchorConfidence
+    let hitNormal: SIMD3<Double>?
 }
 
 struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
@@ -687,6 +896,7 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
     let screenPoint: CGPointCodable
     let worldPosition: SIMD3<Double>?
     let anchorConfidence: SpatialPinAnchorConfidence
+    let hitNormal: SIMD3<Double>?
 
     init(
         id: UUID = UUID(),
@@ -694,7 +904,8 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         createdAt: Date = .now,
         screenPoint: CGPointCodable,
         worldPosition: SIMD3<Double>?,
-        anchorConfidence: SpatialPinAnchorConfidence
+        anchorConfidence: SpatialPinAnchorConfidence,
+        hitNormal: SIMD3<Double>? = nil
     ) {
         self.id = id
         self.roomId = roomId
@@ -702,6 +913,7 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         self.screenPoint = screenPoint
         self.worldPosition = worldPosition
         self.anchorConfidence = anchorConfidence
+        self.hitNormal = hitNormal
     }
 }
 
@@ -777,6 +989,252 @@ private struct V2PinPickerSheet: View {
         case .nearbyOpening:        return "door.left.hand.open"
         case .other:                return "mappin"
         }
+    }
+}
+
+private struct GhostApplianceCandidate: Identifiable {
+    let modelId: String
+    let brand: String
+    let modelName: String
+    let applianceType: String
+    let dimensionsMm: GhostApplianceDimensionsMmV1
+    let clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1
+    let customDefinitionId: String?
+    let note: String?
+
+    var id: String { modelId }
+}
+
+private struct V2GhostAppliancePickerSheet: View {
+    let customDefinitions: [CustomApplianceDefinitionV1]
+    let recentModelIds: [String]
+    let onSelect: (GhostApplianceCandidate) -> Void
+    let onCustomDefinitionCreated: (CustomApplianceDefinitionV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var showCustomCreator = false
+
+    private var staticCandidates: [GhostApplianceCandidate] {
+        MasterHardwareRegistry.registry.definitions.values
+            .sorted { lhs, rhs in
+                lhs.brand == rhs.brand ? lhs.displayName < rhs.displayName : lhs.brand < rhs.brand
+            }
+            .map {
+                GhostApplianceCandidate(
+                    modelId: $0.modelId,
+                    brand: $0.brand,
+                    modelName: $0.displayName,
+                    applianceType: $0.category,
+                    dimensionsMm: .init(
+                        width: $0.dimensions.widthMm,
+                        height: $0.dimensions.heightMm,
+                        depth: $0.dimensions.depthMm
+                    ),
+                    clearanceOffsetsMm: .init(
+                        top: $0.clearanceRules.topMm,
+                        front: $0.clearanceRules.frontMm,
+                        back: $0.clearanceRules.rearMm,
+                        left: $0.clearanceRules.sideMm,
+                        right: $0.clearanceRules.sideMm
+                    ),
+                    customDefinitionId: nil,
+                    note: $0.guidanceNote
+                )
+            }
+    }
+
+    private var customCandidates: [GhostApplianceCandidate] {
+        customDefinitions.map {
+            GhostApplianceCandidate(
+                modelId: $0.id,
+                brand: $0.brand,
+                modelName: $0.modelName,
+                applianceType: $0.applianceType,
+                dimensionsMm: $0.dimensionsMm,
+                clearanceOffsetsMm: $0.clearanceOffsetsMm,
+                customDefinitionId: $0.id,
+                note: "Custom appliance"
+            )
+        }
+    }
+
+    private var allCandidates: [GhostApplianceCandidate] {
+        staticCandidates + customCandidates
+    }
+
+    private var filteredCandidates: [GhostApplianceCandidate] {
+        let base = allCandidates
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return base }
+        let needle = searchText.lowercased()
+        return base.filter {
+            $0.brand.lowercased().contains(needle) ||
+            $0.modelName.lowercased().contains(needle) ||
+            $0.applianceType.lowercased().contains(needle)
+        }
+    }
+
+    private var recentCandidates: [GhostApplianceCandidate] {
+        recentModelIds.compactMap { id in allCandidates.first(where: { $0.modelId == id }) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if !recentCandidates.isEmpty {
+                    Section("Recent models") {
+                        ForEach(recentCandidates) { candidate in
+                            candidateRow(candidate)
+                        }
+                    }
+                }
+                Section("Appliances") {
+                    ForEach(filteredCandidates) { candidate in
+                        candidateRow(candidate)
+                    }
+                }
+                Section {
+                    Button {
+                        showCustomCreator = true
+                    } label: {
+                        Label("Custom appliance", systemImage: "slider.horizontal.3")
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search model, brand, type")
+            .navigationTitle("Ghost Appliance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showCustomCreator) {
+                V2CustomApplianceDefinitionSheet { definition in
+                    onCustomDefinitionCreated(definition)
+                    onSelect(
+                        GhostApplianceCandidate(
+                            modelId: definition.id,
+                            brand: definition.brand,
+                            modelName: definition.modelName,
+                            applianceType: definition.applianceType,
+                            dimensionsMm: definition.dimensionsMm,
+                            clearanceOffsetsMm: definition.clearanceOffsetsMm,
+                            customDefinitionId: definition.id,
+                            note: "Custom appliance"
+                        )
+                    )
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func candidateRow(_ candidate: GhostApplianceCandidate) -> some View {
+        Button {
+            onSelect(candidate)
+            dismiss()
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(candidate.brand) \(candidate.modelName)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("\(candidate.applianceType.capitalized) · \(candidate.dimensionsMm.width)x\(candidate.dimensionsMm.height)x\(candidate.dimensionsMm.depth) mm")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct V2CustomApplianceDefinitionSheet: View {
+    let onSave: (CustomApplianceDefinitionV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var brand = ""
+    @State private var modelName = ""
+    @State private var applianceType = "boiler"
+    @State private var widthMm = "600"
+    @State private var heightMm = "750"
+    @State private var depthMm = "500"
+    @State private var clearanceTopMm = "200"
+    @State private var clearanceBottomMm = "0"
+    @State private var clearanceFrontMm = "600"
+    @State private var clearanceBackMm = "50"
+    @State private var clearanceLeftMm = "100"
+    @State private var clearanceRightMm = "100"
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Model") {
+                    TextField("Brand", text: $brand)
+                    TextField("Model", text: $modelName)
+                    TextField("Type (boiler/cylinder/...)", text: $applianceType)
+                }
+                Section("Dimensions (mm)") {
+                    TextField("Width", text: $widthMm).keyboardType(.numberPad)
+                    TextField("Height", text: $heightMm).keyboardType(.numberPad)
+                    TextField("Depth", text: $depthMm).keyboardType(.numberPad)
+                }
+                Section("Clearances (mm)") {
+                    TextField("Top", text: $clearanceTopMm).keyboardType(.numberPad)
+                    TextField("Bottom", text: $clearanceBottomMm).keyboardType(.numberPad)
+                    TextField("Front", text: $clearanceFrontMm).keyboardType(.numberPad)
+                    TextField("Back", text: $clearanceBackMm).keyboardType(.numberPad)
+                    TextField("Left", text: $clearanceLeftMm).keyboardType(.numberPad)
+                    TextField("Right", text: $clearanceRightMm).keyboardType(.numberPad)
+                }
+            }
+            .navigationTitle("Custom Appliance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveDefinition() }
+                        .disabled(!canSave)
+                }
+            }
+        }
+    }
+
+    private var canSave: Bool {
+        !brand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        intValue(widthMm) > 0 &&
+        intValue(heightMm) > 0 &&
+        intValue(depthMm) > 0
+    }
+
+    private func intValue(_ text: String) -> Int {
+        Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+    }
+
+    private func saveDefinition() {
+        let id = "custom-\(UUID().uuidString.lowercased())"
+        let definition = CustomApplianceDefinitionV1(
+            id: id,
+            brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
+            modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
+            applianceType: applianceType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            dimensionsMm: .init(
+                width: intValue(widthMm),
+                height: intValue(heightMm),
+                depth: intValue(depthMm)
+            ),
+            clearanceOffsetsMm: .init(
+                top: intValue(clearanceTopMm),
+                bottom: intValue(clearanceBottomMm),
+                front: intValue(clearanceFrontMm),
+                back: intValue(clearanceBackMm),
+                left: intValue(clearanceLeftMm),
+                right: intValue(clearanceRightMm)
+            )
+        )
+        onSave(definition)
+        dismiss()
     }
 }
 
