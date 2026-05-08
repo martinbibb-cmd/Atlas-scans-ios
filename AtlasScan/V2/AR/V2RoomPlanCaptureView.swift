@@ -3,6 +3,7 @@
 
 import SwiftUI
 import RoomPlan
+import simd
 import AtlasScanCore
 
 struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
@@ -25,6 +26,8 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     /// Exposes center-point probing so SwiftUI overlays can capture spatial
     /// points aligned with the RoomPlan camera view.
     var onCapturePointProbeReady: (((() -> LiveCapturePointProbeResultV1)?) -> Void)?
+    /// Exposes frame-based world-to-screen projection for live spatial overlays.
+    var onWorldPointProjectionReady: ((((SIMD3<Double>) -> CGPointCodable?)?) -> Void)?
 
     func makeCoordinator() -> RoomPlanCoordinator {
         RoomPlanCoordinator(capturedRoom: $capturedRoom)
@@ -40,6 +43,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         context.coordinator.onLiveVertices = onLiveVertices
         context.coordinator.onCaptureEndedWithoutRoom = onCaptureEndedWithoutRoom
         onCapturePointProbeReady?({ context.coordinator.capturePointAtViewCenter() })
+        onWorldPointProjectionReady?({ world in
+            context.coordinator.projectNormalizedScreenPoint(for: world)
+        })
         context.coordinator.startSession()
         return vc
     }

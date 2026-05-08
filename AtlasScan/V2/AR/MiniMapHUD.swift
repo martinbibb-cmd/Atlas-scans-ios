@@ -8,6 +8,7 @@ struct MiniMapHUD: View {
     var livePolygonVertices: [Vertex2D] = []
     var activeRoomId: UUID?
     var pins: [SpatialPinV1] = []
+    var ghostPlacements: [GhostAppliancePlacementV1] = []
 
     private var hasData: Bool {
         !rooms.isEmpty || !livePolygonVertices.isEmpty
@@ -18,7 +19,13 @@ struct MiniMapHUD: View {
             if hasData {
                 GeometryReader { proxy in
                     let size = min(proxy.size.width, proxy.size.height)
-                    let projection = MiniMapProjection(rooms: rooms, liveVertices: livePolygonVertices, pins: minimapPins, size: size)
+                    let projection = MiniMapProjection(
+                        rooms: rooms,
+                        liveVertices: livePolygonVertices,
+                        pins: minimapPins,
+                        ghostPlacements: minimapGhostPlacements,
+                        size: size
+                    )
 
                     ZStack {
                         Canvas { context, _ in
@@ -41,6 +48,22 @@ struct MiniMapHUD: View {
                             Circle()
                                 .fill(color(for: pin.objectType))
                                 .frame(width: 8, height: 8)
+                                .overlay {
+                                    Circle().stroke(.black.opacity(0.35), lineWidth: 1)
+                                }
+                                .position(point)
+                        }
+
+                        ForEach(minimapGhostPlacements) { placement in
+                            let point = projection.point(for: placement)
+                            Circle()
+                                .fill(.cyan.opacity(0.85))
+                                .frame(width: 9, height: 9)
+                                .overlay {
+                                    Image(systemName: "cube.transparent.fill")
+                                        .font(.system(size: 6, weight: .bold))
+                                        .foregroundStyle(.black.opacity(0.8))
+                                }
                                 .overlay {
                                     Circle().stroke(.black.opacity(0.35), lineWidth: 1)
                                 }
@@ -72,7 +95,11 @@ struct MiniMapHUD: View {
     }
 
     private var minimapPins: [SpatialPinV1] {
-        pins.filter {
+        let savedPins = rooms.flatMap(\.pinnedObjects)
+        let activePins = pins
+        let uniquePins = dedupePins(savedPins + activePins)
+
+        return uniquePins.filter {
             switch $0.objectType {
             case .boiler, .heatPump, .hotWaterCylinder, .flueTerminal, .gasmeter:
                 return true
@@ -80,6 +107,22 @@ struct MiniMapHUD: View {
                 return false
             }
         }
+    }
+
+    private var minimapGhostPlacements: [GhostAppliancePlacementV1] {
+        let savedGhosts = rooms.flatMap(\.ghostAppliancePlacements)
+        let activeGhosts = ghostPlacements
+        return dedupeGhosts(savedGhosts + activeGhosts)
+    }
+
+    private func dedupePins(_ values: [SpatialPinV1]) -> [SpatialPinV1] {
+        var seen: Set<UUID> = []
+        return values.filter { seen.insert($0.id).inserted }
+    }
+
+    private func dedupeGhosts(_ values: [GhostAppliancePlacementV1]) -> [GhostAppliancePlacementV1] {
+        var seen: Set<UUID> = []
+        return values.filter { seen.insert($0.id).inserted }
     }
 
     private func color(for type: PinnedObjectType) -> Color {
@@ -103,14 +146,22 @@ private struct MiniMapProjection {
     let size: Double
     let padding: Double
 
-    init(rooms: [RoomCaptureV2], liveVertices: [Vertex2D], pins: [SpatialPinV1], size: Double) {
+    init(
+        rooms: [RoomCaptureV2],
+        liveVertices: [Vertex2D],
+        pins: [SpatialPinV1],
+        ghostPlacements: [GhostAppliancePlacementV1],
+        size: Double
+    ) {
         let allVertices = rooms.flatMap(\.polygonVertices) + liveVertices
         let allX = allVertices.map(\.x) + pins.map(\.positionX)
         let allZ = allVertices.map(\.z) + pins.map(\.positionZ)
-        self.minX = allX.min() ?? -1
-        self.maxX = allX.max() ?? 1
-        self.minZ = allZ.min() ?? -1
-        self.maxZ = allZ.max() ?? 1
+        let withGhostX = allX + ghostPlacements.map(\.worldPositionX)
+        let withGhostZ = allZ + ghostPlacements.map(\.worldPositionZ)
+        self.minX = withGhostX.min() ?? -1
+        self.maxX = withGhostX.max() ?? 1
+        self.minZ = withGhostZ.min() ?? -1
+        self.maxZ = withGhostZ.max() ?? 1
         self.size = size
         self.padding = size * 0.12
     }
@@ -138,5 +189,9 @@ private struct MiniMapProjection {
 
     func point(for pin: SpatialPinV1) -> CGPoint {
         point(for: Vertex2D(x: pin.positionX, z: pin.positionZ))
+    }
+
+    func point(for placement: GhostAppliancePlacementV1) -> CGPoint {
+        point(for: Vertex2D(x: placement.worldPositionX, z: placement.worldPositionZ))
     }
 }

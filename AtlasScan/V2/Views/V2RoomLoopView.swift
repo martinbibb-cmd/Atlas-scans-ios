@@ -67,6 +67,8 @@ struct V2RoomLoopView: View {
                 LiveSpatialCaptureView(
                     capturedRoom: $capturedRoom,
                     rooms: coordinator.session.rooms,
+                    photos: coordinator.session.photos,
+                    voiceNotes: coordinator.session.voiceNotes,
                     visitId: coordinator.session.visitId,
                     prospectiveRoomId: prospectiveRoomId,
                     refreshToken: captureViewRefreshToken,
@@ -84,8 +86,10 @@ struct V2RoomLoopView: View {
                         switch item.evidenceType {
                         case .objectPin:
                             pendingPins.removeAll { $0.id == item.sourceEvidenceId }
+                            coordinator.deleteEvidenceItem(item)
                         case .ghostAppliance:
                             pendingGhostPlacements.removeAll { $0.id == item.sourceEvidenceId }
+                            coordinator.deleteEvidenceItem(item)
                         case .photo, .voiceNote, .note:
                             coordinator.deleteEvidenceItem(item)
                         }
@@ -393,9 +397,12 @@ private struct LiveSpatialCaptureView: View {
     /// RoomPlan base surface.
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
+    private let maxOffscreenPointers = 5
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
+    let photos: [PhotoEvidenceV1]
+    let voiceNotes: [VoiceNoteV1]
     let visitId: UUID
     let prospectiveRoomId: UUID
     let refreshToken: UUID
@@ -418,6 +425,8 @@ private struct LiveSpatialCaptureView: View {
     @State private var pendingPinsLocal: [SpatialPinV1] = []
     @State private var pendingGhostPlacementsLocal: [GhostAppliancePlacementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
+    @State private var worldPointProjector: ((SIMD3<Double>) -> CGPointCodable?)?
+    @State private var capturePointsById: [UUID: LiveCapturePointV1] = [:]
     @State private var pendingCapturePoint: LiveCapturePointV1?
     @State private var measurementStartPoint: LiveCapturePointV1?
     @State private var measurementFeedback = ""
@@ -451,6 +460,9 @@ private struct LiveSpatialCaptureView: View {
                     },
                     onCapturePointProbeReady: { probe in
                         capturePointProbe = probe
+                    },
+                    onWorldPointProjectionReady: { projector in
+                        worldPointProjector = projector
                     }
                 )
                 .id(refreshToken)
@@ -461,7 +473,9 @@ private struct LiveSpatialCaptureView: View {
                         MiniMapHUD(
                             rooms: rooms,
                             livePolygonVertices: liveMapVertices,
-                            pins: pendingPinsLocal
+                            activeRoomId: prospectiveRoomId,
+                            pins: pendingPinsLocal,
+                            ghostPlacements: pendingGhostPlacementsLocal
                         )
                         .zIndex(hudOverlayLayer)
 
@@ -518,6 +532,16 @@ private struct LiveSpatialCaptureView: View {
                         screenPoint: placement.screenPoint
                     )
                     .zIndex(hudOverlayLayer + 5)
+                }
+
+                if !offscreenPointerItems.isEmpty {
+                    OffscreenPointerOverlay(
+                        items: offscreenPointerItems,
+                        maxVisiblePointers: maxOffscreenPointers,
+                        onTap: handlePointerTap,
+                        onLongPressDelete: handlePointerDelete
+                    )
+                    .zIndex(hudOverlayLayer + 20)
                 }
             }
         }
@@ -639,6 +663,9 @@ private struct LiveSpatialCaptureView: View {
             anchorConfidence: probe.anchorConfidence,
             hitNormal: probe.hitNormal
         )
+        if let pendingCapturePoint {
+            capturePointsById[pendingCapturePoint.id] = pendingCapturePoint
+        }
         showCapturePointMenu = true
     }
 
@@ -787,6 +814,18 @@ private struct LiveSpatialCaptureView: View {
         return placement.applianceModelId
     }
 
+    private func iconName(for type: PinnedObjectType) -> String {
+        switch type {
+        case .boiler, .heatPump:    return "flame.fill"
+        case .flueTerminal:         return "arrow.up.circle.fill"
+        case .hotWaterCylinder:     return "drop.fill"
+        case .electricalPanel:      return "bolt.fill"
+        case .gasmeter:             return "gauge"
+        case .nearbyOpening:        return "door.left.hand.open"
+        case .other:                return "mappin"
+        }
+    }
+
     private func savePhoto(_ image: UIImage, capturePoint: LiveCapturePointV1?) {
         do {
             let (filename, _) = try PhotoStore.shared.save(image)
@@ -812,6 +851,282 @@ private struct LiveSpatialCaptureView: View {
             .sorted { $0.createdAt > $1.createdAt }
             .prefix(7)
             .map { $0 }
+    }
+
+    private var roomPhotos: [PhotoEvidenceV1] {
+        photos.filter { $0.roomId == prospectiveRoomId }
+    }
+
+    private var roomVoiceNotes: [VoiceNoteV1] {
+        voiceNotes.filter { $0.roomId == prospectiveRoomId }
+    }
+
+    private var noteSourceIDs: Set<UUID> {
+        Set(
+            recentCaptures
+                .filter { $0.roomId == prospectiveRoomId && $0.evidenceType == .note }
+                .map(\.sourceEvidenceId)
+        )
+    }
+
+    private var offscreenPointerItems: [OffscreenPointerItemV1] {
+        let activeSavedRoom = rooms.first(where: { $0.id == prospectiveRoomId })
+        let savedPins = activeSavedRoom?.pinnedObjects ?? []
+        let savedGhosts = activeSavedRoom?.ghostAppliancePlacements ?? []
+        let allPins = dedupePins(savedPins + pendingPinsLocal)
+        let allGhosts = dedupeGhosts(savedGhosts + pendingGhostPlacementsLocal)
+        let roomCapturePoints = capturePointsById.values.filter { $0.roomId == prospectiveRoomId }
+        let capturePointMap = Dictionary(uniqueKeysWithValues: roomCapturePoints.map { ($0.id, $0) })
+        let recentDateByEvidenceId = Dictionary(
+            uniqueKeysWithValues: recentCaptures
+                .filter { $0.roomId == prospectiveRoomId }
+                .map { ($0.sourceEvidenceId, $0.createdAt) }
+        )
+
+        var items: [OffscreenPointerItemV1] = []
+
+        for pin in allPins {
+            guard let capturePointId = pin.capturePointId else { continue }
+            let world = pin.hasResolvedWorldAnchor ? SIMD3(pin.positionX, pin.positionY, pin.positionZ) : nil
+            let fallbackScreen = normalizedScreenPoint(x: pin.screenPositionX, y: pin.screenPositionY)
+            guard let resolvedScreen = resolvedScreenPoint(
+                worldPosition: world,
+                fallback: fallbackScreen,
+                anchorConfidence: pin.anchorConfidence
+            ) else {
+                continue
+            }
+
+            items.append(
+                OffscreenPointerItemV1(
+                    id: UUID(),
+                    roomId: pin.roomId,
+                    capturePointId: capturePointId,
+                    evidenceType: .objectPin,
+                    title: pin.label ?? pin.objectType.rawValue.capitalized,
+                    iconName: iconName(for: pin.objectType),
+                    worldPosition: world,
+                    screenPoint: resolvedScreen,
+                    anchorConfidence: pin.anchorConfidence,
+                    needsReview: pin.anchorConfidence == .screenOnly,
+                    sourceEvidenceId: pin.id,
+                    createdAt: recentDateByEvidenceId[pin.id] ?? .distantPast
+                )
+            )
+        }
+
+        for ghost in allGhosts {
+            let world = ghost.anchorConfidence == .screenOnly ? nil : ghost.worldPosition
+            let fallbackScreen = ghost.screenPoint
+            guard let resolvedScreen = resolvedScreenPoint(
+                worldPosition: world,
+                fallback: fallbackScreen,
+                anchorConfidence: ghost.anchorConfidence
+            ) else {
+                continue
+            }
+
+            items.append(
+                OffscreenPointerItemV1(
+                    id: UUID(),
+                    roomId: ghost.roomId,
+                    capturePointId: ghost.capturePointId,
+                    evidenceType: .ghostAppliance,
+                    title: ghostLabel(for: ghost),
+                    iconName: "cube.transparent.fill",
+                    worldPosition: world,
+                    screenPoint: resolvedScreen,
+                    anchorConfidence: ghost.anchorConfidence,
+                    needsReview: ghost.needsReview,
+                    sourceEvidenceId: ghost.id,
+                    createdAt: ghost.createdAt
+                )
+            )
+        }
+
+        for photo in roomPhotos {
+            guard
+                let capturePointId = photo.capturePointId,
+                let capturePoint = capturePointMap[capturePointId],
+                let resolvedScreen = resolvedScreenPoint(
+                    worldPosition: capturePoint.worldPosition,
+                    fallback: capturePoint.screenPoint,
+                    anchorConfidence: capturePoint.anchorConfidence
+                )
+            else {
+                continue
+            }
+            let createdAt = ISO8601DateFormatter().date(from: photo.capturedAt) ?? .distantPast
+            items.append(
+                OffscreenPointerItemV1(
+                    id: UUID(),
+                    roomId: photo.roomId,
+                    capturePointId: capturePointId,
+                    evidenceType: .photo,
+                    title: "Photo",
+                    iconName: "photo.fill",
+                    worldPosition: capturePoint.worldPosition,
+                    screenPoint: resolvedScreen,
+                    anchorConfidence: capturePoint.anchorConfidence,
+                    needsReview: capturePoint.anchorConfidence == .screenOnly,
+                    sourceEvidenceId: photo.id,
+                    createdAt: createdAt
+                )
+            )
+        }
+
+        for note in roomVoiceNotes {
+            guard
+                let capturePointId = note.capturePointId,
+                let capturePoint = capturePointMap[capturePointId],
+                let resolvedScreen = resolvedScreenPoint(
+                    worldPosition: capturePoint.worldPosition,
+                    fallback: capturePoint.screenPoint,
+                    anchorConfidence: capturePoint.anchorConfidence
+                )
+            else {
+                continue
+            }
+            let createdAt = ISO8601DateFormatter().date(from: note.recordedAt) ?? .distantPast
+            let noteType: OffscreenPointerItemV1.EvidenceType = noteSourceIDs.contains(note.id) ? .note : .voiceNote
+            items.append(
+                OffscreenPointerItemV1(
+                    id: UUID(),
+                    roomId: note.roomId,
+                    capturePointId: capturePointId,
+                    evidenceType: noteType,
+                    title: noteType == .note ? "Note" : "Voice note",
+                    iconName: noteType == .note ? "note.text" : "mic.fill",
+                    worldPosition: capturePoint.worldPosition,
+                    screenPoint: resolvedScreen,
+                    anchorConfidence: capturePoint.anchorConfidence,
+                    needsReview: capturePoint.anchorConfidence == .screenOnly,
+                    sourceEvidenceId: note.id,
+                    createdAt: createdAt
+                )
+            )
+        }
+
+        return items
+            .filter { $0.roomId == prospectiveRoomId }
+            .sorted(by: offscreenPrioritySort)
+            .prefix(maxOffscreenPointers)
+            .map { $0 }
+    }
+
+    private func offscreenPrioritySort(_ lhs: OffscreenPointerItemV1, _ rhs: OffscreenPointerItemV1) -> Bool {
+        let lhsRank = evidencePriorityRank(lhs.evidenceType)
+        let rhsRank = evidencePriorityRank(rhs.evidenceType)
+        if lhsRank != rhsRank { return lhsRank < rhsRank }
+
+        let lhsDistance = distanceFromCenter(for: lhs.screenPoint)
+        let rhsDistance = distanceFromCenter(for: rhs.screenPoint)
+        if lhsDistance != rhsDistance { return lhsDistance < rhsDistance }
+
+        return lhs.createdAt > rhs.createdAt
+    }
+
+    private func evidencePriorityRank(_ type: OffscreenPointerItemV1.EvidenceType) -> Int {
+        switch type {
+        case .objectPin: return 0
+        case .ghostAppliance: return 1
+        case .photo: return 2
+        case .voiceNote, .note: return 3
+        case .measurement: return 4
+        }
+    }
+
+    private func distanceFromCenter(for point: CGPointCodable?) -> Double {
+        guard let point else { return .greatestFiniteMagnitude }
+        let dx = point.x - 0.5
+        let dy = point.y - 0.5
+        return sqrt(dx * dx + dy * dy)
+    }
+
+    private func dedupePins(_ pins: [SpatialPinV1]) -> [SpatialPinV1] {
+        var seen: Set<UUID> = []
+        return pins.filter { seen.insert($0.id).inserted }
+    }
+
+    private func dedupeGhosts(_ placements: [GhostAppliancePlacementV1]) -> [GhostAppliancePlacementV1] {
+        var seen: Set<UUID> = []
+        return placements.filter { seen.insert($0.id).inserted }
+    }
+
+    private func normalizedScreenPoint(x: Double?, y: Double?) -> CGPointCodable? {
+        guard let x, let y else { return nil }
+        return CGPointCodable(x: x, y: y)
+    }
+
+    private func resolvedScreenPoint(
+        worldPosition: SIMD3<Double>?,
+        fallback: CGPointCodable?,
+        anchorConfidence: SpatialPinAnchorConfidence
+    ) -> CGPointCodable? {
+        if anchorConfidence != .screenOnly,
+           let worldPosition,
+           let projected = worldPointProjector?(worldPosition) {
+            return projected
+        }
+        return fallback
+    }
+
+    private func handlePointerTap(_ pointer: OffscreenPointerItemV1) {
+        if let existing = recentItemsForCurrentRoom.first(where: {
+            $0.sourceEvidenceId == pointer.sourceEvidenceId && matches(pointer.evidenceType, recentType: $0.evidenceType)
+        }) {
+            selectedRecentItem = existing
+            return
+        }
+
+        guard let synthetic = syntheticRecentItem(from: pointer) else { return }
+        selectedRecentItem = synthetic
+    }
+
+    private func handlePointerDelete(_ pointer: OffscreenPointerItemV1) {
+        guard let item = syntheticRecentItem(from: pointer) else { return }
+        handleDeleteRecentItem(item)
+    }
+
+    private func matches(_ pointerType: OffscreenPointerItemV1.EvidenceType, recentType: RecentCaptureItemV1.EvidenceType) -> Bool {
+        switch (pointerType, recentType) {
+        case (.objectPin, .objectPin),
+             (.ghostAppliance, .ghostAppliance),
+             (.photo, .photo),
+             (.voiceNote, .voiceNote),
+             (.note, .note):
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func syntheticRecentItem(from pointer: OffscreenPointerItemV1) -> RecentCaptureItemV1? {
+        switch pointer.evidenceType {
+        case .objectPin:
+            if let pin = pendingPinsLocal.first(where: { $0.id == pointer.sourceEvidenceId }) ??
+                rooms.flatMap(\.pinnedObjects).first(where: { $0.id == pointer.sourceEvidenceId }) {
+                return RecentCaptureItemV1.from(pin: pin)
+            }
+            return nil
+        case .ghostAppliance:
+            if let ghost = pendingGhostPlacementsLocal.first(where: { $0.id == pointer.sourceEvidenceId }) ??
+                rooms.flatMap(\.ghostAppliancePlacements).first(where: { $0.id == pointer.sourceEvidenceId }) {
+                return RecentCaptureItemV1.from(ghost: ghost, displayLabel: ghostLabel(for: ghost))
+            }
+            return nil
+        case .photo:
+            guard let photo = photos.first(where: { $0.id == pointer.sourceEvidenceId }) else { return nil }
+            return RecentCaptureItemV1.from(photo: photo)
+        case .voiceNote:
+            guard let note = voiceNotes.first(where: { $0.id == pointer.sourceEvidenceId }) else { return nil }
+            return RecentCaptureItemV1.from(voiceNote: note)
+        case .note:
+            guard let note = voiceNotes.first(where: { $0.id == pointer.sourceEvidenceId }) else { return nil }
+            return RecentCaptureItemV1.fromObservationNote(note)
+        case .measurement:
+            return nil
+        }
     }
 
     private func handleDeleteRecentItem(_ item: RecentCaptureItemV1) {
