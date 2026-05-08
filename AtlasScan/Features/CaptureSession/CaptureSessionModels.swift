@@ -295,6 +295,9 @@ struct CapturedPhotoDraft: Identifiable, Codable {
     /// UUID of the room this photo is associated with; nil for session-level photos.
     var roomId: UUID?
 
+    /// UUID of the capture point this photo is associated with; nil when unanchored.
+    var capturePointId: UUID?
+
     /// UUID of the object pin this photo is linked to; nil when not linked.
     var linkedObjectId: UUID?
 
@@ -367,6 +370,9 @@ struct CapturedVoiceNoteDraft: Identifiable, Codable {
     /// UUID of the room this note is associated with; nil for session-level notes.
     var roomId: UUID?
 
+    /// UUID of the capture point this note is associated with; nil when unanchored.
+    var capturePointId: UUID?
+
     /// UUID of the object pin this note is linked to; nil when not linked.
     var linkedObjectId: UUID?
 
@@ -393,6 +399,9 @@ struct CapturedObjectPinDraft: Identifiable, Codable {
 
     /// UUID of the room this pin is associated with; nil for session-level pins.
     var roomId: UUID?
+
+    /// UUID of the capture point this pin is associated with; nil when unanchored.
+    var capturePointId: UUID?
 
     /// UUID of a linked evidence photo.
     var linkedPhotoId: UUID?

@@ -370,4 +370,76 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertEqual(decoded.visit.visitId, handoff.visit.visitId)
         XCTAssertEqual(decoded.capture.sessionId, handoff.capture.sessionId)
     }
+
+    func test_handoff_includesSpatialEvidenceGraph_groupedByRoomAndCapturePoint() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        let roomId = draft.roomScans.first?.id
+        let capturePointId = UUID()
+
+        var pin = CapturedObjectPinDraft(type: .boiler)
+        pin.roomId = roomId
+        pin.capturePointId = capturePointId
+        pin.pinConfidence = .manual
+        pin.reviewStatus = .confirmed
+        draft.objectPins = [pin]
+
+        var photo = CapturedPhotoDraft(localFilename: "cp-photo.jpg")
+        photo.roomId = roomId
+        photo.capturePointId = capturePointId
+        draft.photos.append(photo)
+
+        var note = CapturedVoiceNoteDraft()
+        note.roomId = roomId
+        note.capturePointId = capturePointId
+        note.transcript = "Boiler evidence transcript"
+        draft.voiceNotes.append(note)
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(
+            draft,
+            capture: capture,
+            reason: .reviewInMind
+        )
+
+        XCTAssertFalse(handoff.spatialEvidenceGraph.rooms.isEmpty)
+        let roomGraph = handoff.spatialEvidenceGraph.rooms.first
+        XCTAssertEqual(roomGraph?.roomId, roomId?.uuidString)
+        let point = roomGraph?.capturePoints.first(where: { $0.capturePointId == capturePointId.uuidString })
+        XCTAssertNotNil(point)
+        XCTAssertEqual(point?.objectPins.count, 1)
+        XCTAssertEqual(point?.photos.count, 1)
+        XCTAssertEqual(point?.voiceNotes.count, 1)
+        XCTAssertEqual(point?.transcripts.count, 1)
+    }
+
+    func test_handoff_unresolvedEvidence_includesScreenOnlyAndUnknownSurfaceWarnings() {
+        let visit = makeVisit()
+        var draft = makeDraft()
+        let roomId = draft.roomScans.first?.id
+        let capturePointId = UUID()
+
+        var pin = CapturedObjectPinDraft(type: .genericNote)
+        pin.roomId = roomId
+        pin.capturePointId = capturePointId
+        pin.pinConfidence = .needsReview
+        pin.reviewStatus = .pending
+        draft.objectPins = [pin]
+
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = ScanToMindHandoffBuilder.buildHandoffFromDraft(
+            draft,
+            capture: capture,
+            reason: .reviewInMind
+        )
+
+        XCTAssertTrue(
+            handoff.unresolvedEvidence.contains(where: { $0.kind == "screen_only_point" }),
+            "Unresolved evidence must contain screen-only review items"
+        )
+        XCTAssertTrue(
+            handoff.unresolvedEvidence.contains(where: { $0.kind == "unknown_surface_semantic" }),
+            "Unresolved evidence must contain unknown surface semantic items"
+        )
+    }
 }

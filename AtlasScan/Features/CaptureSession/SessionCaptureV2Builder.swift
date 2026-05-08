@@ -110,7 +110,10 @@ enum SessionCaptureV2Builder {
             localFilename: photo.localFilename,
             captureTimestamp: iso8601.string(from: photo.captureTimestamp),
             roomId: photo.roomId?.uuidString,
+            capturePointId: photo.capturePointId?.uuidString,
             linkedObjectId: photo.linkedObjectId?.uuidString,
+            anchorConfidence: nil,
+            needsReview: photo.reviewStatus != .confirmed,
             kind: photo.kind.rawValue
         )
     }
@@ -126,7 +129,10 @@ enum SessionCaptureV2Builder {
             startedAt: iso8601.string(from: note.startedAt),
             endedAt: note.endedAt.map { iso8601.string(from: $0) },
             roomId: note.roomId?.uuidString,
-            linkedObjectId: note.linkedObjectId?.uuidString
+            capturePointId: note.capturePointId?.uuidString,
+            linkedObjectId: note.linkedObjectId?.uuidString,
+            anchorConfidence: nil,
+            needsReview: note.reviewStatus != .confirmed
         )
     }
 
@@ -145,8 +151,12 @@ enum SessionCaptureV2Builder {
             type: pin.type.rawValue,
             label: pin.label,
             roomId: pin.roomId?.uuidString,
+            capturePointId: pin.capturePointId?.uuidString,
             linkedPhotoId: pin.linkedPhotoId?.uuidString,
-            approximatePositionRef: position
+            approximatePositionRef: position,
+            anchorConfidence: pin.pinConfidence?.rawValue,
+            surfaceSemantic: nil,
+            needsReview: pin.reviewStatus != .confirmed || pin.pinConfidence == .needsReview
         )
     }
 

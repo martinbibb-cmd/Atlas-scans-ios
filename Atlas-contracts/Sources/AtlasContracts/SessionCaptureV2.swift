@@ -256,8 +256,17 @@ public struct CapturedPhotoV2: Codable, Sendable {
     /// UUID of the room this photo is associated with; nil for session-level photos.
     public let roomId: String?
 
+    /// UUID of the capture point this photo is associated with; nil when unanchored.
+    public let capturePointId: String?
+
     /// UUID of the object/pin this photo is linked to; nil when not linked.
     public let linkedObjectId: String?
+
+    /// Anchor confidence for this photo evidence when captured from a spatial point.
+    public let anchorConfidence: String?
+
+    /// True when this photo evidence requires engineer review.
+    public let needsReview: Bool
 
     /// Evidence kind / category raw value (e.g. "overview", "plant", "flue").
     public let kind: String
@@ -267,14 +276,20 @@ public struct CapturedPhotoV2: Codable, Sendable {
         localFilename: String,
         captureTimestamp: String,
         roomId: String?,
+        capturePointId: String? = nil,
         linkedObjectId: String?,
+        anchorConfidence: String? = nil,
+        needsReview: Bool = false,
         kind: String
     ) {
         self.id = id
         self.localFilename = localFilename
         self.captureTimestamp = captureTimestamp
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedObjectId = linkedObjectId
+        self.anchorConfidence = anchorConfidence
+        self.needsReview = needsReview
         self.kind = kind
     }
 }
@@ -302,8 +317,17 @@ public struct CapturedVoiceNoteV2: Codable, Sendable {
     /// UUID of the room this note is associated with; nil for session-level notes.
     public let roomId: String?
 
+    /// UUID of the capture point this note is associated with; nil when unanchored.
+    public let capturePointId: String?
+
     /// UUID of the object/pin this note is linked to; nil when not linked.
     public let linkedObjectId: String?
+
+    /// Anchor confidence for this note evidence when captured from a spatial point.
+    public let anchorConfidence: String?
+
+    /// True when this voice note requires engineer review.
+    public let needsReview: Bool
 
     public init(
         id: String,
@@ -311,14 +335,20 @@ public struct CapturedVoiceNoteV2: Codable, Sendable {
         startedAt: String,
         endedAt: String?,
         roomId: String?,
-        linkedObjectId: String?
+        capturePointId: String? = nil,
+        linkedObjectId: String?,
+        anchorConfidence: String? = nil,
+        needsReview: Bool = false
     ) {
         self.id = id
         self.transcript = transcript
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedObjectId = linkedObjectId
+        self.anchorConfidence = anchorConfidence
+        self.needsReview = needsReview
     }
 }
 
@@ -342,6 +372,9 @@ public struct CapturedObjectPinV2: Codable, Sendable {
     /// UUID of the room this pin is associated with; nil for session-level pins.
     public let roomId: String?
 
+    /// UUID of the capture point this pin is associated with; nil when unanchored.
+    public let capturePointId: String?
+
     /// UUID of a linked evidence photo; nil when no photo is attached.
     public let linkedPhotoId: String?
 
@@ -349,20 +382,37 @@ public struct CapturedObjectPinV2: Codable, Sendable {
     /// Nil when position was not captured.
     public let approximatePositionRef: ScanPoint3D?
 
+    /// Anchor confidence for this pin placement.
+    public let anchorConfidence: String?
+
+    /// Surface semantic this pin is attached to.
+    public let surfaceSemantic: String?
+
+    /// True when this pin requires engineer review.
+    public let needsReview: Bool
+
     public init(
         id: String,
         type: String,
         label: String?,
         roomId: String?,
+        capturePointId: String? = nil,
         linkedPhotoId: String?,
-        approximatePositionRef: ScanPoint3D?
+        approximatePositionRef: ScanPoint3D?,
+        anchorConfidence: String? = nil,
+        surfaceSemantic: String? = nil,
+        needsReview: Bool = false
     ) {
         self.id = id
         self.type = type
         self.label = label
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedPhotoId = linkedPhotoId
         self.approximatePositionRef = approximatePositionRef
+        self.anchorConfidence = anchorConfidence
+        self.surfaceSemantic = surfaceSemantic
+        self.needsReview = needsReview
     }
 }
 
