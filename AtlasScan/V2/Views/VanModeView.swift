@@ -6,9 +6,11 @@ import AtlasScanCore
 struct VanModeView: View {
     var room: RoomCaptureV2
     @ObservedObject var coordinator: ScanSessionCoordinator
+    var onContinueScanning: (() -> Void)? = nil
+    var onPropertyMap: (() -> Void)? = nil
+    var onFinishVisit: (() -> Void)? = nil
 
-    @State private var showPinPicker = false
-    @State private var selectedPinType: PinnedObjectType = .boiler
+    @Environment(\.dismiss) private var dismiss
 
     private var currentRoom: RoomCaptureV2 {
         coordinator.room(withId: room.id) ?? room
@@ -26,38 +28,46 @@ struct VanModeView: View {
         }
         .navigationTitle(currentRoom.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    showPinPicker = true
-                } label: {
-                    Image(systemName: "mappin.and.ellipse")
-                }
-            }
-        }
-        .sheet(isPresented: $showPinPicker) {
-            SpatialPinARView(
-                roomId: room.id,
-                pins: pinBinding,
-                pendingObjectType: selectedPinType
-            )
-            .ignoresSafeArea()
+        .toolbar { ToolbarItem(placement: .topBarLeading) { backButton } }
+        .safeAreaInset(edge: .bottom) {
+            reviewNavigationBar
         }
     }
 
     private var roomOverview: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Floor Plan").font(.headline)
-            V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
-                .fill(Color.accentColor.opacity(0.12))
-                .overlay(
-                    V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
-                        .stroke(Color.accentColor, lineWidth: 2)
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 200)
+            if currentRoom.hasClosedFloorPolygon {
+                V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
+                    .fill(Color.accentColor.opacity(0.12))
+                    .overlay(
+                        V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
+                            .stroke(Color.accentColor, lineWidth: 2)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 200)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Room outline incomplete", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.orange)
+                    Text("Scan more wall edges or save as draft.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 16) {
+                        Label("\(currentRoom.wallSegments.count) walls", systemImage: "line.3.horizontal")
+                        Label("\(currentRoom.pinnedObjects.count) pins", systemImage: "mappin.circle")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
             HStack {
                 if currentRoom.hasClosedFloorPolygon {
                     Label(String(format: "%.1f m²", currentRoom.floorAreaM2), systemImage: "square.dashed")
@@ -119,7 +129,11 @@ struct VanModeView: View {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
-                        if pin.hasResolvedWorldAnchor {
+                        if pin.anchorConfidence == .screenOnly {
+                            Text("Screen only — needs review")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        } else if pin.hasResolvedWorldAnchor {
                             Text(String(format: "(%.2f, %.2f, %.2f)", pin.positionX, pin.positionY, pin.positionZ))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -160,15 +174,43 @@ struct VanModeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Binding helper
+    private var backButton: some View {
+        Button("Back") { dismiss() }
+    }
 
-    private var pinBinding: Binding<[SpatialPinV1]> {
-        Binding {
-            coordinator.session.rooms.first { $0.id == room.id }?.pinnedObjects ?? []
-        } set: { newPins in
-            guard let idx = coordinator.session.rooms.firstIndex(where: { $0.id == room.id }) else { return }
-            coordinator.session.rooms[idx].pinnedObjects = newPins
+    private var reviewNavigationBar: some View {
+        HStack(spacing: 10) {
+            Button("Continue Scanning") {
+                if let onContinueScanning {
+                    onContinueScanning()
+                } else {
+                    dismiss()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button("Property Map") {
+                if let onPropertyMap {
+                    onPropertyMap()
+                } else {
+                    dismiss()
+                }
+            }
+            .buttonStyle(.bordered)
+
+            Button("Finish Visit") {
+                if let onFinishVisit {
+                    onFinishVisit()
+                } else {
+                    dismiss()
+                }
+            }
+            .buttonStyle(.bordered)
         }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Icon helpers

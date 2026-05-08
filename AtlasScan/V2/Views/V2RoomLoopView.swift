@@ -1,6 +1,7 @@
 /// V2RoomLoopView — Orchestrates repeated room captures until the user finishes.
 
 import SwiftUI
+import simd
 import AtlasScanCore
 
 struct V2DraftRoomRecoveryTransition {
@@ -173,7 +174,23 @@ struct V2RoomLoopView: View {
         .fullScreenCover(isPresented: $showRoomReview) {
             if let room = currentReviewRoom {
                 NavigationStack {
-                    VanModeView(room: room, coordinator: coordinator)
+                    VanModeView(
+                        room: room,
+                        coordinator: coordinator,
+                        onContinueScanning: {
+                            showRoomReview = false
+                            beginNextCapture()
+                        },
+                        onPropertyMap: {
+                            showRoomReview = false
+                            dismiss()
+                        },
+                        onFinishVisit: {
+                            showRoomReview = false
+                            coordinator.handOffToMind()
+                            dismiss()
+                        }
+                    )
                 }
             } else {
                 EmptyView()
@@ -342,60 +359,98 @@ private struct LiveSpatialCaptureView: View {
     @State private var shouldStopCapture = false
     @State private var liveMapVertices: [Vertex2D] = []
     @State private var pendingPinsLocal: [SpatialPinV1] = []
+    @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
+    @State private var pendingCapturePoint: LiveCapturePointV1?
+    @State private var measurementStartPoint: LiveCapturePointV1?
+    @State private var measurementFeedback = ""
+    @State private var showCapturePointMenu = false
+    @State private var showMeasurementFeedback = false
     @State private var showObjectPicker = false
     @State private var showPhotoPicker = false
     @State private var showVoiceRecorder = false
+    @State private var showObservationNote = false
 
     var body: some View {
-        ZStack {
-            V2RoomPlanCaptureView(
-                capturedRoom: $capturedRoom,
-                shouldStop: $shouldStopCapture,
-                prospectiveRoomId: prospectiveRoomId,
-                onLiveVertices: { verts in liveMapVertices = verts },
-                onCaptureEndedWithoutRoom: {
-                    shouldStopCapture = false
-                    onCaptureEndedWithoutRoom()
-                }
-            )
-            .id(refreshToken)
-            .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                V2RoomPlanCaptureView(
+                    capturedRoom: $capturedRoom,
+                    shouldStop: $shouldStopCapture,
+                    prospectiveRoomId: prospectiveRoomId,
+                    onLiveVertices: { verts in liveMapVertices = verts },
+                    onCaptureEndedWithoutRoom: {
+                        shouldStopCapture = false
+                        onCaptureEndedWithoutRoom()
+                    },
+                    onCapturePointProbeReady: { probe in
+                        capturePointProbe = probe
+                    }
+                )
+                .id(refreshToken)
+                .ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                HStack(alignment: .top) {
-                    MiniMapHUD(
-                        rooms: rooms,
-                        livePolygonVertices: liveMapVertices,
-                        pins: pendingPinsLocal
-                    )
-                    .zIndex(hudOverlayLayer)
+                VStack(spacing: 16) {
+                    HStack(alignment: .top) {
+                        MiniMapHUD(
+                            rooms: rooms,
+                            livePolygonVertices: liveMapVertices,
+                            pins: pendingPinsLocal
+                        )
+                        .zIndex(hudOverlayLayer)
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 8) {
+                            if let pendingCapturePoint {
+                                CapturePointStatusBadge(point: pendingCapturePoint)
+                            }
+                            if !pendingPinsLocal.isEmpty {
+                                PinsCountBadge(count: pendingPinsLocal.count)
+                            }
+                        }
+                        .zIndex(hudOverlayLayer)
+                    }
+                    .padding(.horizontal, 16)
 
                     Spacer()
 
-                    if !pendingPinsLocal.isEmpty {
-                        PinsCountBadge(count: pendingPinsLocal.count)
-                            .zIndex(hudOverlayLayer)
-                    }
-                }
-                .padding(.horizontal, 16)
-
-                Spacer()
-
-                CenterCaptureReticleButton()
+                    BottomActionDock(
+                        onCapturePoint: captureCenterPoint,
+                        onRoom: { shouldStopCapture = true },
+                        onReview: onExit,
+                        onFinish: onExit
+                    )
                     .zIndex(hudOverlayLayer)
+                }
+                .padding(.bottom, 20)
 
-                BottomActionDock(
-                    onObject: { showObjectPicker = true },
-                    onPhoto:  { showPhotoPicker = true },
-                    onVoice:  { showVoiceRecorder = true },
-                    onFinish: { shouldStopCapture = true }
-                )
-                .zIndex(hudOverlayLayer)
+                CenterCaptureReticleButton(action: captureCenterPoint)
+                    .position(
+                        x: geometry.size.width / 2,
+                        y: geometry.size.height / 2
+                    )
+                    .zIndex(hudOverlayLayer + 10)
             }
-            .padding(.bottom, 20)
+        }
+        .confirmationDialog(
+            "Capture Point Actions",
+            isPresented: $showCapturePointMenu,
+            titleVisibility: .visible
+        ) {
+            Button("Tag object") { showObjectPicker = true }
+            Button("Take photo") { showPhotoPicker = true }
+            Button("Add voice note") { showVoiceRecorder = true }
+            Button("Measure space") { measureUsingPendingPoint() }
+            Button("Add note") { showObservationNote = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(capturePointMessage)
         }
         .sheet(isPresented: $showObjectPicker) {
-            V2PinPickerSheet(roomId: prospectiveRoomId) { pin in
+            V2PinPickerSheet(
+                roomId: prospectiveRoomId,
+                capturePoint: pendingCapturePoint
+            ) { pin in
                 pendingPinsLocal.append(pin)
                 onPinAdded(pin)
                 showObjectPicker = false
@@ -403,7 +458,7 @@ private struct LiveSpatialCaptureView: View {
         }
         .fullScreenCover(isPresented: $showPhotoPicker) {
             CameraPickerView { image in
-                savePhoto(image)
+                savePhoto(image, capturePoint: pendingCapturePoint)
                 showPhotoPicker = false
             } onCancel: {
                 showPhotoPicker = false
@@ -411,21 +466,88 @@ private struct LiveSpatialCaptureView: View {
             .ignoresSafeArea()
         }
         .sheet(isPresented: $showVoiceRecorder) {
-            V2VoiceNoteSheet(visitId: visitId, roomId: prospectiveRoomId) { note in
+            V2VoiceNoteSheet(
+                visitId: visitId,
+                roomId: prospectiveRoomId,
+                capturePointId: pendingCapturePoint?.id
+            ) { note in
                 onVoiceNoteAdded(note)
                 showVoiceRecorder = false
             }
+        }
+        .sheet(isPresented: $showObservationNote) {
+            V2ObservationNoteSheet(
+                visitId: visitId,
+                roomId: prospectiveRoomId,
+                capturePointId: pendingCapturePoint?.id
+            ) { note in
+                onVoiceNoteAdded(note)
+                showObservationNote = false
+            }
+        }
+        .alert("Measurement", isPresented: $showMeasurementFeedback) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(measurementFeedback)
         }
     }
 
     // MARK: - Photo save
 
-    private func savePhoto(_ image: UIImage) {
+    private var capturePointMessage: String {
+        guard let point = pendingCapturePoint else {
+            return "No capture point selected."
+        }
+        if point.anchorConfidence == .screenOnly {
+            return "Screen only — needs review."
+        }
+        return "Point anchored and ready."
+    }
+
+    private func captureCenterPoint() {
+        let probe = capturePointProbe?() ?? LiveCapturePointProbeResultV1(
+            screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+            worldPosition: nil,
+            anchorConfidence: .screenOnly
+        )
+        pendingCapturePoint = LiveCapturePointV1(
+            roomId: prospectiveRoomId,
+            screenPoint: probe.screenPoint,
+            worldPosition: probe.worldPosition,
+            anchorConfidence: probe.anchorConfidence
+        )
+        showCapturePointMenu = true
+    }
+
+    private func measureUsingPendingPoint() {
+        guard let pendingCapturePoint else { return }
+        if let start = measurementStartPoint {
+            defer { measurementStartPoint = nil }
+            guard
+                let startWorld = start.worldPosition,
+                let endWorld = pendingCapturePoint.worldPosition
+            else {
+                measurementFeedback = "Measurement points set, but one or both points are screen-only — needs review."
+                showMeasurementFeedback = true
+                return
+            }
+            let distance = simd_distance(startWorld, endWorld)
+            measurementFeedback = String(format: "Measured %.2f m between selected capture points.", distance)
+            showMeasurementFeedback = true
+            return
+        }
+        measurementStartPoint = pendingCapturePoint
+        measurementFeedback = "Measurement start point set. Capture another point, then select Measure space again from the menu."
+        showMeasurementFeedback = true
+    }
+
+    private func savePhoto(_ image: UIImage, capturePoint: LiveCapturePointV1?) {
         do {
             let (filename, _) = try PhotoStore.shared.save(image)
             let photo = PhotoEvidenceV1(
                 visitId: visitId,
                 roomId: prospectiveRoomId,
+                capturePointId: capturePoint?.id,
                 relativeFilePath: filename
             )
             onPhotoAdded(photo)
@@ -438,18 +560,24 @@ private struct LiveSpatialCaptureView: View {
 // MARK: - CenterCaptureReticleButton
 
 private struct CenterCaptureReticleButton: View {
+    let action: () -> Void
+
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(.white.opacity(0.9), lineWidth: 2)
-                .frame(width: 72, height: 72)
-            Circle()
-                .fill(.white.opacity(0.18))
-                .frame(width: 44, height: 44)
-            Image(systemName: "scope")
-                .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.9), lineWidth: 2)
+                    .frame(width: 72, height: 72)
+                Circle()
+                    .fill(.white.opacity(0.18))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "scope")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+            .contentShape(Circle())
         }
+        .buttonStyle(.plain)
         .shadow(color: .black.opacity(0.35), radius: 10, y: 6)
     }
 }
@@ -461,16 +589,16 @@ private struct BottomActionDock: View {
     /// even on small screen widths.
     fileprivate static let finishButtonMinWidth: CGFloat = 90
 
-    let onObject: () -> Void
-    let onPhoto: () -> Void
-    let onVoice: () -> Void
+    let onCapturePoint: () -> Void
+    let onRoom: () -> Void
+    let onReview: () -> Void
     let onFinish: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
-            dockButton(symbol: "mappin.circle", title: "Object", action: onObject)
-            dockButton(symbol: "camera.circle", title: "Photo",  action: onPhoto)
-            dockButton(symbol: "waveform.circle", title: "Voice", action: onVoice)
+            dockButton(symbol: "scope", title: "Capture Point", action: onCapturePoint)
+            dockButton(symbol: "square.and.pencil", title: "Room", action: onRoom)
+            dockButton(symbol: "map", title: "Review", action: onReview)
             Button(action: onFinish) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
@@ -522,10 +650,66 @@ private struct PinsCountBadge: View {
     }
 }
 
+private struct CapturePointStatusBadge: View {
+    let point: LiveCapturePointV1
+
+    var body: some View {
+        Label(statusText, systemImage: "scope")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var statusText: String {
+        point.anchorConfidence == .screenOnly
+            ? "Screen only — needs review"
+            : "Point captured"
+    }
+}
+
+struct CGPointCodable: Codable, Equatable, Sendable {
+    let x: Double
+    let y: Double
+}
+
+struct LiveCapturePointProbeResultV1 {
+    let screenPoint: CGPointCodable
+    let worldPosition: SIMD3<Double>?
+    let anchorConfidence: SpatialPinAnchorConfidence
+}
+
+struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
+    let id: UUID
+    let roomId: UUID
+    let createdAt: Date
+    let screenPoint: CGPointCodable
+    let worldPosition: SIMD3<Double>?
+    let anchorConfidence: SpatialPinAnchorConfidence
+
+    init(
+        id: UUID = UUID(),
+        roomId: UUID,
+        createdAt: Date = .now,
+        screenPoint: CGPointCodable,
+        worldPosition: SIMD3<Double>?,
+        anchorConfidence: SpatialPinAnchorConfidence
+    ) {
+        self.id = id
+        self.roomId = roomId
+        self.createdAt = createdAt
+        self.screenPoint = screenPoint
+        self.worldPosition = worldPosition
+        self.anchorConfidence = anchorConfidence
+    }
+}
+
 // MARK: - V2PinPickerSheet
 
 private struct V2PinPickerSheet: View {
     let roomId: UUID
+    let capturePoint: LiveCapturePointV1?
     let onSave: (SpatialPinV1) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -567,14 +751,18 @@ private struct V2PinPickerSheet: View {
     }
 
     private func savePinAndDismiss() {
+        let worldPosition = capturePoint?.worldPosition
         let pin = SpatialPinV1(
             roomId: roomId,
-            positionX: 0, positionY: 0, positionZ: 0,
-            screenPositionX: 0.5,
-            screenPositionY: 0.5,
+            capturePointId: capturePoint?.id,
+            positionX: worldPosition?.x ?? 0,
+            positionY: worldPosition?.y ?? 0,
+            positionZ: worldPosition?.z ?? 0,
+            screenPositionX: capturePoint?.screenPoint.x ?? 0.5,
+            screenPositionY: capturePoint?.screenPoint.y ?? 0.5,
             objectType: selectedType,
             label: label.isEmpty ? nil : label,
-            anchorConfidence: .screenOnly
+            anchorConfidence: capturePoint?.anchorConfidence ?? .screenOnly
         )
         onSave(pin)
     }
@@ -597,6 +785,7 @@ private struct V2PinPickerSheet: View {
 private struct V2VoiceNoteSheet: View {
     let visitId: UUID
     let roomId: UUID
+    let capturePointId: UUID?
     let onSave: (VoiceNoteV1) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -744,8 +933,54 @@ private struct V2VoiceNoteSheet: View {
         let note = VoiceNoteV1(
             visitId: visitId,
             roomId: roomId,
+            capturePointId: capturePointId,
             processedTranscript: draft.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         onSave(note)
+    }
+}
+
+private struct V2ObservationNoteSheet: View {
+    let visitId: UUID
+    let roomId: UUID
+    let capturePointId: UUID?
+    let onSave: (VoiceNoteV1) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var noteText = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Observation") {
+                    TextEditor(text: $noteText)
+                        .frame(minHeight: 160)
+                }
+            }
+            .navigationTitle("Add Note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveAndDismiss() }
+                        .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+
+    private func saveAndDismiss() {
+        let trimmed = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let note = VoiceNoteV1(
+            visitId: visitId,
+            roomId: roomId,
+            capturePointId: capturePointId,
+            processedTranscript: trimmed
+        )
+        onSave(note)
+        dismiss()
     }
 }

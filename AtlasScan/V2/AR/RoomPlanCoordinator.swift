@@ -2,6 +2,7 @@
 
 import SwiftUI
 import RoomPlan
+import ARKit
 import simd
 import AtlasScanCore
 
@@ -38,6 +39,60 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         guard !isStopped else { return }
         isStopped = true
         captureView?.captureSession.stop()
+    }
+
+    func capturePointAtViewCenter() -> LiveCapturePointProbeResultV1 {
+        guard let captureView else {
+            return LiveCapturePointProbeResultV1(
+                screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+                worldPosition: nil,
+                anchorConfidence: .screenOnly
+            )
+        }
+
+        let bounds = captureView.bounds
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let normalizedPoint = CGPointCodable(
+            x: bounds.width > 0 ? center.x / bounds.width : 0.5,
+            y: bounds.height > 0 ? center.y / bounds.height : 0.5
+        )
+
+        guard
+            let frame = captureView.captureSession.arSession.currentFrame,
+            let query = frame.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any)
+        else {
+            return LiveCapturePointProbeResultV1(
+                screenPoint: normalizedPoint,
+                worldPosition: nil,
+                anchorConfidence: .screenOnly
+            )
+        }
+
+        let results = captureView.captureSession.arSession.raycast(query)
+        guard let result = results.first else {
+            return LiveCapturePointProbeResultV1(
+                screenPoint: normalizedPoint,
+                worldPosition: nil,
+                anchorConfidence: .screenOnly
+            )
+        }
+
+        let position = result.worldTransform.columns.3
+        let confidence: SpatialPinAnchorConfidence
+        switch result.target {
+        case .estimatedPlane:
+            confidence = .raycastEstimated
+        case .existingPlaneGeometry, .existingPlaneInfinite:
+            confidence = .high
+        @unknown default:
+            confidence = .raycastEstimated
+        }
+
+        return LiveCapturePointProbeResultV1(
+            screenPoint: normalizedPoint,
+            worldPosition: SIMD3(Double(position.x), Double(position.y), Double(position.z)),
+            anchorConfidence: confidence
+        )
     }
 
     // MARK: - RoomCaptureSessionDelegate

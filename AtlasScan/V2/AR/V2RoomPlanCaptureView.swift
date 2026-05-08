@@ -22,6 +22,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     var onLiveVertices: (([Vertex2D]) -> Void)?
     /// Called when RoomPlan ends but no room could be produced.
     var onCaptureEndedWithoutRoom: (() -> Void)?
+    /// Exposes center-point probing so SwiftUI overlays can capture spatial
+    /// points aligned with the RoomPlan camera view.
+    var onCapturePointProbeReady: (((() -> LiveCapturePointProbeResultV1)?) -> Void)?
 
     func makeCoordinator() -> RoomPlanCoordinator {
         RoomPlanCoordinator(capturedRoom: $capturedRoom)
@@ -36,6 +39,7 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         context.coordinator.prospectiveRoomId = prospectiveRoomId
         context.coordinator.onLiveVertices = onLiveVertices
         context.coordinator.onCaptureEndedWithoutRoom = onCaptureEndedWithoutRoom
+        onCapturePointProbeReady?({ context.coordinator.capturePointAtViewCenter() })
         context.coordinator.startSession()
         return vc
     }
