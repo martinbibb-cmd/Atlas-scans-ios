@@ -170,6 +170,7 @@
 		AAV2000F /* V2RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* V2RoomLoopView.swift */; };
 		AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30010 /* V2LiveCaptureJourneyTests.swift */; };
 		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
+		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -345,6 +346,7 @@
 		AAV3000F /* V2RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomLoopView.swift; sourceTree = "<group>"; };
 		AAV30010 /* V2LiveCaptureJourneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2LiveCaptureJourneyTests.swift; sourceTree = "<group>"; };
 		AAV30011 /* V2RecentCaptureStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RecentCaptureStrip.swift; sourceTree = "<group>"; };
+		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -837,6 +839,7 @@
 				AA020B01 /* HardwareRegistryTests.swift */,
 				AA020800 /* ServiceObjectCategoryTerminologyTests.swift */,
 				AAV30010 /* V2LiveCaptureJourneyTests.swift */,
+				AAV30012 /* SurfaceSemanticV1Tests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -1141,6 +1144,7 @@
 				AA010B01 /* HardwareRegistryTests.swift in Sources */,
 				AA010800 /* ServiceObjectCategoryTerminologyTests.swift in Sources */,
 				AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */,
+				AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

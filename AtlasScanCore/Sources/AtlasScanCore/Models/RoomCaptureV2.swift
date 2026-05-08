@@ -146,6 +146,11 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
     public let customApplianceDefinitionId: String?
     public let screenPoint: CGPointCodable
     public let placementPlane: GhostPlacementPlaneV1
+    /// Richer semantic surface type for this placement.
+    /// Derived from `placementPlane` when loading legacy records that predate
+    /// this field.  Defaults to `SurfaceSemanticV1.derived(from: placementPlane)`
+    /// when not explicitly set.
+    public let surfaceSemantic: SurfaceSemanticV1
     public let planeNormalX: Double
     public let planeNormalY: Double
     public let planeNormalZ: Double
@@ -167,6 +172,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         customApplianceDefinitionId: String? = nil,
         screenPoint: CGPointCodable = .init(x: 0.5, y: 0.5),
         placementPlane: GhostPlacementPlaneV1 = .unknown,
+        surfaceSemantic: SurfaceSemanticV1? = nil,
         planeNormalX: Double = 0,
         planeNormalY: Double = 0,
         planeNormalZ: Double = 0,
@@ -187,6 +193,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         self.customApplianceDefinitionId = customApplianceDefinitionId
         self.screenPoint = screenPoint
         self.placementPlane = placementPlane
+        self.surfaceSemantic = surfaceSemantic ?? SurfaceSemanticV1.derived(from: placementPlane)
         self.planeNormalX = planeNormalX
         self.planeNormalY = planeNormalY
         self.planeNormalZ = planeNormalZ
@@ -205,8 +212,13 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         SIMD3(worldPositionX, worldPositionY, worldPositionZ)
     }
 
+    /// True when this placement requires engineer review.
+    ///
+    /// A placement needs review when:
+    /// - It has no resolved world anchor (`screenOnly` confidence), or
+    /// - The surface semantic is still unknown (no surface has been confirmed).
     public var needsReview: Bool {
-        anchorConfidence == .screenOnly || placementPlane == .unknown
+        anchorConfidence == .screenOnly || surfaceSemantic == .unknown
     }
 
     public func translated(
@@ -223,6 +235,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
             customApplianceDefinitionId: customApplianceDefinitionId,
             screenPoint: screenPoint,
             placementPlane: placementPlane,
+            surfaceSemantic: surfaceSemantic,
             planeNormalX: planeNormalX,
             planeNormalY: planeNormalY,
             planeNormalZ: planeNormalZ,
@@ -230,6 +243,32 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
             worldPositionY: worldPositionY + dy,
             worldPositionZ: worldPositionZ + dz,
             rotationYaw: rotationYaw + rotationYawDelta,
+            dimensionsMm: dimensionsMm,
+            clearanceOffsetsMm: clearanceOffsetsMm,
+            anchorConfidence: anchorConfidence,
+            createdAt: createdAt,
+            notes: notes
+        )
+    }
+
+    /// Returns a copy of this placement with the surface semantic replaced.
+    public func withSurfaceSemantic(_ semantic: SurfaceSemanticV1) -> GhostAppliancePlacementV1 {
+        GhostAppliancePlacementV1(
+            id: id,
+            roomId: roomId,
+            capturePointId: capturePointId,
+            applianceModelId: applianceModelId,
+            customApplianceDefinitionId: customApplianceDefinitionId,
+            screenPoint: screenPoint,
+            placementPlane: placementPlane,
+            surfaceSemantic: semantic,
+            planeNormalX: planeNormalX,
+            planeNormalY: planeNormalY,
+            planeNormalZ: planeNormalZ,
+            worldPositionX: worldPositionX,
+            worldPositionY: worldPositionY,
+            worldPositionZ: worldPositionZ,
+            rotationYaw: rotationYaw,
             dimensionsMm: dimensionsMm,
             clearanceOffsetsMm: clearanceOffsetsMm,
             anchorConfidence: anchorConfidence,
@@ -246,6 +285,7 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         case customApplianceDefinitionId
         case screenPoint
         case placementPlane
+        case surfaceSemantic
         case planeNormalX
         case planeNormalY
         case planeNormalZ
@@ -269,6 +309,10 @@ public struct GhostAppliancePlacementV1: Codable, Identifiable, Sendable {
         customApplianceDefinitionId = try container.decodeIfPresent(String.self, forKey: .customApplianceDefinitionId)
         screenPoint = try container.decodeIfPresent(CGPointCodable.self, forKey: .screenPoint) ?? .init(x: 0.5, y: 0.5)
         placementPlane = try container.decode(GhostPlacementPlaneV1.self, forKey: .placementPlane)
+        // Backward compat: derive from placementPlane when surfaceSemantic is absent
+        // (records written before this field was added).
+        let decodedSemantic = try container.decodeIfPresent(SurfaceSemanticV1.self, forKey: .surfaceSemantic)
+        surfaceSemantic = decodedSemantic ?? SurfaceSemanticV1.derived(from: placementPlane)
         planeNormalX = try container.decode(Double.self, forKey: .planeNormalX)
         planeNormalY = try container.decode(Double.self, forKey: .planeNormalY)
         planeNormalZ = try container.decode(Double.self, forKey: .planeNormalZ)
@@ -341,6 +385,10 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     /// Optional durable appliance model key from `ApplianceDefinitionV1`.
     public var modelId: String?
 
+    /// The semantic surface this pin is attached to.
+    /// Nil when the surface type has not been assessed (legacy records).
+    public var surfaceSemantic: SurfaceSemanticV1?
+
     /// True when the world-space position is not at origin.
     public var hasNonZeroWorldPosition: Bool {
         abs(positionX) > 0.0001 || abs(positionY) > 0.0001 || abs(positionZ) > 0.0001
@@ -369,7 +417,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         label: String? = nil,
         anchorConfidence: SpatialPinAnchorConfidence = .estimated,
         hardwareSpecId: UUID? = nil,
-        modelId: String? = nil
+        modelId: String? = nil,
+        surfaceSemantic: SurfaceSemanticV1? = nil
     ) {
         self.id = id
         self.roomId = roomId
@@ -384,6 +433,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         self.anchorConfidence = anchorConfidence
         self.hardwareSpecId = hardwareSpecId
         self.modelId = modelId
+        self.surfaceSemantic = surfaceSemantic
     }
 }
 
