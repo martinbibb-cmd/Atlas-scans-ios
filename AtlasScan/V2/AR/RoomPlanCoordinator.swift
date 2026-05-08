@@ -120,12 +120,13 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             orientation: .portrait,
             viewportSize: viewportSize
         )
-        // Reject points behind the camera plane.
-        guard projected.z > 0 else { return nil }
+        let worldPoint = SIMD4<Float>(Float(worldPosition.x), Float(worldPosition.y), Float(worldPosition.z), 1)
+        let cameraSpacePoint = simd_inverse(frame.camera.transform) * worldPoint
+        guard cameraSpacePoint.z < 0 else { return nil }
 
         return CGPointCodable(
-            x: Double(projected.x / Float(viewportSize.width)),
-            y: Double(projected.y / Float(viewportSize.height))
+            x: Double(projected.x / viewportSize.width),
+            y: Double(projected.y / viewportSize.height)
         )
     }
 
