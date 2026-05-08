@@ -151,10 +151,10 @@ struct VanModeView: View {
             HStack {
                 Image(systemName: "scope")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 Text(group.label)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
             }
 
             ForEach(group.pins) { pin in
