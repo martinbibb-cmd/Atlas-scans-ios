@@ -169,6 +169,7 @@
 		AAV2000E /* VanModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000E /* VanModeView.swift */; };
 		AAV2000F /* V2RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* V2RoomLoopView.swift */; };
 		AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30010 /* V2LiveCaptureJourneyTests.swift */; };
+		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -343,6 +344,7 @@
 		AAV3000E /* VanModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeView.swift; sourceTree = "<group>"; };
 		AAV3000F /* V2RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomLoopView.swift; sourceTree = "<group>"; };
 		AAV30010 /* V2LiveCaptureJourneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2LiveCaptureJourneyTests.swift; sourceTree = "<group>"; };
+		AAV30011 /* V2RecentCaptureStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RecentCaptureStrip.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -784,6 +786,7 @@
 				AAV3000D /* PropertyMapView.swift */,
 				AAV3000E /* VanModeView.swift */,
 				AAV3000F /* V2RoomLoopView.swift */,
+				AAV30011 /* V2RecentCaptureStrip.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1096,6 +1099,7 @@
 				AAV2000D /* PropertyMapView.swift in Sources */,
 				AAV2000E /* VanModeView.swift in Sources */,
 				AAV2000F /* V2RoomLoopView.swift in Sources */,
+				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

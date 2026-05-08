@@ -79,7 +79,17 @@ struct V2RoomLoopView: View {
                     },
                     onPhotoAdded: { coordinator.addPhoto($0) },
                     onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
-                    onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true }
+                    onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true },
+                    onEvidenceDeleted: { item in
+                        switch item.evidenceType {
+                        case .objectPin:
+                            pendingPins.removeAll { $0.id == item.sourceEvidenceId }
+                        case .ghostAppliance:
+                            pendingGhostPlacements.removeAll { $0.id == item.sourceEvidenceId }
+                        case .photo, .voiceNote, .note:
+                            coordinator.deleteEvidenceItem(item)
+                        }
+                    }
                 )
                 .ignoresSafeArea()
                 .onChange(of: capturedRoom?.id) { _, newId in
@@ -398,6 +408,10 @@ private struct LiveSpatialCaptureView: View {
     let onPhotoAdded: (PhotoEvidenceV1) -> Void
     let onVoiceNoteAdded: (VoiceNoteV1) -> Void
     let onCaptureEndedWithoutRoom: () -> Void
+    /// Called when the engineer deletes an item from the evidence strip.
+    /// The parent should remove pending pins/ghosts from its own state and
+    /// route photo / voice-note deletions to the session coordinator.
+    let onEvidenceDeleted: (RecentCaptureItemV1) -> Void
 
     @State private var shouldStopCapture = false
     @State private var liveMapVertices: [Vertex2D] = []
@@ -417,6 +431,11 @@ private struct LiveSpatialCaptureView: View {
     @State private var showVoiceRecorder = false
     @State private var showObservationNote = false
     @State private var recentGhostModelIds: [String] = []
+    /// All evidence items captured during this room session, kept in insertion order.
+    /// Filtered by `prospectiveRoomId` before display so switching rooms clears the strip.
+    @State private var recentCaptures: [RecentCaptureItemV1] = []
+    /// The item currently shown in the detail sheet (tapped from the strip).
+    @State private var selectedRecentItem: RecentCaptureItemV1?
 
     var body: some View {
         GeometryReader { geometry in
@@ -464,6 +483,16 @@ private struct LiveSpatialCaptureView: View {
                     .padding(.horizontal, 16)
 
                     Spacer()
+
+                    let stripItems = recentItemsForCurrentRoom
+                    if !stripItems.isEmpty {
+                        V2RecentCaptureStripView(
+                            items: stripItems,
+                            onTap: { item in selectedRecentItem = item },
+                            onDelete: { item in handleDeleteRecentItem(item) }
+                        )
+                        .zIndex(hudOverlayLayer)
+                    }
 
                     BottomActionDock(
                         onCapturePoint: captureCenterPoint,
@@ -514,6 +543,7 @@ private struct LiveSpatialCaptureView: View {
             ) { pin in
                 pendingPinsLocal.append(pin)
                 onPinAdded(pin)
+                recentCaptures.append(RecentCaptureItemV1.from(pin: pin))
                 showObjectPicker = false
             }
         }
@@ -554,6 +584,7 @@ private struct LiveSpatialCaptureView: View {
                 capturePointId: pendingCapturePoint?.id
             ) { note in
                 onVoiceNoteAdded(note)
+                recentCaptures.append(RecentCaptureItemV1.from(voiceNote: note))
                 showVoiceRecorder = false
             }
         }
@@ -564,6 +595,7 @@ private struct LiveSpatialCaptureView: View {
                 capturePointId: pendingCapturePoint?.id
             ) { note in
                 onVoiceNoteAdded(note)
+                recentCaptures.append(RecentCaptureItemV1.fromObservationNote(note))
                 showObservationNote = false
             }
         }
@@ -571,6 +603,13 @@ private struct LiveSpatialCaptureView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(measurementFeedback)
+        }
+        .sheet(item: $selectedRecentItem) { item in
+            V2RecentItemDetailSheet(item: item) {
+                handleDeleteRecentItem(item)
+                selectedRecentItem = nil
+            }
+            .presentationDetents([.height(260)])
         }
     }
 
@@ -656,6 +695,8 @@ private struct LiveSpatialCaptureView: View {
         )
         pendingGhostPlacementsLocal.append(placement)
         onGhostPlacementAdded(placement)
+        let displayLabel = ghostLabel(for: placement)
+        recentCaptures.append(RecentCaptureItemV1.from(ghost: placement, displayLabel: displayLabel))
         var updatedRecentModelIds = recentGhostModelIds
         updatedRecentModelIds.removeAll { $0 == definition.modelId }
         updatedRecentModelIds.insert(definition.modelId, at: 0)
@@ -756,9 +797,34 @@ private struct LiveSpatialCaptureView: View {
                 relativeFilePath: filename
             )
             onPhotoAdded(photo)
+            recentCaptures.append(RecentCaptureItemV1.from(photo: photo))
         } catch {
             print("[LiveSpatialCaptureView] Photo save failed: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Recent captures helpers
+
+    /// Evidence items for the current prospective room, sorted newest-first, capped at 7.
+    private var recentItemsForCurrentRoom: [RecentCaptureItemV1] {
+        recentCaptures
+            .filter { $0.roomId == prospectiveRoomId }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(7)
+            .map { $0 }
+    }
+
+    private func handleDeleteRecentItem(_ item: RecentCaptureItemV1) {
+        recentCaptures.removeAll { $0.id == item.id }
+        switch item.evidenceType {
+        case .objectPin:
+            pendingPinsLocal.removeAll { $0.id == item.sourceEvidenceId }
+        case .ghostAppliance:
+            pendingGhostPlacementsLocal.removeAll { $0.id == item.sourceEvidenceId }
+        case .photo, .voiceNote, .note:
+            break
+        }
+        onEvidenceDeleted(item)
     }
 }
 

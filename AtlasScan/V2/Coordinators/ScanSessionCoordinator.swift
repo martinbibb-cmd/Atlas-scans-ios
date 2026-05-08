@@ -72,6 +72,46 @@ public final class ScanSessionCoordinator: ObservableObject {
         scheduleSave()
     }
 
+    // MARK: - Evidence deletion
+
+    /// Removes a single evidence item from the session by its source evidence ID.
+    ///
+    /// Safe to call with pending (pre-room-save) evidence; those items simply
+    /// will not be found in the session arrays and no change is made.
+    /// The room record itself is never removed by this method.
+    public func deleteEvidenceItem(_ item: RecentCaptureItemV1) {
+        switch item.evidenceType {
+        case .photo:
+            session.photos.removeAll { $0.id == item.sourceEvidenceId }
+
+        case .voiceNote, .note:
+            // Remove the companion transcript created by addVoiceNote.
+            // Match by roomId + capturePointId + transcript content.
+            // Limitation: if two notes in the same room+point share identical transcript
+            // text, both companion transcripts are removed. This is an acceptable edge case
+            // given how improbable identical free-text transcripts are in practice.
+            if let note = session.voiceNotes.first(where: { $0.id == item.sourceEvidenceId }) {
+                session.transcripts.removeAll {
+                    $0.roomId == note.roomId &&
+                    $0.capturePointId == note.capturePointId &&
+                    $0.transcript == note.processedTranscript
+                }
+            }
+            session.voiceNotes.removeAll { $0.id == item.sourceEvidenceId }
+
+        case .objectPin:
+            for i in session.rooms.indices {
+                session.rooms[i].pinnedObjects.removeAll { $0.id == item.sourceEvidenceId }
+            }
+
+        case .ghostAppliance:
+            for i in session.rooms.indices {
+                session.rooms[i].ghostAppliancePlacements.removeAll { $0.id == item.sourceEvidenceId }
+            }
+        }
+        scheduleSave()
+    }
+
     public func discardUnfinishedRoomEvidence(for roomId: UUID) {
         // Intentionally safe when called before a room is saved; missing array
         // elements simply result in no removals while orphaned evidence is cleared.
