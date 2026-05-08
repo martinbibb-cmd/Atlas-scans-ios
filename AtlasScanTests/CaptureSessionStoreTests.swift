@@ -629,6 +629,83 @@ final class RoomCaptureV2GeometryAndAnchoringTests: XCTestCase {
         XCTAssertTrue(anchored.hasResolvedWorldAnchor)
     }
 
+    func test_screenOnlyGhostPlacement_requiresReview() {
+        let placement = GhostAppliancePlacementV1(
+            roomId: UUID(),
+            capturePointId: UUID(),
+            applianceModelId: "screen-only-ghost",
+            screenPoint: .init(x: 0.5, y: 0.5),
+            placementPlane: .wall,
+            dimensionsMm: .init(width: 600, height: 700, depth: 300),
+            anchorConfidence: .screenOnly
+        )
+        XCTAssertTrue(placement.needsReview)
+    }
+
+    func test_unknownPlaneGhostPlacement_requiresReview() {
+        let placement = GhostAppliancePlacementV1(
+            roomId: UUID(),
+            capturePointId: UUID(),
+            applianceModelId: "unknown-plane-ghost",
+            screenPoint: .init(x: 0.5, y: 0.5),
+            placementPlane: .unknown,
+            dimensionsMm: .init(width: 600, height: 700, depth: 300),
+            anchorConfidence: .high
+        )
+        XCTAssertTrue(placement.needsReview)
+    }
+
+    func test_anchoredWallGhostPlacement_doesNotRequireReview() {
+        let placement = GhostAppliancePlacementV1(
+            roomId: UUID(),
+            capturePointId: UUID(),
+            applianceModelId: "anchored-wall-ghost",
+            screenPoint: .init(x: 0.45, y: 0.55),
+            placementPlane: .wall,
+            planeNormalX: 0,
+            planeNormalY: 0,
+            planeNormalZ: -1,
+            worldPositionX: 1.2,
+            worldPositionY: 1.0,
+            worldPositionZ: 2.0,
+            dimensionsMm: .init(width: 600, height: 700, depth: 300),
+            anchorConfidence: .high
+        )
+        XCTAssertFalse(placement.needsReview)
+    }
+
+    func test_ghostPlacementDecoding_defaultsMissingScreenPointToCenter() throws {
+        let json = """
+        {
+          "id": "\(UUID().uuidString)",
+          "roomId": "\(UUID().uuidString)",
+          "capturePointId": "\(UUID().uuidString)",
+          "applianceModelId": "legacy-ghost",
+          "customApplianceDefinitionId": null,
+          "placementPlane": "wall",
+          "planeNormalX": 0,
+          "planeNormalY": 0,
+          "planeNormalZ": -1,
+          "worldPositionX": 1,
+          "worldPositionY": 1.2,
+          "worldPositionZ": 2,
+          "rotationYaw": 0,
+          "dimensionsMm": { "width": 600, "height": 700, "depth": 300 },
+          "clearanceOffsetsMm": { "top": 0, "bottom": 0, "front": 600, "back": 0, "left": 100, "right": 100 },
+          "anchorConfidence": "high",
+          "createdAt": "2026-05-08T00:00:00Z",
+          "notes": null
+        }
+        """
+
+        let placement = try JSONDecoder().decode(
+            GhostAppliancePlacementV1.self,
+            from: Data(json.utf8)
+        )
+
+        XCTAssertEqual(placement.screenPoint, CGPointCodable(x: 0.5, y: 0.5))
+    }
+
     @MainActor
     func test_abnormalCeilingHeight_emitsQAFlag() {
         let coordinator = ScanSessionCoordinator(visitId: UUID(), store: AtomicSessionStore())

@@ -78,6 +78,34 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
             processedTranscript: "Worcester Combi 30i, installed 2018"
         )
 
+        let customDefinition = CustomApplianceDefinitionV1(
+            id: "custom-wall-boiler",
+            brand: "Custom",
+            modelName: "Wall Boiler",
+            applianceType: "boiler",
+            dimensionsMm: .init(width: 640, height: 780, depth: 320),
+            clearanceOffsetsMm: .init(top: 150, front: 600, back: 40, left: 75, right: 75)
+        )
+        let ghostPlacement = GhostAppliancePlacementV1(
+            roomId: prospectiveRoomId,
+            capturePointId: capturePoint.id,
+            applianceModelId: customDefinition.id,
+            customApplianceDefinitionId: customDefinition.id,
+            screenPoint: capturePoint.screenPoint,
+            placementPlane: .wall,
+            planeNormalX: 0,
+            planeNormalY: 0,
+            planeNormalZ: -1,
+            worldPositionX: 1.5,
+            worldPositionY: 1.0,
+            worldPositionZ: 2.66,
+            rotationYaw: 15,
+            dimensionsMm: customDefinition.dimensionsMm,
+            clearanceOffsetsMm: customDefinition.clearanceOffsetsMm,
+            anchorConfidence: .raycastEstimated,
+            notes: "Custom appliance"
+        )
+
         // addVoiceNote is documented to create a matching ProcessedTranscriptV1 in the
         // session as a synchronous side-effect (see ScanSessionCoordinator.addVoiceNote).
         coordinator.addPhoto(photo)
@@ -86,6 +114,8 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         // 5. Finish room — bundle all pending evidence into a RoomCaptureV2.
         var room = RoomCaptureV2(id: prospectiveRoomId, displayName: "Kitchen")
         room.pinnedObjects = [pin]
+        room.ghostAppliancePlacements = [ghostPlacement]
+        room.customApplianceDefinitions = [customDefinition]
         coordinator.addRoom(room)
         await coordinator.saveSession()
 
@@ -98,11 +128,13 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         let roomPhotos     = coordinator.session.photos.filter { $0.roomId == prospectiveRoomId }
         let roomVoices     = coordinator.session.voiceNotes.filter { $0.roomId == prospectiveRoomId }
         let roomPins       = savedRoom?.pinnedObjects ?? []
+        let roomGhosts     = savedRoom?.ghostAppliancePlacements ?? []
         let roomTranscripts = coordinator.session.transcripts.filter { $0.roomId == prospectiveRoomId }
 
         XCTAssertEqual(roomPhotos.count, 1, "One photo should be associated with the room.")
         XCTAssertEqual(roomVoices.count, 1, "One voice note should be associated with the room.")
         XCTAssertEqual(roomPins.count, 1, "One pin should be stored on the room.")
+        XCTAssertEqual(roomGhosts.count, 1, "One ghost appliance should be stored on the room.")
         XCTAssertEqual(roomTranscripts.count, 1, "Coordinator should have created a transcript for the voice note.")
 
         // 8. Assert all evidence references the same capturePointId.
@@ -112,8 +144,16 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
                        "Voice note capturePointId must match the capture point used.")
         XCTAssertEqual(roomPins.first?.capturePointId, capturePoint.id,
                        "Pin capturePointId must match the capture point used.")
+        XCTAssertEqual(roomGhosts.first?.capturePointId, capturePoint.id,
+                       "Ghost placement capturePointId must match the capture point used.")
         XCTAssertEqual(roomTranscripts.first?.capturePointId, capturePoint.id,
                        "Transcript capturePointId must match the capture point used.")
+        XCTAssertEqual(roomGhosts.first?.roomId, prospectiveRoomId,
+                       "Ghost placement roomId must match the active room.")
+        XCTAssertEqual(roomGhosts.first?.dimensionsMm, customDefinition.dimensionsMm,
+                       "Custom appliance dimensions must be preserved.")
+        XCTAssertEqual(roomGhosts.first?.screenPoint, capturePoint.screenPoint,
+                       "Ghost placement should retain the tapped screen point.")
 
         // 9. Start next room — new prospectiveRoomId must differ.
         let nextProspectiveRoomId = UUID()
@@ -144,13 +184,22 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
             objectType: .hotWaterCylinder,
             anchorConfidence: .screenOnly
         )
+        let ghostPlacement = GhostAppliancePlacementV1(
+            roomId: prospectiveRoomId,
+            capturePointId: UUID(),
+            applianceModelId: "custom-draft-ghost",
+            screenPoint: .init(x: 0.5, y: 0.5),
+            placementPlane: .unknown,
+            dimensionsMm: .init(width: 600, height: 700, depth: 300),
+            anchorConfidence: .screenOnly
+        )
         let photo = PhotoEvidenceV1(visitId: visitId, roomId: prospectiveRoomId, relativeFilePath: "draft.jpg")
         coordinator.addPhoto(photo)
 
         let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
             prospectiveRoomId: prospectiveRoomId,
             pendingPins: [pin],
-            pendingGhostPlacements: [],
+            pendingGhostPlacements: [ghostPlacement],
             nextProspectiveRoomId: nextId
         )
 
@@ -160,6 +209,7 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         XCTAssertEqual(coordinator.session.rooms.count, 1)
         XCTAssertEqual(coordinator.session.rooms.first?.id, prospectiveRoomId)
         XCTAssertEqual(coordinator.session.photos.filter { $0.roomId == prospectiveRoomId }.count, 1)
+        XCTAssertEqual(coordinator.session.rooms.first?.ghostAppliancePlacements.map(\.roomId), [prospectiveRoomId])
         XCTAssertNotEqual(transition.nextProspectiveRoomId, prospectiveRoomId)
     }
 
@@ -168,9 +218,36 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
     func test_discardRecovery_removesOnlyDiscardedRoomEvidence() async throws {
         let keptRoomId = UUID()
         let discardedRoomId = UUID()
+        let keptGhost = GhostAppliancePlacementV1(
+            roomId: keptRoomId,
+            capturePointId: UUID(),
+            applianceModelId: "kept-ghost",
+            screenPoint: .init(x: 0.4, y: 0.4),
+            placementPlane: .floor,
+            worldPositionX: 1,
+            worldPositionY: 0.35,
+            worldPositionZ: 1,
+            dimensionsMm: .init(width: 600, height: 700, depth: 300),
+            anchorConfidence: .high
+        )
+        let discardedGhost = GhostAppliancePlacementV1(
+            roomId: discardedRoomId,
+            capturePointId: UUID(),
+            applianceModelId: "discard-ghost",
+            screenPoint: .init(x: 0.6, y: 0.6),
+            placementPlane: .unknown,
+            dimensionsMm: .init(width: 500, height: 600, depth: 250),
+            anchorConfidence: .screenOnly
+        )
 
         coordinator.addPhoto(PhotoEvidenceV1(visitId: visitId, roomId: keptRoomId, relativeFilePath: "kept.jpg"))
         coordinator.addPhoto(PhotoEvidenceV1(visitId: visitId, roomId: discardedRoomId, relativeFilePath: "discard.jpg"))
+        var keptRoom = RoomCaptureV2(id: keptRoomId, displayName: "Kept Room")
+        keptRoom.ghostAppliancePlacements = [keptGhost]
+        coordinator.addRoom(keptRoom)
+        var discardedRoom = RoomCaptureV2(id: discardedRoomId, displayName: "Discarded Room")
+        discardedRoom.ghostAppliancePlacements = [discardedGhost]
+        coordinator.addRoom(discardedRoom)
 
         coordinator.discardUnfinishedRoomEvidence(for: discardedRoomId)
 
@@ -178,5 +255,9 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
                       "Discarded room evidence must be removed.")
         XCTAssertEqual(coordinator.session.photos.filter { $0.roomId == keptRoomId }.count, 1,
                        "Evidence for other rooms must not be affected by discard.")
+        XCTAssertFalse(coordinator.session.rooms.contains { $0.id == discardedRoomId },
+                       "Discarded room ghost placements should be removed with the room.")
+        XCTAssertEqual(coordinator.session.rooms.first(where: { $0.id == keptRoomId })?.ghostAppliancePlacements.count, 1,
+                       "Ghost placements for other rooms must be preserved.")
     }
 }
