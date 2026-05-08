@@ -79,14 +79,24 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     /// Full capture data for this visit.
     public let capture: SessionCaptureV2
 
+    /// Structured room → capture-point evidence graph for Mind rendering.
+    public let spatialEvidenceGraph: SpatialEvidenceGraphV1
+
+    /// Engineer-visible unresolved evidence items that require review.
+    public let unresolvedEvidence: [UnresolvedSpatialEvidenceV1]
+
     // MARK: Init
 
     public init(
         visit: HandoffVisitSnapshotV1,
         capture: SessionCaptureV2,
         reason: ScanToMindHandoffReasonV1,
-        exportedAt: String
+        exportedAt: String,
+        spatialEvidenceGraph: SpatialEvidenceGraphV1? = nil,
+        unresolvedEvidence: [UnresolvedSpatialEvidenceV1]? = nil
     ) {
+        let evidenceGraph = spatialEvidenceGraph
+            ?? SpatialEvidenceGraphV1.fromCapture(capture, visitId: visit.visitId)
         self.kind = "scan-to-mind-handoff"
         self.schemaVersion = 1
         self.sourceApp = "scan_ios"
@@ -95,6 +105,360 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         self.reason = reason
         self.visit = visit
         self.capture = capture
+        self.spatialEvidenceGraph = evidenceGraph
+        self.unresolvedEvidence = unresolvedEvidence ?? evidenceGraph.defaultUnresolvedEvidence()
+    }
+}
+
+// MARK: - SpatialEvidenceGraphV1
+
+public struct SpatialEvidenceGraphV1: Codable, Sendable {
+    public let visitId: String
+    public let rooms: [SpatialEvidenceRoomV1]
+
+    public init(visitId: String, rooms: [SpatialEvidenceRoomV1]) {
+        self.visitId = visitId
+        self.rooms = rooms
+    }
+}
+
+public struct SpatialEvidenceRoomV1: Codable, Sendable {
+    public let roomId: String
+    public let roomName: String
+    public let geometryStatus: String
+    public let floorAreaM2: Double?
+    public let ceilingHeightM: Double?
+    public let capturePoints: [SpatialEvidencePointV1]
+    public let roomWarnings: [String]
+
+    public init(
+        roomId: String,
+        roomName: String,
+        geometryStatus: String,
+        floorAreaM2: Double? = nil,
+        ceilingHeightM: Double? = nil,
+        capturePoints: [SpatialEvidencePointV1],
+        roomWarnings: [String] = []
+    ) {
+        self.roomId = roomId
+        self.roomName = roomName
+        self.geometryStatus = geometryStatus
+        self.floorAreaM2 = floorAreaM2
+        self.ceilingHeightM = ceilingHeightM
+        self.capturePoints = capturePoints
+        self.roomWarnings = roomWarnings
+    }
+}
+
+public struct SpatialEvidencePointV1: Codable, Sendable {
+    public let capturePointId: String
+    public let anchorConfidence: String
+    public let surfaceSemantic: String?
+    public let needsReview: Bool
+    public let objectPins: [SpatialEvidenceObjectPinV1]
+    public let photos: [SpatialEvidencePhotoV1]
+    public let voiceNotes: [SpatialEvidenceVoiceNoteV1]
+    public let transcripts: [SpatialEvidenceTranscriptV1]
+    public let ghostAppliances: [SpatialEvidenceGhostApplianceV1]
+    public let measurements: [SpatialEvidenceMeasurementV1]
+
+    public init(
+        capturePointId: String,
+        anchorConfidence: String,
+        surfaceSemantic: String? = nil,
+        needsReview: Bool,
+        objectPins: [SpatialEvidenceObjectPinV1],
+        photos: [SpatialEvidencePhotoV1],
+        voiceNotes: [SpatialEvidenceVoiceNoteV1],
+        transcripts: [SpatialEvidenceTranscriptV1],
+        ghostAppliances: [SpatialEvidenceGhostApplianceV1],
+        measurements: [SpatialEvidenceMeasurementV1]
+    ) {
+        self.capturePointId = capturePointId
+        self.anchorConfidence = anchorConfidence
+        self.surfaceSemantic = surfaceSemantic
+        self.needsReview = needsReview
+        self.objectPins = objectPins
+        self.photos = photos
+        self.voiceNotes = voiceNotes
+        self.transcripts = transcripts
+        self.ghostAppliances = ghostAppliances
+        self.measurements = measurements
+    }
+}
+
+public struct SpatialEvidenceObjectPinV1: Codable, Sendable {
+    public let id: String
+    public let type: String
+    public let label: String?
+    public let anchorConfidence: String?
+    public let surfaceSemantic: String?
+    public let needsReview: Bool
+}
+
+public struct SpatialEvidencePhotoV1: Codable, Sendable {
+    public let id: String
+    public let localFilename: String
+    public let kind: String
+    public let linkedObjectId: String?
+    public let anchorConfidence: String?
+    public let needsReview: Bool
+}
+
+public struct SpatialEvidenceVoiceNoteV1: Codable, Sendable {
+    public let id: String
+    public let transcriptExcerpt: String
+    public let linkedObjectId: String?
+    public let anchorConfidence: String?
+    public let needsReview: Bool
+}
+
+public struct SpatialEvidenceTranscriptV1: Codable, Sendable {
+    public let id: String
+    public let text: String
+}
+
+public struct SpatialEvidenceGhostApplianceV1: Codable, Sendable {
+    public let id: String
+    public let modelId: String
+    public let dimensions: [String: Int]
+    public let plane: String
+    public let surfaceSemantic: String?
+    public let needsReview: Bool
+}
+
+public struct SpatialEvidenceMeasurementV1: Codable, Sendable {
+    public let id: String
+    public let distanceMeters: Double
+    public let verticalOffsetMeters: Double
+    public let needsReview: Bool
+}
+
+public struct UnresolvedSpatialEvidenceV1: Codable, Sendable {
+    public let kind: String
+    public let message: String
+    public let roomId: String?
+    public let capturePointId: String?
+    public let evidenceId: String?
+}
+
+private extension SpatialEvidenceGraphV1 {
+    static let maxTranscriptExcerptLength = 140
+    static let unanchoredCapturePointId = "unanchored"
+    static let anchorConfidenceScreenOnly = "screen_only"
+    static let anchorConfidenceEstimated = "estimated"
+    static let warningRoomOutlineIncomplete = "Room outline incomplete"
+    static let warningScreenOnlyNeedsReview = "Screen-only evidence needs review"
+    static let warningUnknownSurfaceSemantic = "Unknown surface semantic"
+
+    static func isUnknownSurface(_ semantic: String?) -> Bool {
+        semantic == nil || semantic == "unknown"
+    }
+
+    static func transcriptExcerpt(_ transcript: String) -> String {
+        String(transcript.prefix(maxTranscriptExcerptLength))
+    }
+
+    static func fromCapture(_ capture: SessionCaptureV2, visitId: String) -> SpatialEvidenceGraphV1 {
+        let rooms = capture.roomScans.map { room -> SpatialEvidenceRoomV1 in
+            let roomId = room.id
+            let roomPins = capture.objectPins.filter { $0.roomId == roomId }
+            let roomPhotos = capture.photos.filter { $0.roomId == roomId }
+            let roomVoiceNotes = capture.voiceNotes.filter { $0.roomId == roomId }
+
+            var groupedPins: [String: [CapturedObjectPinV2]] = [:]
+            var groupedPhotos: [String: [CapturedPhotoV2]] = [:]
+            var groupedVoiceNotes: [String: [CapturedVoiceNoteV2]] = [:]
+
+            for pin in roomPins {
+                let key = pin.capturePointId ?? Self.unanchoredCapturePointId
+                groupedPins[key] = (groupedPins[key] ?? []) + [pin]
+            }
+            for photo in roomPhotos {
+                let key = photo.capturePointId ?? Self.unanchoredCapturePointId
+                groupedPhotos[key] = (groupedPhotos[key] ?? []) + [photo]
+            }
+            for note in roomVoiceNotes {
+                let key = note.capturePointId ?? Self.unanchoredCapturePointId
+                groupedVoiceNotes[key] = (groupedVoiceNotes[key] ?? []) + [note]
+            }
+
+            let capturePointKeys = Set(groupedPins.keys)
+                .union(groupedPhotos.keys)
+                .union(groupedVoiceNotes.keys)
+                .sorted()
+
+            let points: [SpatialEvidencePointV1] = capturePointKeys.map { key in
+                let pins = groupedPins[key] ?? []
+                let photos = groupedPhotos[key] ?? []
+                let notes = groupedVoiceNotes[key] ?? []
+
+                let pointNeedsReview =
+                    pins.contains(where: \.needsReview) ||
+                    photos.contains(where: \.needsReview) ||
+                    notes.contains(where: \.needsReview)
+
+                let anchorConfidence = pins.compactMap(\.anchorConfidence).first
+                    ?? photos.compactMap(\.anchorConfidence).first
+                    ?? notes.compactMap(\.anchorConfidence).first
+                    ?? (key == Self.unanchoredCapturePointId ? Self.anchorConfidenceScreenOnly : Self.anchorConfidenceEstimated)
+                let surfaceSemantic = pins.compactMap(\.surfaceSemantic).first
+
+                return SpatialEvidencePointV1(
+                    capturePointId: key,
+                    anchorConfidence: anchorConfidence,
+                    surfaceSemantic: surfaceSemantic,
+                    needsReview: pointNeedsReview,
+                    objectPins: pins.map {
+                        SpatialEvidenceObjectPinV1(
+                            id: $0.id,
+                            type: $0.type,
+                            label: $0.label,
+                            anchorConfidence: $0.anchorConfidence,
+                            surfaceSemantic: $0.surfaceSemantic,
+                            needsReview: $0.needsReview
+                        )
+                    },
+                    photos: photos.map {
+                        SpatialEvidencePhotoV1(
+                            id: $0.id,
+                            localFilename: $0.localFilename,
+                            kind: $0.kind,
+                            linkedObjectId: $0.linkedObjectId,
+                            anchorConfidence: $0.anchorConfidence,
+                            needsReview: $0.needsReview
+                        )
+                    },
+                    voiceNotes: notes.map {
+                        SpatialEvidenceVoiceNoteV1(
+                            id: $0.id,
+                            transcriptExcerpt: Self.transcriptExcerpt($0.transcript),
+                            linkedObjectId: $0.linkedObjectId,
+                            anchorConfidence: $0.anchorConfidence,
+                            needsReview: $0.needsReview
+                        )
+                    },
+                    transcripts: notes.map {
+                        SpatialEvidenceTranscriptV1(id: $0.id, text: $0.transcript)
+                    },
+                    ghostAppliances: [],
+                    measurements: []
+                )
+            }
+
+            var warnings: [String] = []
+            if room.rawWidthM == nil || room.rawDepthM == nil || room.rawHeightM == nil {
+                warnings.append(Self.warningRoomOutlineIncomplete)
+            }
+            if points.contains(where: { $0.anchorConfidence == Self.anchorConfidenceScreenOnly }) {
+                warnings.append(Self.warningScreenOnlyNeedsReview)
+            }
+            if points.contains(where: { Self.isUnknownSurface($0.surfaceSemantic) }) {
+                warnings.append(Self.warningUnknownSurfaceSemantic)
+            }
+
+            let geometryStatus: String
+            if room.rawWidthM != nil && room.rawDepthM != nil && room.rawHeightM != nil {
+                geometryStatus = "captured"
+            } else if room.rawWidthM != nil || room.rawDepthM != nil || room.rawHeightM != nil {
+                geometryStatus = "draft"
+            } else {
+                geometryStatus = "incomplete"
+            }
+
+            let floorArea: Double?
+            if let width = room.rawWidthM, let depth = room.rawDepthM {
+                floorArea = width * depth
+            } else {
+                floorArea = nil
+            }
+            return SpatialEvidenceRoomV1(
+                roomId: roomId,
+                roomName: room.roomLabel ?? "Unlabeled room",
+                geometryStatus: geometryStatus,
+                floorAreaM2: floorArea,
+                ceilingHeightM: room.rawHeightM,
+                capturePoints: points,
+                roomWarnings: warnings
+            )
+        }
+
+        return SpatialEvidenceGraphV1(visitId: visitId, rooms: rooms)
+    }
+
+    func defaultUnresolvedEvidence() -> [UnresolvedSpatialEvidenceV1] {
+        var unresolved: [UnresolvedSpatialEvidenceV1] = []
+        for room in rooms {
+            if room.roomWarnings.contains(Self.warningRoomOutlineIncomplete) {
+                unresolved.append(
+                    UnresolvedSpatialEvidenceV1(
+                        kind: "incomplete_room_outline",
+                        message: Self.warningRoomOutlineIncomplete,
+                        roomId: room.roomId,
+                        capturePointId: nil,
+                        evidenceId: nil
+                    )
+                )
+            }
+            if room.roomWarnings.contains(Self.warningUnknownSurfaceSemantic) {
+                unresolved.append(
+                    UnresolvedSpatialEvidenceV1(
+                        kind: "unknown_surface_semantic",
+                        message: Self.warningUnknownSurfaceSemantic,
+                        roomId: room.roomId,
+                        capturePointId: nil,
+                        evidenceId: nil
+                    )
+                )
+            }
+            for point in room.capturePoints where point.anchorConfidence == Self.anchorConfidenceScreenOnly {
+                unresolved.append(
+                    UnresolvedSpatialEvidenceV1(
+                        kind: "screen_only_point",
+                        message: Self.warningScreenOnlyNeedsReview,
+                        roomId: room.roomId,
+                        capturePointId: point.capturePointId,
+                        evidenceId: nil
+                    )
+                )
+            }
+            for point in room.capturePoints where point.needsReview {
+                unresolved.append(
+                    UnresolvedSpatialEvidenceV1(
+                        kind: "evidence_needs_review",
+                        message: "Evidence needs review",
+                        roomId: room.roomId,
+                        capturePointId: point.capturePointId,
+                        evidenceId: nil
+                    )
+                )
+            }
+            for point in room.capturePoints {
+                for ghost in point.ghostAppliances where ghost.needsReview {
+                    unresolved.append(
+                        UnresolvedSpatialEvidenceV1(
+                            kind: "ghost_appliance_needs_review",
+                            message: "Ghost appliance needs review",
+                            roomId: room.roomId,
+                            capturePointId: point.capturePointId,
+                            evidenceId: ghost.id
+                        )
+                    )
+                }
+                for measurement in point.measurements where measurement.needsReview {
+                    unresolved.append(
+                        UnresolvedSpatialEvidenceV1(
+                            kind: "measurement_needs_review",
+                            message: "Measurement needs review",
+                            roomId: room.roomId,
+                            capturePointId: point.capturePointId,
+                            evidenceId: measurement.id
+                        )
+                    )
+                }
+            }
+        }
+        return unresolved
     }
 }
 
