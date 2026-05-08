@@ -14,6 +14,14 @@ struct HandoffView: View {
         VisitReadinessV1.derive(from: coordinator.session)
     }
 
+    private var equipmentGroups: EquipmentEvidenceGroupsV1 {
+        EquipmentEvidenceMapper.buildGroups(
+            from: coordinator.session.rooms,
+            photos: coordinator.session.photos,
+            visitId: coordinator.session.visitId.uuidString
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -25,6 +33,31 @@ struct HandoffView: View {
                     ReadinessRow(label: "Clearance check",       passed: readiness.hasClearanceCheck)
                     ReadinessRow(label: "Voice notes",           passed: readiness.hasTranscripts)
                     ReadinessRow(label: "Property address",      passed: readiness.hasPropertyAddress)
+                }
+                let groups = equipmentGroups
+                Section("Equipment Evidence") {
+                    NavigationLink {
+                        EquipmentEvidenceGroupedView(groups: groups)
+                    } label: {
+                        HStack {
+                            Label("Review grouped evidence", systemImage: "list.bullet.rectangle.portrait")
+                            Spacer()
+                            if groups.totalConfirmedCount > 0 {
+                                Text("\(groups.totalConfirmedCount) confirmed")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                    let screenOnlyCount = groups.screenOnlyPinIds.count
+                    if screenOnlyCount > 0 {
+                        Label(
+                            "\(screenOnlyCount) room-note-only pin\(screenOnlyCount == 1 ? "" : "s") — not spatial proof",
+                            systemImage: "mappin.slash"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
                 }
                 if let error = transmitError {
                     Section {

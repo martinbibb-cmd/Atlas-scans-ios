@@ -172,6 +172,8 @@
 		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
 		AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30013 /* V2OffscreenPointerOverlay.swift */; };
+		AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C01 /* EquipmentEvidenceGroupedView.swift */; };
+		AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C02 /* EquipmentEvidenceMapperTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -322,6 +324,8 @@
 		AA020A06 /* VanModeReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VanModeReviewView.swift; sourceTree = "<group>"; };
 		AA020B00 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
 		AA020A07 /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
+		AA020C01 /* EquipmentEvidenceGroupedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentEvidenceGroupedView.swift; sourceTree = "<group>"; };
+		AA020C02 /* EquipmentEvidenceMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentEvidenceMapperTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -426,8 +430,17 @@
 				AA050038 /* VisitPicker */,
 				AA050039 /* Transcripts */,
 				AA05003B /* Visit */,
+				AA050C01 /* Equipment */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		AA050C01 /* Equipment */ = {
+			isa = PBXGroup;
+			children = (
+				AA020C01 /* EquipmentEvidenceGroupedView.swift */,
+			);
+			path = Equipment;
 			sourceTree = "<group>";
 		};
 		AA050004 /* Models */ = {
@@ -843,6 +856,7 @@
 				AA020800 /* ServiceObjectCategoryTerminologyTests.swift */,
 				AAV30010 /* V2LiveCaptureJourneyTests.swift */,
 				AAV30012 /* SurfaceSemanticV1Tests.swift */,
+				AA020C02 /* EquipmentEvidenceMapperTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -1107,6 +1121,7 @@
 				AAV2000F /* V2RoomLoopView.swift in Sources */,
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
+				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1149,6 +1164,7 @@
 				AA010800 /* ServiceObjectCategoryTerminologyTests.swift in Sources */,
 				AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */,
 				AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */,
+				AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
