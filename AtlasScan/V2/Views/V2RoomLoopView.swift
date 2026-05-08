@@ -673,10 +673,9 @@ private struct LiveSpatialCaptureView: View {
     }
 
     private func ghostLabel(for placement: GhostAppliancePlacementV1) -> String {
-        if placement.applianceModelId.hasPrefix("custom-"), let customId = placement.customApplianceDefinitionId {
-            if let custom = customApplianceDefinitions.first(where: { $0.id == customId }) {
-                return "\(custom.brand) \(custom.modelName)"
-            }
+        if let customId = placement.customApplianceDefinitionId,
+           let custom = customApplianceDefinitions.first(where: { $0.id == customId }) {
+            return "\(custom.brand) \(custom.modelName)"
         }
         if let definition = MasterHardwareRegistry.registry.definition(for: placement.applianceModelId) {
             return "\(definition.brand) \(definition.displayName)"
@@ -1208,7 +1207,9 @@ private struct V2CustomApplianceDefinitionSheet: View {
     }
 
     private func saveDefinition() {
+        let customId = "custom-\(UUID().uuidString.lowercased())"
         let definition = CustomApplianceDefinitionV1(
+            id: customId,
             brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
             modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
             applianceType: applianceType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),

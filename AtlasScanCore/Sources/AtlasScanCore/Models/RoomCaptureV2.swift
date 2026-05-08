@@ -209,7 +209,7 @@ public struct CustomApplianceDefinitionV1: Codable, Identifiable, Equatable, Sen
     public let createdAt: Date
 
     public init(
-        id: String = "custom-\(UUID().uuidString.lowercased())",
+        id: String,
         brand: String,
         modelName: String,
         applianceType: String,
