@@ -365,6 +365,19 @@ struct VanModeView: View {
 
 private extension GhostApplianceClearanceOffsetsMmV1 {
     var formattedSummary: String {
-        "Clearance: Top: \(top)mm, Bottom: \(bottom)mm, Front: \(front)mm, Back: \(back)mm, Left: \(left)mm, Right: \(right)mm"
+        let entries: [(String, Int)] = [
+            ("Top", top),
+            ("Bottom", bottom),
+            ("Front", front),
+            ("Back", back),
+            ("Left", left),
+            ("Right", right),
+        ]
+        let nonZero = entries.filter { $0.1 != 0 }
+        guard !nonZero.isEmpty else { return "Clearance: none specified" }
+        let summary = nonZero
+            .map { "\($0.0): \($0.1)mm" }
+            .joined(separator: ", ")
+        return "Clearance: \(summary)"
     }
 }

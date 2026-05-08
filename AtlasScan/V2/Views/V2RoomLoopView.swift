@@ -652,8 +652,13 @@ private struct LiveSpatialCaptureView: View {
         )
         pendingGhostPlacementsLocal.append(placement)
         onGhostPlacementAdded(placement)
-        let updatedRecentModelIds = ([definition.modelId] + recentGhostModelIds).uniqued()
-        recentGhostModelIds = Array(updatedRecentModelIds.prefix(maxRecentModelCount))
+        var updatedRecentModelIds = recentGhostModelIds
+        updatedRecentModelIds.removeAll { $0 == definition.modelId }
+        updatedRecentModelIds.insert(definition.modelId, at: 0)
+        if updatedRecentModelIds.count > maxRecentModelCount {
+            updatedRecentModelIds.removeSubrange(maxRecentModelCount...)
+        }
+        recentGhostModelIds = updatedRecentModelIds
         selectedGhostApplianceDefinition = nil
     }
 
@@ -1208,9 +1213,9 @@ private struct V2CustomApplianceDefinitionSheet: View {
     }
 
     private func saveDefinition() {
-        let generatedCustomId = "custom-\(UUID().uuidString.lowercased())"
+        let id = "custom-\(UUID().uuidString.lowercased())"
         let definition = CustomApplianceDefinitionV1(
-            id: generatedCustomId,
+            id: id,
             brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
             modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
             applianceType: applianceType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
@@ -1435,12 +1440,5 @@ private struct V2ObservationNoteSheet: View {
         )
         onSave(note)
         dismiss()
-    }
-}
-
-private extension Array where Element: Hashable {
-    func uniqued() -> [Element] {
-        var seen = Set<Element>()
-        return filter { seen.insert($0).inserted }
     }
 }
