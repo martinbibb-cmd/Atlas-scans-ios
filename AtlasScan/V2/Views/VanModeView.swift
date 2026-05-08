@@ -17,6 +17,18 @@ struct VanModeView: View {
         coordinator.room(withId: room.id) ?? room
     }
 
+    private var photoCount: Int {
+        coordinator.session.photos.filter { $0.roomId == currentRoom.id }.count
+    }
+
+    private var voiceNoteCount: Int {
+        coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }.count
+    }
+
+    private var transcriptCount: Int {
+        coordinator.session.transcripts.filter { $0.roomId == currentRoom.id }.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -58,14 +70,11 @@ struct VanModeView: View {
                     Text("Scan more wall edges or save as draft.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    let photoCount = coordinator.session.photos.filter { $0.roomId == currentRoom.id }.count
-                    let voiceCount = coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }.count
-                    let transcriptCount = coordinator.session.transcripts.filter { $0.roomId == currentRoom.id }.count
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 16) {
                             Label("\(currentRoom.pinnedObjects.count) pin\(currentRoom.pinnedObjects.count == 1 ? "" : "s")", systemImage: "mappin.circle")
                             Label("\(photoCount) photo\(photoCount == 1 ? "" : "s")", systemImage: "camera")
-                            Label("\(voiceCount) voice note\(voiceCount == 1 ? "" : "s")", systemImage: "mic")
+                            Label("\(voiceNoteCount) voice note\(voiceNoteCount == 1 ? "" : "s")", systemImage: "mic")
                         }
                         HStack(spacing: 16) {
                             Label("\(transcriptCount) transcript\(transcriptCount == 1 ? "" : "s")", systemImage: "text.quote")
