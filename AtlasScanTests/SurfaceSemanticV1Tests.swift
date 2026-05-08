@@ -15,58 +15,58 @@ final class SurfaceSemanticV1Tests: XCTestCase {
 
     // MARK: - Derivation from GhostPlacementPlaneV1
 
-    func test_derived_fromPlane_wall_givesExternalWall() {
+    func test_derived_fromPlane_wall_returnsExternalWall() {
         XCTAssertEqual(SurfaceSemanticV1.derived(from: .wall), .externalWall,
                        "Scan-derived walls must default to externalWall (conservative assumption).")
     }
 
-    func test_derived_fromPlane_floor_givesFloor() {
+    func test_derived_fromPlane_floor_returnsFloor() {
         XCTAssertEqual(SurfaceSemanticV1.derived(from: .floor), .floor)
     }
 
-    func test_derived_fromPlane_ceiling_givesCeiling() {
+    func test_derived_fromPlane_ceiling_returnsCeiling() {
         XCTAssertEqual(SurfaceSemanticV1.derived(from: .ceiling), .ceiling)
     }
 
-    func test_derived_fromPlane_worktop_givesWorktop() {
+    func test_derived_fromPlane_worktop_returnsWorktop() {
         XCTAssertEqual(SurfaceSemanticV1.derived(from: .worktop), .worktop)
     }
 
-    func test_derived_fromPlane_unknown_givesUnknown() {
+    func test_derived_fromPlane_unknown_returnsUnknown() {
         XCTAssertEqual(SurfaceSemanticV1.derived(from: .unknown), .unknown)
     }
 
     // MARK: - Derivation from hit normal
 
-    func test_derived_fromHitNormal_nil_givesUnknown() {
+    func test_derived_fromHitNormal_nil_returnsUnknown() {
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: nil), .unknown)
     }
 
-    func test_derived_fromHitNormal_zeroVector_givesUnknown() {
+    func test_derived_fromHitNormal_zeroVector_returnsUnknown() {
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0, 0, 0)), .unknown)
     }
 
-    func test_derived_fromHitNormal_stronglyUpward_givesFloor() {
+    func test_derived_fromHitNormal_stronglyUpward_returnsFloor() {
         // Normal pointing up = surface is below engineer = floor.
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0, 1, 0)), .floor)
     }
 
-    func test_derived_fromHitNormal_nearlyUpward_givesFloor() {
+    func test_derived_fromHitNormal_nearlyUpward_returnsFloor() {
         // Y = 0.9 > threshold 0.85 → floor.
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0.1, 0.9, 0.1)), .floor)
     }
 
-    func test_derived_fromHitNormal_stronglyDownward_givesCeiling() {
+    func test_derived_fromHitNormal_stronglyDownward_returnsCeiling() {
         // Normal pointing down = surface is above engineer = ceiling.
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0, -1, 0)), .ceiling)
     }
 
-    func test_derived_fromHitNormal_nearlyDownward_givesCeiling() {
+    func test_derived_fromHitNormal_nearlyDownward_returnsCeiling() {
         // Y = -0.9 < threshold -0.85 → ceiling.
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0.1, -0.9, 0.1)), .ceiling)
     }
 
-    func test_derived_fromHitNormal_vertical_givesExternalWall() {
+    func test_derived_fromHitNormal_vertical_returnsExternalWall() {
         // Purely vertical / side-facing normal → external wall (conservative).
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(0, 0, -1)), .externalWall)
         XCTAssertEqual(SurfaceSemanticV1.derived(fromHitNormal: SIMD3<Double>(1, 0, 0)), .externalWall)

@@ -9,8 +9,8 @@
 ///   explicitly reviews and reclassifies them. This is the conservative
 ///   assumption — treating an unknown wall as external ensures heat-loss
 ///   calculations are never under-specified.
-/// - Horizontal downward-facing surfaces (large positive Y normal) default to `.floor`.
-/// - Horizontal upward-facing surfaces above a height threshold default to `.ceiling`.
+/// - Horizontal upward-facing surfaces (normal pointing up, large positive Y) default to `.floor`.
+/// - Horizontal downward-facing surfaces (normal pointing down, large negative Y) default to `.ceiling`.
 /// - Unclassified / no-plane surfaces default to `.unknown` and must be shown
 ///   in a review state so the engineer can correct them.
 
@@ -163,9 +163,9 @@ public extension SurfaceSemanticV1 {
     ///
     /// Rules:
     /// - Normal pointing strongly upward (Y > 0.85) → `.floor`
-    ///   (the surface faces up, so the engineer is standing on it)
+    ///   (the surface normal faces up, meaning the engineer is standing on it)
     /// - Normal pointing strongly downward (Y < -0.85) → `.ceiling`
-    ///   (the surface faces down, above the engineer)
+    ///   (the surface normal faces down, meaning it is above the engineer)
     /// - All other normals → `.externalWall`
     ///   (vertical or oblique = assumed wall, conservative default)
     ///
