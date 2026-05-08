@@ -78,6 +78,8 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
             processedTranscript: "Worcester Combi 30i, installed 2018"
         )
 
+        // addVoiceNote is documented to create a matching ProcessedTranscriptV1 in the
+        // session as a synchronous side-effect (see ScanSessionCoordinator.addVoiceNote).
         coordinator.addPhoto(photo)
         coordinator.addVoiceNote(voiceNote)
 
@@ -139,7 +141,8 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         let pin = SpatialPinV1(
             roomId: prospectiveRoomId,
             positionX: 0, positionY: 0, positionZ: 0,
-            objectType: .hotWaterCylinder
+            objectType: .hotWaterCylinder,
+            anchorConfidence: .screenOnly
         )
         let photo = PhotoEvidenceV1(visitId: visitId, roomId: prospectiveRoomId, relativeFilePath: "draft.jpg")
         coordinator.addPhoto(photo)
