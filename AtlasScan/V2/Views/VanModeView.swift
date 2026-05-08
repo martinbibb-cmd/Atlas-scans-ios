@@ -129,14 +129,14 @@ struct VanModeView: View {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
-                        if pin.hasResolvedWorldAnchor {
-                            Text(String(format: "(%.2f, %.2f, %.2f)", pin.positionX, pin.positionY, pin.positionZ))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        } else if pin.anchorConfidence == .screenOnly {
+                        if pin.anchorConfidence == .screenOnly {
                             Text("Screen only — needs review")
                                 .font(.caption2)
                                 .foregroundStyle(.orange)
+                        } else if pin.hasResolvedWorldAnchor {
+                            Text(String(format: "(%.2f, %.2f, %.2f)", pin.positionX, pin.positionY, pin.positionZ))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         } else {
                             Text("Not anchored — needs review")
                                 .font(.caption2)

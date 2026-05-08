@@ -527,7 +527,7 @@ private struct LiveSpatialCaptureView: View {
                 let startWorld = start.worldPosition,
                 let endWorld = pendingCapturePoint.worldPosition
             else {
-                measurementFeedback = "Measurement points set, but one or both points are screen only — needs review."
+                measurementFeedback = "Measurement points set, but one or both points are screen-only — needs review."
                 showMeasurementFeedback = true
                 return
             }
@@ -537,7 +537,7 @@ private struct LiveSpatialCaptureView: View {
             return
         }
         measurementStartPoint = pendingCapturePoint
-        measurementFeedback = "Measurement start point set. Capture another point and choose Measure space again."
+        measurementFeedback = "Measurement start point set. Capture another point, then select Measure space again from the menu."
         showMeasurementFeedback = true
     }
 
