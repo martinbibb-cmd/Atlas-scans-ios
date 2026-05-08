@@ -94,6 +94,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
 public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public let id: UUID
     public let roomId: UUID
+    public var capturePointId: UUID?
 
     /// 3-D world-space position (Y-up, metric metres).
     public let positionX: Double
@@ -135,6 +136,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public init(
         id: UUID = UUID(),
         roomId: UUID,
+        capturePointId: UUID? = nil,
         positionX: Double,
         positionY: Double,
         positionZ: Double,
@@ -148,6 +150,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     ) {
         self.id = id
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.positionX = positionX
         self.positionY = positionY
         self.positionZ = positionZ

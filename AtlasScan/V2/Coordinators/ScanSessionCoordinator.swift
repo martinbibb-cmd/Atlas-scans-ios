@@ -63,6 +63,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             ProcessedTranscriptV1(
                 visitId: note.visitId,
                 roomId: note.roomId,
+                capturePointId: note.capturePointId,
                 linkedObjectId: note.linkedObjectId,
                 transcript: note.processedTranscript,
                 extractionHint: note.extractionHint
@@ -147,6 +148,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             SpatialPinV1(
                 id: pin.id,
                 roomId: pin.roomId,
+                capturePointId: pin.capturePointId,
                 positionX: pin.positionX + dx,
                 positionY: pin.positionY,
                 positionZ: pin.positionZ + dz,

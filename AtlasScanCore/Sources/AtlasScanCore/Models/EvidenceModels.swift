@@ -8,6 +8,7 @@ public struct PhotoEvidenceV1: Codable, Identifiable, Sendable {
     public let id: UUID
     public let visitId: UUID
     public let roomId: UUID
+    public var capturePointId: UUID?
 
     /// UUID of the pinned object this photo documents (if any).
     public var linkedObjectId: UUID?
@@ -27,6 +28,7 @@ public struct PhotoEvidenceV1: Codable, Identifiable, Sendable {
         id: UUID = UUID(),
         visitId: UUID,
         roomId: UUID,
+        capturePointId: UUID? = nil,
         linkedObjectId: UUID? = nil,
         relativeFilePath: String,
         capturedAt: Date = Date(),
@@ -37,6 +39,7 @@ public struct PhotoEvidenceV1: Codable, Identifiable, Sendable {
         self.id = id
         self.visitId = visitId
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedObjectId = linkedObjectId
         self.relativeFilePath = relativeFilePath
         self.capturedAt = ISO8601DateFormatter().string(from: capturedAt)
@@ -63,6 +66,7 @@ public struct VoiceNoteV1: Codable, Identifiable, Sendable {
     public let id: UUID
     public let visitId: UUID
     public let roomId: UUID
+    public var capturePointId: UUID?
 
     /// UUID of the pinned object this note is anchored to (if any).
     public var linkedObjectId: UUID?
@@ -78,6 +82,7 @@ public struct VoiceNoteV1: Codable, Identifiable, Sendable {
         id: UUID = UUID(),
         visitId: UUID,
         roomId: UUID,
+        capturePointId: UUID? = nil,
         linkedObjectId: UUID? = nil,
         processedTranscript: String,
         extractionHint: ExtractionHint = .general,
@@ -86,6 +91,7 @@ public struct VoiceNoteV1: Codable, Identifiable, Sendable {
         self.id = id
         self.visitId = visitId
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedObjectId = linkedObjectId
         self.processedTranscript = processedTranscript
         self.extractionHint = extractionHint
@@ -99,6 +105,7 @@ public struct ProcessedTranscriptV1: Codable, Identifiable, Sendable {
     public let id: UUID
     public let visitId: UUID
     public let roomId: UUID
+    public var capturePointId: UUID?
     public var linkedObjectId: UUID?
     public let transcript: String
     public var extractionHint: ExtractionHint
@@ -108,6 +115,7 @@ public struct ProcessedTranscriptV1: Codable, Identifiable, Sendable {
         id: UUID = UUID(),
         visitId: UUID,
         roomId: UUID,
+        capturePointId: UUID? = nil,
         linkedObjectId: UUID? = nil,
         transcript: String,
         extractionHint: ExtractionHint = .general,
@@ -116,6 +124,7 @@ public struct ProcessedTranscriptV1: Codable, Identifiable, Sendable {
         self.id = id
         self.visitId = visitId
         self.roomId = roomId
+        self.capturePointId = capturePointId
         self.linkedObjectId = linkedObjectId
         self.transcript = transcript
         self.extractionHint = extractionHint
