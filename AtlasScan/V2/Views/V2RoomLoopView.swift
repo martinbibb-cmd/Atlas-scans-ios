@@ -382,6 +382,7 @@ private struct LiveSpatialCaptureView: View {
     /// Z-index layer that keeps Atlas HUD controls consistently above the
     /// RoomPlan base surface.
     private let hudOverlayLayer: Double = 10
+    private let maxRecentModelCount = 6
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
@@ -651,7 +652,7 @@ private struct LiveSpatialCaptureView: View {
         )
         pendingGhostPlacementsLocal.append(placement)
         onGhostPlacementAdded(placement)
-        recentGhostModelIds = Array(([definition.modelId] + recentGhostModelIds).uniqued().prefix(6))
+        recentGhostModelIds = Array(([definition.modelId] + recentGhostModelIds).uniqued().prefix(maxRecentModelCount))
         selectedGhostApplianceDefinition = nil
     }
 
@@ -796,7 +797,7 @@ private struct GhostPlacementsCountBadge: View {
     let count: Int
 
     var body: some View {
-        Label("\(count) ghost box\(count == 1 ? "" : "es")", systemImage: "cube.transparent.fill")
+        Label("\(count) ghost appliance\(count == 1 ? "" : "s")", systemImage: "cube.transparent.fill")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 12)

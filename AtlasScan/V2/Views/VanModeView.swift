@@ -334,7 +334,7 @@ struct VanModeView: View {
     }
 
     private func clearanceSummary(_ clearance: GhostApplianceClearanceOffsetsMmV1) -> String {
-        "Clearance mm T\(clearance.top) B\(clearance.bottom) F\(clearance.front) Bk\(clearance.back) L\(clearance.left) R\(clearance.right)"
+        "Clearance: T:\(clearance.top)mm, B:\(clearance.bottom)mm, F:\(clearance.front)mm, Bk:\(clearance.back)mm, L:\(clearance.left)mm, R:\(clearance.right)mm"
     }
 
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {
