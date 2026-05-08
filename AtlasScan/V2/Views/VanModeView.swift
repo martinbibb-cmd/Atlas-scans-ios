@@ -334,7 +334,7 @@ struct VanModeView: View {
     }
 
     private func clearanceSummary(_ clearance: GhostApplianceClearanceOffsetsMmV1) -> String {
-        "Clearance: Top:\(clearance.top)mm, Bottom:\(clearance.bottom)mm, Front:\(clearance.front)mm, Back:\(clearance.back)mm, Left:\(clearance.left)mm, Right:\(clearance.right)mm"
+        clearance.formattedSummary
     }
 
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {
@@ -360,5 +360,11 @@ struct VanModeView: View {
         case .internalWall: return "rectangle.split.2x1"
         case .partyWall: return "building.2.fill"
         }
+    }
+}
+
+private extension GhostApplianceClearanceOffsetsMmV1 {
+    var formattedSummary: String {
+        "Clearance: Top:\(top)mm, Bottom:\(bottom)mm, Front:\(front)mm, Back:\(back)mm, Left:\(left)mm, Right:\(right)mm"
     }
 }

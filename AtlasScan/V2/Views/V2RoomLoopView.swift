@@ -652,7 +652,8 @@ private struct LiveSpatialCaptureView: View {
         )
         pendingGhostPlacementsLocal.append(placement)
         onGhostPlacementAdded(placement)
-        let updatedRecentModelIds = ([definition.modelId] + recentGhostModelIds).uniqued()
+        let boundedRecentModelIds = Array(([definition.modelId] + recentGhostModelIds).prefix(maxRecentModelCount * 2))
+        let updatedRecentModelIds = boundedRecentModelIds.uniqued()
         recentGhostModelIds = Array(updatedRecentModelIds.prefix(maxRecentModelCount))
         selectedGhostApplianceDefinition = nil
     }
@@ -1208,9 +1209,9 @@ private struct V2CustomApplianceDefinitionSheet: View {
     }
 
     private func saveDefinition() {
-        let customId = "custom-\(UUID().uuidString.lowercased())"
+        let generatedCustomId = "custom-\(UUID().uuidString.lowercased())"
         let definition = CustomApplianceDefinitionV1(
-            id: customId,
+            id: generatedCustomId,
             brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
             modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
             applianceType: applianceType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
