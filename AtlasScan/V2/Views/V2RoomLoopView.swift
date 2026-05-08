@@ -9,6 +9,7 @@ struct V2DraftRoomRecoveryTransition {
     let draftRoom: RoomCaptureV2
     let remainingPendingPins: [SpatialPinV1]
     let remainingGhostPlacements: [GhostAppliancePlacementV1]
+    let remainingPendingMeasurements: [SpatialMeasurementV1]
     let nextProspectiveRoomId: UUID
 }
 
@@ -17,6 +18,7 @@ enum V2RoomLoopLifecycle {
         prospectiveRoomId: UUID,
         pendingPins: [SpatialPinV1],
         pendingGhostPlacements: [GhostAppliancePlacementV1],
+        pendingMeasurements: [SpatialMeasurementV1] = [],
         now: Date = .now,
         nextProspectiveRoomId: UUID = UUID()
     ) -> V2DraftRoomRecoveryTransition {
@@ -28,12 +30,15 @@ enum V2RoomLoopLifecycle {
         )
         draftRoom.pinnedObjects = roomPins
         draftRoom.ghostAppliancePlacements = pendingGhostPlacements.filter { $0.roomId == prospectiveRoomId }
+        draftRoom.measurements = pendingMeasurements.filter { $0.roomId == prospectiveRoomId }
         let remainingPins = pendingPins.filter { $0.roomId != prospectiveRoomId }
         let remainingGhostPlacements = pendingGhostPlacements.filter { $0.roomId != prospectiveRoomId }
+        let remainingMeasurements = pendingMeasurements.filter { $0.roomId != prospectiveRoomId }
         return V2DraftRoomRecoveryTransition(
             draftRoom: draftRoom,
             remainingPendingPins: remainingPins,
             remainingGhostPlacements: remainingGhostPlacements,
+            remainingPendingMeasurements: remainingMeasurements,
             nextProspectiveRoomId: nextProspectiveRoomId
         )
     }
@@ -56,6 +61,7 @@ struct V2RoomLoopView: View {
     @State private var pendingPins: [SpatialPinV1] = []
     @State private var pendingGhostPlacements: [GhostAppliancePlacementV1] = []
     @State private var pendingCustomApplianceDefinitions: [CustomApplianceDefinitionV1] = []
+    @State private var pendingMeasurements: [SpatialMeasurementV1] = []
     @State private var postCaptureReview: V2PostCaptureReviewCardModel?
     @State private var renameRoomName = ""
     @State private var showRenamePrompt = false
@@ -79,6 +85,7 @@ struct V2RoomLoopView: View {
                     onCustomApplianceDefinitionAdded: { definition in
                         pendingCustomApplianceDefinitions.append(definition)
                     },
+                    onMeasurementAdded: { measurement in pendingMeasurements.append(measurement) },
                     onPhotoAdded: { coordinator.addPhoto($0) },
                     onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
                     onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true },
@@ -89,6 +96,9 @@ struct V2RoomLoopView: View {
                             coordinator.deleteEvidenceItem(item)
                         case .ghostAppliance:
                             pendingGhostPlacements.removeAll { $0.id == item.sourceEvidenceId }
+                            coordinator.deleteEvidenceItem(item)
+                        case .measurement:
+                            pendingMeasurements.removeAll { $0.id == item.sourceEvidenceId }
                             coordinator.deleteEvidenceItem(item)
                         case .photo, .voiceNote, .note:
                             coordinator.deleteEvidenceItem(item)
@@ -232,6 +242,7 @@ struct V2RoomLoopView: View {
         room.pinnedObjects = pendingPins
         room.ghostAppliancePlacements = pendingGhostPlacements
         room.customApplianceDefinitions = pendingCustomApplianceDefinitions
+        room.measurements = pendingMeasurements
         coordinator.addRoom(room)
         Task { await coordinator.saveSession() }
         let nextProspectiveRoomId = UUID()
@@ -245,6 +256,7 @@ struct V2RoomLoopView: View {
         pendingPins = []
         pendingGhostPlacements = []
         pendingCustomApplianceDefinitions = []
+        pendingMeasurements = []
         prospectiveRoomId = nextProspectiveRoomId
         showCapture = false
     }
@@ -257,7 +269,8 @@ struct V2RoomLoopView: View {
         let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
             prospectiveRoomId: prospectiveRoomId,
             pendingPins: pendingPins,
-            pendingGhostPlacements: pendingGhostPlacements
+            pendingGhostPlacements: pendingGhostPlacements,
+            pendingMeasurements: pendingMeasurements
         )
         var draftRoom = transition.draftRoom
         draftRoom.customApplianceDefinitions = pendingCustomApplianceDefinitions
@@ -272,6 +285,7 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins = transition.remainingPendingPins
         pendingGhostPlacements = transition.remainingGhostPlacements
+        pendingMeasurements = transition.remainingPendingMeasurements
         pendingCustomApplianceDefinitions.removeAll()
         prospectiveRoomId = transition.nextProspectiveRoomId
         showCapture = false
@@ -284,6 +298,7 @@ struct V2RoomLoopView: View {
         capturedRoom = nil
         pendingPins.removeAll { $0.roomId == discardedRoomId }
         pendingGhostPlacements.removeAll { $0.roomId == discardedRoomId }
+        pendingMeasurements.removeAll { $0.roomId == discardedRoomId }
         pendingCustomApplianceDefinitions.removeAll()
         prospectiveRoomId = UUID()
         refreshCaptureView()
@@ -348,6 +363,7 @@ struct V2RoomLoopView: View {
         showRoomReview = false
         capturedRoom = nil
         pendingPins = []
+        pendingMeasurements = []
         prospectiveRoomId = nextRoomId
         refreshCaptureView()
         showCapture = true
@@ -423,6 +439,7 @@ private struct LiveSpatialCaptureView: View {
     let onGhostPlacementAdded: (GhostAppliancePlacementV1) -> Void
     let customApplianceDefinitions: [CustomApplianceDefinitionV1]
     let onCustomApplianceDefinitionAdded: (CustomApplianceDefinitionV1) -> Void
+    let onMeasurementAdded: (SpatialMeasurementV1) -> Void
     let onPhotoAdded: (PhotoEvidenceV1) -> Void
     let onVoiceNoteAdded: (VoiceNoteV1) -> Void
     let onCaptureEndedWithoutRoom: () -> Void
@@ -435,6 +452,7 @@ private struct LiveSpatialCaptureView: View {
     @State private var liveMapVertices: [Vertex2D] = []
     @State private var pendingPinsLocal: [SpatialPinV1] = []
     @State private var pendingGhostPlacementsLocal: [GhostAppliancePlacementV1] = []
+    @State private var pendingMeasurementsLocal: [SpatialMeasurementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
     @State private var worldPointProjector: ((SIMD3<Double>) -> CGPointCodable?)?
     @State private var capturePointsById: [UUID: LiveCapturePointV1] = [:]
@@ -496,11 +514,17 @@ private struct LiveSpatialCaptureView: View {
                             if let pendingCapturePoint {
                                 CapturePointStatusBadge(point: pendingCapturePoint)
                             }
+                            if measurementStartPoint != nil {
+                                MeasurementInProgressBadge()
+                            }
                             if !pendingPinsLocal.isEmpty {
                                 PinsCountBadge(count: pendingPinsLocal.count)
                             }
                             if !pendingGhostPlacementsLocal.isEmpty {
                                 GhostPlacementsCountBadge(count: pendingGhostPlacementsLocal.count)
+                            }
+                            if !pendingMeasurementsLocal.isEmpty {
+                                MeasurementsCountBadge(count: pendingMeasurementsLocal.count)
                             }
                         }
                         .zIndex(hudOverlayLayer)
@@ -543,6 +567,16 @@ private struct LiveSpatialCaptureView: View {
                         screenPoint: placement.screenPoint
                     )
                     .zIndex(hudOverlayLayer + 5)
+                }
+
+                if let startPoint = measurementStartPoint,
+                   let startScreen = resolvedMeasurementStartScreen(for: startPoint) {
+                    MeasurementGuideLineOverlay(
+                        startNormalized: startScreen,
+                        needsReview: startPoint.anchorConfidence == .screenOnly
+                    )
+                    .zIndex(hudOverlayLayer + 8)
+                    .allowsHitTesting(false)
                 }
 
                 if !offscreenPointerItems.isEmpty {
@@ -684,30 +718,57 @@ private struct LiveSpatialCaptureView: View {
         guard let pendingCapturePoint else { return }
         if let start = measurementStartPoint {
             defer { measurementStartPoint = nil }
-            guard
-                let startWorld = start.worldPosition,
-                let endWorld = pendingCapturePoint.worldPosition
-            else {
-                measurementFeedback = "Measurement points set, but one or both points are screen-only — needs review."
-                showMeasurementFeedback = true
-                return
-            }
-            let distance = simd_distance(startWorld, endWorld)
-            let startSemantic = start.surfaceSemantic ?? .unknown
-            let endSemantic = pendingCapturePoint.surfaceSemantic ?? .unknown
-            let surfaceNote: String
-            if startSemantic == .unknown || endSemantic == .unknown {
-                surfaceNote = "\n⚠️ One or both surfaces are unclassified — review surface types before using this measurement for installation reasoning."
+            let startWorld = start.worldPosition ?? SIMD3<Double>(0, 0, 0)
+            let endWorld = pendingCapturePoint.worldPosition ?? SIMD3<Double>(0, 0, 0)
+            let bothAnchored = start.worldPosition != nil && pendingCapturePoint.worldPosition != nil
+            let confidence: SpatialPinAnchorConfidence = bothAnchored
+                ? lowerAnchorConfidence(start.anchorConfidence, pendingCapturePoint.anchorConfidence)
+                : .screenOnly
+            let measurement = SpatialMeasurementV1(
+                roomId: prospectiveRoomId,
+                startCapturePointId: start.id,
+                endCapturePointId: pendingCapturePoint.id,
+                startWorldPosition: startWorld,
+                endWorldPosition: endWorld,
+                startSurfaceSemantic: start.surfaceSemantic ?? .unknown,
+                endSurfaceSemantic: pendingCapturePoint.surfaceSemantic ?? .unknown,
+                anchorConfidence: confidence
+            )
+            pendingMeasurementsLocal.append(measurement)
+            onMeasurementAdded(measurement)
+            recentCaptures.append(RecentCaptureItemV1.from(measurement: measurement))
+            if bothAnchored {
+                let vSign = measurement.verticalOffsetMeters >= 0 ? "▲" : "▼"
+                let vText = abs(measurement.verticalOffsetMeters) >= 0.01
+                    ? " · \(vSign)\(String(format: "%.2f m", abs(measurement.verticalOffsetMeters)))"
+                    : ""
+                measurementFeedback = String(format: "Measured %.2f m%@", measurement.distanceMeters, vText)
             } else {
-                surfaceNote = "\nStart: \(startSemantic.displayName) → End: \(endSemantic.displayName)"
+                measurementFeedback = "Measurement saved — one or both points are screen-only. Needs review."
             }
-            measurementFeedback = String(format: "Measured %.2f m between selected capture points.%@", distance, surfaceNote)
             showMeasurementFeedback = true
             return
         }
         measurementStartPoint = pendingCapturePoint
-        measurementFeedback = "Measurement start point set. Capture another point, then select Measure space again from the menu."
+        measurementFeedback = "Measurement start set. Tap centre reticle to capture the end point, then select Measure space again."
         showMeasurementFeedback = true
+    }
+
+    private func lowerAnchorConfidence(
+        _ a: SpatialPinAnchorConfidence,
+        _ b: SpatialPinAnchorConfidence
+    ) -> SpatialPinAnchorConfidence {
+        let order: [SpatialPinAnchorConfidence] = [.screenOnly, .low, .estimated, .raycastEstimated, .medium, .high]
+        let ai = order.firstIndex(of: a) ?? 0
+        let bi = order.firstIndex(of: b) ?? 0
+        return order[min(ai, bi)]
+    }
+
+    private func resolvedMeasurementStartScreen(for point: LiveCapturePointV1) -> CGPointCodable? {
+        if let world = point.worldPosition, let projected = worldPointProjector?(world) {
+            return projected
+        }
+        return point.screenPoint
     }
 
     private func placeGhostAppliance(on plane: GhostPlacementPlaneV1) {
@@ -1154,6 +1215,10 @@ private struct LiveSpatialCaptureView: View {
             guard let note = voiceNotes.first(where: { $0.id == pointer.sourceEvidenceId }) else { return nil }
             return RecentCaptureItemV1.fromObservationNote(note)
         case .measurement:
+            if let m = pendingMeasurementsLocal.first(where: { $0.id == pointer.sourceEvidenceId }) ??
+                rooms.flatMap(\.measurements).first(where: { $0.id == pointer.sourceEvidenceId }) {
+                return RecentCaptureItemV1.from(measurement: m)
+            }
             return nil
         }
     }
@@ -1165,6 +1230,8 @@ private struct LiveSpatialCaptureView: View {
             pendingPinsLocal.removeAll { $0.id == item.sourceEvidenceId }
         case .ghostAppliance:
             pendingGhostPlacementsLocal.removeAll { $0.id == item.sourceEvidenceId }
+        case .measurement:
+            pendingMeasurementsLocal.removeAll { $0.id == item.sourceEvidenceId }
         case .photo, .voiceNote, .note:
             break
         }
@@ -1275,6 +1342,64 @@ private struct GhostPlacementsCountBadge: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct MeasurementsCountBadge: View {
+    let count: Int
+
+    var body: some View {
+        Label("\(count) measurement\(count == 1 ? "" : "s")", systemImage: "ruler.fill")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+/// Shows an amber pulsing badge while the engineer is aiming the second measurement point.
+private struct MeasurementInProgressBadge: View {
+    @State private var pulse = false
+
+    var body: some View {
+        Label("Measuring — tap centre for end point", systemImage: "ruler")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.orange.opacity(pulse ? 0.95 : 0.70), in: RoundedRectangle(cornerRadius: 12))
+            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulse)
+            .onAppear { pulse = true }
+    }
+}
+
+/// Draws a dashed guide line from the start measurement point to the screen centre.
+private struct MeasurementGuideLineOverlay: View {
+    let startNormalized: CGPointCodable
+    let needsReview: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            let start = CGPoint(
+                x: startNormalized.x * geometry.size.width,
+                y: startNormalized.y * geometry.size.height
+            )
+            let centre = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            Canvas { context, _ in
+                var path = Path()
+                path.move(to: start)
+                path.addLine(to: centre)
+                context.stroke(
+                    path,
+                    with: .color(needsReview ? .orange : .green),
+                    style: StrokeStyle(lineWidth: 2, dash: [8, 6])
+                )
+                // Start anchor dot
+                let dotRect = CGRect(x: start.x - 5, y: start.y - 5, width: 10, height: 10)
+                context.fill(Path(ellipseIn: dotRect), with: .color(needsReview ? .orange : .green))
+            }
+        }
     }
 }
 

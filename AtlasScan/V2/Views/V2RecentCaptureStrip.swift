@@ -22,6 +22,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
         case voiceNote
         case note
         case ghostAppliance
+        case measurement
     }
 
     let id: UUID
@@ -122,6 +123,30 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             sourceEvidenceId: ghost.id
         )
     }
+
+    static func from(measurement: SpatialMeasurementV1) -> RecentCaptureItemV1 {
+        let distanceText = String(format: "%.2f m", measurement.distanceMeters)
+        let vertText: String
+        let absV = abs(measurement.verticalOffsetMeters)
+        if absV >= 0.01 {
+            let sign = measurement.verticalOffsetMeters >= 0 ? "▲" : "▼"
+            vertText = " \(sign)\(String(format: "%.2f m", absV))"
+        } else {
+            vertText = ""
+        }
+        let subtitle = distanceText + vertText
+        return RecentCaptureItemV1(
+            id: UUID(),
+            roomId: measurement.roomId,
+            capturePointId: measurement.startCapturePointId,
+            evidenceType: .measurement,
+            title: "Measurement",
+            subtitle: subtitle,
+            createdAt: measurement.createdAt,
+            needsReview: measurement.needsReview,
+            sourceEvidenceId: measurement.id
+        )
+    }
 }
 
 // MARK: - V2RecentCaptureStripView
@@ -218,6 +243,7 @@ private struct V2EvidenceChipView: View {
         case .voiceNote:      return "mic.fill"
         case .note:           return "note.text"
         case .ghostAppliance: return "cube.transparent.fill"
+        case .measurement:    return "ruler.fill"
         }
     }
 
@@ -311,6 +337,7 @@ struct V2RecentItemDetailSheet: View {
         case .voiceNote:      return "mic.fill"
         case .note:           return "note.text"
         case .ghostAppliance: return "cube.transparent.fill"
+        case .measurement:    return "ruler.fill"
         }
     }
 
@@ -321,6 +348,7 @@ struct V2RecentItemDetailSheet: View {
         case .voiceNote:      return "Voice Note"
         case .note:           return "Note"
         case .ghostAppliance: return "Ghost Appliance"
+        case .measurement:    return "Measurement"
         }
     }
 }

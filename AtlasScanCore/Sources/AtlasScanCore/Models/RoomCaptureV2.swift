@@ -36,6 +36,12 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
     public var ghostAppliancePlacements: [GhostAppliancePlacementV1]
     public var customApplianceDefinitions: [CustomApplianceDefinitionV1]
 
+    // ── Spatial measurements ─────────────────────────────────────────────────
+    /// Point-to-point spatial measurements captured during the room scan.
+    /// Decoded with `decodeIfPresent` so records written before this field was
+    /// added decode cleanly — existing rooms simply start with no measurements.
+    public var measurements: [SpatialMeasurementV1]
+
     // ── Van-mode asset ───────────────────────────────────────────────────────
     /// Relative path under `Documents/captures/{visitId}/` to the .usdz mesh.
     public var usdzAssetPath: String?
@@ -62,8 +68,37 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.pinnedObjects = []
         self.ghostAppliancePlacements = []
         self.customApplianceDefinitions = []
+        self.measurements = []
         self.usdzAssetPath = nil
         self.capturedAt = capturedAt
+    }
+
+    // MARK: - Backward-compatible Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case id, displayName, polygonVertices, floorLevelY, ceilingHeightM
+        case rawCapturedCeilingHeightM, fabricCapture
+        case pinnedObjects, ghostAppliancePlacements, customApplianceDefinitions
+        case measurements
+        case usdzAssetPath, capturedAt
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        polygonVertices = try c.decode([Vertex2D].self, forKey: .polygonVertices)
+        floorLevelY = try c.decode(Double.self, forKey: .floorLevelY)
+        ceilingHeightM = try c.decode(Double.self, forKey: .ceilingHeightM)
+        rawCapturedCeilingHeightM = try c.decodeIfPresent(Double.self, forKey: .rawCapturedCeilingHeightM)
+        fabricCapture = try c.decodeIfPresent(FloorPlanFabricCaptureV1.self, forKey: .fabricCapture)
+        pinnedObjects = try c.decodeIfPresent([SpatialPinV1].self, forKey: .pinnedObjects) ?? []
+        ghostAppliancePlacements = try c.decodeIfPresent([GhostAppliancePlacementV1].self, forKey: .ghostAppliancePlacements) ?? []
+        customApplianceDefinitions = try c.decodeIfPresent([CustomApplianceDefinitionV1].self, forKey: .customApplianceDefinitions) ?? []
+        // Backward-compat: measurements absent in records written before this field.
+        measurements = try c.decodeIfPresent([SpatialMeasurementV1].self, forKey: .measurements) ?? []
+        usdzAssetPath = try c.decodeIfPresent(String.self, forKey: .usdzAssetPath)
+        capturedAt = try c.decode(Date.self, forKey: .capturedAt)
     }
 
     // MARK: Helpers
@@ -455,6 +490,110 @@ public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {
     case electricalPanel
     case gasmeter
     case other
+}
+
+// MARK: - SpatialMeasurementV1
+
+/// A point-to-point spatial measurement captured between two `LiveCapturePointV1` locations.
+///
+/// Links to the two capture points used as endpoints, records world-space positions,
+/// derived distances, and the surface semantics at each end.  Atlas Mind evaluates
+/// the measurements for installation reasoning (flue clearances, routing, etc.).
+///
+/// `needsReview` is true when either endpoint was screen-only (no resolved world anchor).
+public struct SpatialMeasurementV1: Codable, Identifiable, Sendable {
+
+    public let id: UUID
+    public let roomId: UUID
+
+    // ── Capture point references ──────────────────────────────────────────────
+    public let startCapturePointId: UUID
+    public let endCapturePointId: UUID
+
+    // ── World-space positions ─────────────────────────────────────────────────
+    public let startWorldPositionX: Double
+    public let startWorldPositionY: Double
+    public let startWorldPositionZ: Double
+    public let endWorldPositionX: Double
+    public let endWorldPositionY: Double
+    public let endWorldPositionZ: Double
+
+    // ── Derived distances ─────────────────────────────────────────────────────
+    /// Straight-line distance between the two world-space positions (metres).
+    public let distanceMeters: Double
+    /// Horizontal (XZ-plane) distance, ignoring vertical offset (metres).
+    public let horizontalDistanceMeters: Double
+    /// Signed vertical offset: positive = end is above start (metres).
+    public let verticalOffsetMeters: Double
+
+    // ── Surface context ───────────────────────────────────────────────────────
+    public let startSurfaceSemantic: SurfaceSemanticV1
+    public let endSurfaceSemantic: SurfaceSemanticV1
+
+    // ── Quality ───────────────────────────────────────────────────────────────
+    /// Confidence level for the weaker of the two endpoints.
+    public let anchorConfidence: SpatialPinAnchorConfidence
+
+    // ── Meta ──────────────────────────────────────────────────────────────────
+    public let createdAt: Date
+    public let notes: String?
+
+    // MARK: Init
+
+    public init(
+        id: UUID = UUID(),
+        roomId: UUID,
+        startCapturePointId: UUID,
+        endCapturePointId: UUID,
+        startWorldPosition: SIMD3<Double>,
+        endWorldPosition: SIMD3<Double>,
+        startSurfaceSemantic: SurfaceSemanticV1 = .unknown,
+        endSurfaceSemantic: SurfaceSemanticV1 = .unknown,
+        anchorConfidence: SpatialPinAnchorConfidence = .estimated,
+        createdAt: Date = Date(),
+        notes: String? = nil
+    ) {
+        self.id = id
+        self.roomId = roomId
+        self.startCapturePointId = startCapturePointId
+        self.endCapturePointId = endCapturePointId
+        self.startWorldPositionX = startWorldPosition.x
+        self.startWorldPositionY = startWorldPosition.y
+        self.startWorldPositionZ = startWorldPosition.z
+        self.endWorldPositionX = endWorldPosition.x
+        self.endWorldPositionY = endWorldPosition.y
+        self.endWorldPositionZ = endWorldPosition.z
+        let dx = endWorldPosition.x - startWorldPosition.x
+        let dy = endWorldPosition.y - startWorldPosition.y
+        let dz = endWorldPosition.z - startWorldPosition.z
+        self.distanceMeters = (dx * dx + dy * dy + dz * dz).squareRoot()
+        self.horizontalDistanceMeters = (dx * dx + dz * dz).squareRoot()
+        self.verticalOffsetMeters = dy
+        self.startSurfaceSemantic = startSurfaceSemantic
+        self.endSurfaceSemantic = endSurfaceSemantic
+        self.anchorConfidence = anchorConfidence
+        self.createdAt = createdAt
+        self.notes = notes
+    }
+
+    // MARK: Helpers
+
+    public var startWorldPosition: SIMD3<Double> {
+        SIMD3(startWorldPositionX, startWorldPositionY, startWorldPositionZ)
+    }
+
+    public var endWorldPosition: SIMD3<Double> {
+        SIMD3(endWorldPositionX, endWorldPositionY, endWorldPositionZ)
+    }
+
+    /// True when the measurement requires engineer review.
+    /// A measurement needs review when either endpoint is screen-only (no world anchor)
+    /// or either surface semantic is still unknown.
+    public var needsReview: Bool {
+        anchorConfidence == .screenOnly ||
+        startSurfaceSemantic == .unknown ||
+        endSurfaceSemantic == .unknown
+    }
 }
 
 // MARK: - Safe subscript helper
