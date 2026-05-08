@@ -17,6 +17,18 @@ struct VanModeView: View {
         coordinator.room(withId: room.id) ?? room
     }
 
+    private var photoCount: Int {
+        coordinator.session.photos.filter { $0.roomId == currentRoom.id }.count
+    }
+
+    private var voiceNoteCount: Int {
+        coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }.count
+    }
+
+    private var transcriptCount: Int {
+        coordinator.session.transcripts.filter { $0.roomId == currentRoom.id }.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -58,10 +70,16 @@ struct VanModeView: View {
                     Text("Scan more wall edges or save as draft.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    HStack(spacing: 16) {
-                        Label("\(currentRoom.wallSegments.count) walls", systemImage: "line.3.horizontal")
-                        Label("\(currentRoom.pinnedObjects.count) pins", systemImage: "mappin.circle")
-                        Label("\(currentRoom.ghostAppliancePlacements.count) ghost boxes", systemImage: "cube.transparent")
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 16) {
+                            Label(pluralLabel(currentRoom.pinnedObjects.count, singular: "pin"), systemImage: "mappin.circle")
+                            Label(pluralLabel(photoCount, singular: "photo"), systemImage: "camera")
+                            Label(pluralLabel(voiceNoteCount, singular: "voice note"), systemImage: "mic")
+                        }
+                        HStack(spacing: 16) {
+                            Label(pluralLabel(transcriptCount, singular: "transcript"), systemImage: "text.quote")
+                            Label(pluralLabel(currentRoom.ghostAppliancePlacements.count, singular: "ghost box", plural: "ghost boxes"), systemImage: "cube.transparent")
+                        }
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -360,6 +378,13 @@ struct VanModeView: View {
         case .internalWall: return "rectangle.split.2x1"
         case .partyWall: return "building.2.fill"
         }
+    }
+
+    /// Returns `"\(count) \(singular)"` or `"\(count) \(plural)"`.
+    /// When `plural` is omitted, an "s" suffix is appended for the plural form.
+    private func pluralLabel(_ count: Int, singular: String, plural: String? = nil) -> String {
+        let word = count == 1 ? singular : (plural ?? "\(singular)s")
+        return "\(count) \(word)"
     }
 }
 
