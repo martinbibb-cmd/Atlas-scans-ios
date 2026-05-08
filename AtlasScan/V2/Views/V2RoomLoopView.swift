@@ -399,6 +399,11 @@ private struct LiveSpatialCaptureView: View {
     private let maxRecentModelCount = 6
     private let maxOffscreenPointers = 5
     private static let pointerDateFormatter = ISO8601DateFormatter()
+    private static let pointerDateFormatterFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     @Binding var capturedRoom: RoomCaptureV2?
     let rooms: [RoomCaptureV2]
@@ -957,7 +962,7 @@ private struct LiveSpatialCaptureView: View {
             else {
                 continue
             }
-            let createdAt = Self.pointerDateFormatter.date(from: photo.capturedAt) ?? .distantPast
+            let createdAt = parsePointerDate(photo.capturedAt)
             items.append(
                 OffscreenPointerItemV1(
                     id: UUID(),
@@ -988,7 +993,7 @@ private struct LiveSpatialCaptureView: View {
             else {
                 continue
             }
-            let createdAt = Self.pointerDateFormatter.date(from: note.recordedAt) ?? .distantPast
+            let createdAt = parsePointerDate(note.recordedAt)
             let noteType: OffscreenPointerItemV1.EvidenceType = noteSourceIDs.contains(note.id) ? .note : .voiceNote
             items.append(
                 OffscreenPointerItemV1(
@@ -1009,7 +1014,6 @@ private struct LiveSpatialCaptureView: View {
         }
 
         return items
-            .filter { $0.roomId == prospectiveRoomId }
             .sorted(by: offscreenPrioritySort)
             .prefix(maxOffscreenPointers)
             .map { $0 }
@@ -1073,6 +1077,16 @@ private struct LiveSpatialCaptureView: View {
             return projected
         }
         return fallback
+    }
+
+    private func parsePointerDate(_ timestamp: String) -> Date {
+        if let primary = Self.pointerDateFormatter.date(from: timestamp) {
+            return primary
+        }
+        if let fractional = Self.pointerDateFormatterFractional.date(from: timestamp) {
+            return fractional
+        }
+        return .distantPast
     }
 
     private func handlePointerTap(_ pointer: OffscreenPointerItemV1) {
