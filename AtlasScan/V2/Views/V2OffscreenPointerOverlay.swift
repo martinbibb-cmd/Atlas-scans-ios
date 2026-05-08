@@ -33,6 +33,7 @@ struct OffscreenPointerOverlay: View {
     let onLongPressDelete: (OffscreenPointerItemV1) -> Void
 
     private let edgeInset: CGFloat = 18
+    /// Keep central overlays uncluttered around the capture reticle.
     private let centerHideRadiusFraction: CGFloat = 0.18
 
     var body: some View {
