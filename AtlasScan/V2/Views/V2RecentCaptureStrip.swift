@@ -50,27 +50,29 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             evidenceType: .objectPin,
             title: pin.label ?? pin.objectType.rawValue.capitalized,
             subtitle: subtitle,
-            createdAt: Date(),
+            createdAt: Date(),   // SpatialPinV1 carries no creation timestamp; caller-site Date() is equivalent.
             needsReview: pin.anchorConfidence == .screenOnly,
             sourceEvidenceId: pin.id
         )
     }
 
     static func from(photo: PhotoEvidenceV1) -> RecentCaptureItemV1 {
-        RecentCaptureItemV1(
+        let date = ISO8601DateFormatter().date(from: photo.capturedAt) ?? Date()
+        return RecentCaptureItemV1(
             id: UUID(),
             roomId: photo.roomId,
             capturePointId: photo.capturePointId,
             evidenceType: .photo,
             title: "Photo",
             subtitle: nil,
-            createdAt: Date(),
+            createdAt: date,
             needsReview: false,
             sourceEvidenceId: photo.id
         )
     }
 
     static func from(voiceNote: VoiceNoteV1) -> RecentCaptureItemV1 {
+        let date = ISO8601DateFormatter().date(from: voiceNote.recordedAt) ?? Date()
         let preview = voiceNote.processedTranscript.isEmpty
             ? nil
             : String(voiceNote.processedTranscript.prefix(40))
@@ -81,13 +83,14 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             evidenceType: .voiceNote,
             title: "Voice note",
             subtitle: preview,
-            createdAt: Date(),
+            createdAt: date,
             needsReview: false,
             sourceEvidenceId: voiceNote.id
         )
     }
 
     static func fromObservationNote(_ note: VoiceNoteV1) -> RecentCaptureItemV1 {
+        let date = ISO8601DateFormatter().date(from: note.recordedAt) ?? Date()
         let preview = note.processedTranscript.isEmpty
             ? nil
             : String(note.processedTranscript.prefix(40))
@@ -98,7 +101,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             evidenceType: .note,
             title: "Note",
             subtitle: preview,
-            createdAt: Date(),
+            createdAt: date,
             needsReview: false,
             sourceEvidenceId: note.id
         )
@@ -114,7 +117,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             evidenceType: .ghostAppliance,
             title: displayLabel,
             subtitle: subtitle,
-            createdAt: Date(),
+            createdAt: ghost.createdAt,
             needsReview: ghost.needsReview,
             sourceEvidenceId: ghost.id
         )

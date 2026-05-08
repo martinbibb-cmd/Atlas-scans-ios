@@ -85,7 +85,11 @@ public final class ScanSessionCoordinator: ObservableObject {
             session.photos.removeAll { $0.id == item.sourceEvidenceId }
 
         case .voiceNote, .note:
-            // Remove the companion transcript using content-matching when present.
+            // Remove the companion transcript created by addVoiceNote.
+            // Match by roomId + capturePointId + transcript content.
+            // Limitation: if two notes in the same room+point share identical transcript
+            // text, both companion transcripts are removed. This is an acceptable edge case
+            // given how improbable identical free-text transcripts are in practice.
             if let note = session.voiceNotes.first(where: { $0.id == item.sourceEvidenceId }) {
                 session.transcripts.removeAll {
                     $0.roomId == note.roomId &&

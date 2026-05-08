@@ -283,9 +283,17 @@ struct VanModeView: View {
             groups[key]?.ghosts.append(ghost)
         }
 
-        // A group is non-empty if it was created (any evidence references its capturePointId).
+        // Sort: anchored capture points (non-nil id) first, unanchored last.
+        // Within anchored groups, sort by UUID string for a deterministic stable order.
         return groups.values
-            .sorted { ($0.capturePointId?.uuidString ?? "").lexicographicallyPrecedes($1.capturePointId?.uuidString ?? "") }
+            .sorted {
+                switch ($0.capturePointId, $1.capturePointId) {
+                case (.some(let a), .some(let b)): return a.uuidString < b.uuidString
+                case (.some, .none):               return true
+                case (.none, .some):               return false
+                case (.none, .none):               return false
+                }
+            }
     }
 
     private var roomPhotos: [PhotoEvidenceV1] {
