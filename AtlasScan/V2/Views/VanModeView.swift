@@ -72,13 +72,13 @@ struct VanModeView: View {
                         .foregroundStyle(.secondary)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 16) {
-                            Label("\(currentRoom.pinnedObjects.count) pin\(currentRoom.pinnedObjects.count == 1 ? "" : "s")", systemImage: "mappin.circle")
-                            Label("\(photoCount) photo\(photoCount == 1 ? "" : "s")", systemImage: "camera")
-                            Label("\(voiceNoteCount) voice note\(voiceNoteCount == 1 ? "" : "s")", systemImage: "mic")
+                            Label(pluralLabel(currentRoom.pinnedObjects.count, singular: "pin"), systemImage: "mappin.circle")
+                            Label(pluralLabel(photoCount, singular: "photo"), systemImage: "camera")
+                            Label(pluralLabel(voiceNoteCount, singular: "voice note"), systemImage: "mic")
                         }
                         HStack(spacing: 16) {
-                            Label("\(transcriptCount) transcript\(transcriptCount == 1 ? "" : "s")", systemImage: "text.quote")
-                            Label("\(currentRoom.ghostAppliancePlacements.count) ghost box\(currentRoom.ghostAppliancePlacements.count == 1 ? "" : "es")", systemImage: "cube.transparent")
+                            Label(pluralLabel(transcriptCount, singular: "transcript"), systemImage: "text.quote")
+                            Label(pluralLabel(currentRoom.ghostAppliancePlacements.count, singular: "ghost box", plural: "ghost boxes"), systemImage: "cube.transparent")
                         }
                     }
                     .font(.caption)
@@ -378,6 +378,13 @@ struct VanModeView: View {
         case .internalWall: return "rectangle.split.2x1"
         case .partyWall: return "building.2.fill"
         }
+    }
+
+    /// Returns `"\(count) \(singular)"` or `"\(count) \(plural)"`.
+    /// When `plural` is omitted, an "s" suffix is appended for the plural form.
+    private func pluralLabel(_ count: Int, singular: String, plural: String? = nil) -> String {
+        let word = count == 1 ? singular : (plural ?? "\(singular)s")
+        return "\(count) \(word)"
     }
 }
 
