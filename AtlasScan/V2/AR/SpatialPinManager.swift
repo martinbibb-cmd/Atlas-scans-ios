@@ -51,7 +51,7 @@ final class SpatialPinManager: NSObject {
         switch result.target {
         case .estimatedPlane:
             confidence = .raycastEstimated
-        case .existingPlaneGeometry, .existingPlaneInfinite, .existingPlaneUsingExtent:
+        case .existingPlaneGeometry, .existingPlaneInfinite:
             confidence = .high
         @unknown default:
             confidence = .raycastEstimated
