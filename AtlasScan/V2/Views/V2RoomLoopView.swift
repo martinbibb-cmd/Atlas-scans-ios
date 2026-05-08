@@ -693,7 +693,15 @@ private struct LiveSpatialCaptureView: View {
                 return
             }
             let distance = simd_distance(startWorld, endWorld)
-            measurementFeedback = String(format: "Measured %.2f m between selected capture points.", distance)
+            let startSemantic = start.surfaceSemantic ?? .unknown
+            let endSemantic = pendingCapturePoint.surfaceSemantic ?? .unknown
+            let surfaceNote: String
+            if startSemantic == .unknown || endSemantic == .unknown {
+                surfaceNote = "\n⚠️ One or both surfaces are unclassified — review surface types before using this measurement for installation reasoning."
+            } else {
+                surfaceNote = "\nStart: \(startSemantic.displayName) → End: \(endSemantic.displayName)"
+            }
+            measurementFeedback = String(format: "Measured %.2f m between selected capture points.%@", distance, surfaceNote)
             showMeasurementFeedback = true
             return
         }
@@ -712,6 +720,15 @@ private struct LiveSpatialCaptureView: View {
             capturePoint: capturePoint,
             planeNormal: planeNormal
         )
+        // Derive the surface semantic: prefer the capture-point semantic (from the
+        // live hit normal) when the resolved plane is `.wall`; otherwise derive
+        // from the resolved plane so floor/ceiling/worktop are correctly classified.
+        let semantic: SurfaceSemanticV1
+        if resolvedPlane == .wall, let pointSemantic = capturePoint.surfaceSemantic {
+            semantic = pointSemantic
+        } else {
+            semantic = SurfaceSemanticV1.derived(from: resolvedPlane)
+        }
         let placement = GhostAppliancePlacementV1(
             roomId: prospectiveRoomId,
             capturePointId: capturePoint.id,
@@ -719,6 +736,7 @@ private struct LiveSpatialCaptureView: View {
             customApplianceDefinitionId: definition.customDefinitionId,
             screenPoint: capturePoint.screenPoint,
             placementPlane: resolvedPlane,
+            surfaceSemantic: semantic,
             planeNormalX: planeNormal.x,
             planeNormalY: planeNormal.y,
             planeNormalZ: planeNormal.z,
@@ -1341,6 +1359,9 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
     let worldPosition: SIMD3<Double>?
     let anchorConfidence: SpatialPinAnchorConfidence
     let hitNormal: SIMD3<Double>?
+    /// Surface semantic at the hit point, derived from the hit normal at
+    /// capture time.  Nil when no world-space anchor was available.
+    let surfaceSemantic: SurfaceSemanticV1?
 
     init(
         id: UUID = UUID(),
@@ -1358,6 +1379,9 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         self.worldPosition = worldPosition
         self.anchorConfidence = anchorConfidence
         self.hitNormal = hitNormal
+        self.surfaceSemantic = worldPosition != nil
+            ? SurfaceSemanticV1.derived(fromHitNormal: hitNormal)
+            : nil
     }
 }
 

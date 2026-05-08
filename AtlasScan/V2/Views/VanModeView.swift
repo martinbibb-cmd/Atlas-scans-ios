@@ -403,9 +403,10 @@ struct VanModeView: View {
                             Label(ghostModelLabel(for: placement), systemImage: "cube.transparent")
                                 .font(.subheadline.weight(.semibold))
                             Spacer()
-                            Text(placementPlaneLabel(placement.placementPlane))
+                            Label(placement.surfaceSemantic.displayName,
+                                  systemImage: placement.surfaceSemantic.symbolName)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(placement.surfaceSemantic.requiresReview ? .orange : .secondary)
                         }
                         Text("\(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
                             .font(.caption)
@@ -531,16 +532,6 @@ struct VanModeView: View {
         }
     }
 
-    private func placementPlaneLabel(_ plane: GhostPlacementPlaneV1) -> String {
-        switch plane {
-        case .wall: return "Wall"
-        case .floor: return "Floor"
-        case .ceiling: return "Ceiling"
-        case .worktop: return "Worktop"
-        case .unknown: return "Unknown"
-        }
-    }
-
     private func ghostModelLabel(for placement: GhostAppliancePlacementV1) -> String {
         if let customId = placement.customApplianceDefinitionId,
            let custom = currentRoom.customApplianceDefinitions.first(where: { $0.id == customId }) {
@@ -640,6 +631,7 @@ private struct V2GhostPlacementRefinementSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draftPlacement: GhostAppliancePlacementV1
+    @State private var draftSurfaceSemantic: SurfaceSemanticV1
 
     private let nudgeStepM: Double = 0.05
     private let rotationStepDegrees: Double = 15
@@ -652,6 +644,7 @@ private struct V2GhostPlacementRefinementSheet: View {
         self.title = title
         self.onSave = onSave
         _draftPlacement = State(initialValue: placement)
+        _draftSurfaceSemantic = State(initialValue: placement.surfaceSemantic)
     }
 
     var body: some View {
@@ -666,6 +659,21 @@ private struct V2GhostPlacementRefinementSheet: View {
                         .foregroundStyle(.secondary)
                     if draftPlacement.needsReview {
                         Label("Needs review", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+
+                Section("Surface") {
+                    Picker("Surface type", selection: $draftSurfaceSemantic) {
+                        ForEach(SurfaceSemanticV1.allCases, id: \.self) { semantic in
+                            Label(semantic.displayName, systemImage: semantic.symbolName)
+                                .tag(semantic)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    if draftSurfaceSemantic.requiresReview {
+                        Text("Surface type is unknown — please select the correct surface before saving.")
+                            .font(.caption)
                             .foregroundStyle(.orange)
                     }
                 }
@@ -707,7 +715,7 @@ private struct V2GhostPlacementRefinementSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(draftPlacement)
+                        onSave(draftPlacement.withSurfaceSemantic(draftSurfaceSemantic))
                         dismiss()
                     }
                 }
