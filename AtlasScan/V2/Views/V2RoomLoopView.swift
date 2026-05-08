@@ -758,6 +758,7 @@ private struct LiveSpatialCaptureView: View {
         _ a: SpatialPinAnchorConfidence,
         _ b: SpatialPinAnchorConfidence
     ) -> SpatialPinAnchorConfidence {
+        // Ordered from weakest to strongest confidence; worldLocked is strongest.
         let order: [SpatialPinAnchorConfidence] = [.screenOnly, .estimated, .raycastEstimated, .low, .medium, .high, .worldLocked]
         let ai = order.firstIndex(of: a) ?? 0
         let bi = order.firstIndex(of: b) ?? 0
@@ -1608,6 +1609,20 @@ private struct V2PinPickerSheet: View {
         templateId: nil
     )
 
+    private static let boilerPlaceholderOption = EquipmentOption(
+        id: "boiler_manual_unknown",
+        title: "Boiler placeholder — needs identification",
+        objectType: .boiler,
+        templateId: nil
+    )
+
+    private static let cylinderPlaceholderOption = EquipmentOption(
+        id: "cylinder_manual_unknown",
+        title: "Cylinder placeholder — needs identification",
+        objectType: .hotWaterCylinder,
+        templateId: nil
+    )
+
     private var boilerTemplates: [EquipmentOption] {
         let defs = MasterHardwareRegistry.registry
             .definitions(forCategory: "boiler")
@@ -1840,36 +1855,16 @@ private struct V2PinPickerSheet: View {
         switch selectedCategory {
         case .heatSource:
             if selectedBoilerType == .manualUnknown {
-                return EquipmentOption(
-                    id: "boiler_manual_unknown",
-                    title: "Boiler placeholder — needs identification",
-                    objectType: .boiler,
-                    templateId: nil
-                )
+                return Self.boilerPlaceholderOption
             }
             let options = boilerTemplates
-            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? EquipmentOption(
-                id: "boiler_manual_unknown",
-                title: "Boiler placeholder — needs identification",
-                objectType: .boiler,
-                templateId: nil
-            )
+            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? Self.boilerPlaceholderOption
         case .hotWaterStorage:
             if selectedCylinderType == .unknownManual {
-                return EquipmentOption(
-                    id: "cylinder_manual_unknown",
-                    title: "Cylinder placeholder — needs identification",
-                    objectType: .hotWaterCylinder,
-                    templateId: nil
-                )
+                return Self.cylinderPlaceholderOption
             }
             let options = cylinderTemplates
-            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? EquipmentOption(
-                id: "cylinder_manual_unknown",
-                title: "Cylinder placeholder — needs identification",
-                objectType: .hotWaterCylinder,
-                templateId: nil
-            )
+            return options.first(where: { $0.id == selectedTemplateId }) ?? options.first ?? Self.cylinderPlaceholderOption
         case .heatingSystemComponents, .flueExternal, .emitters:
             return selectedComponent
         }
