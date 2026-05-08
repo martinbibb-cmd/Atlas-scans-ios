@@ -4,6 +4,7 @@ import SwiftUI
 import RoomPlan
 import ARKit
 import simd
+import UIKit
 import AtlasScanCore
 
 final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
@@ -100,6 +101,31 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             worldPosition: SIMD3(Double(position.x), Double(position.y), Double(position.z)),
             anchorConfidence: confidence,
             hitNormal: normal
+        )
+    }
+
+    func projectNormalizedScreenPoint(for worldPosition: SIMD3<Double>) -> CGPointCodable? {
+        guard
+            let captureView,
+            let frame = captureView.captureSession.arSession.currentFrame
+        else {
+            return nil
+        }
+
+        let viewportSize = captureView.bounds.size
+        guard viewportSize.width > 0, viewportSize.height > 0 else { return nil }
+
+        let projected = frame.camera.projectPoint(
+            SIMD3<Float>(Float(worldPosition.x), Float(worldPosition.y), Float(worldPosition.z)),
+            orientation: .portrait,
+            viewportSize: viewportSize
+        )
+        // Reject points behind the camera plane.
+        guard projected.z > 0 else { return nil }
+
+        return CGPointCodable(
+            x: Double(projected.x / Float(viewportSize.width)),
+            y: Double(projected.y / Float(viewportSize.height))
         )
     }
 
