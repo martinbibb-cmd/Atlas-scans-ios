@@ -548,7 +548,7 @@ private struct V2PinPickerSheet: View {
                     TextField("e.g. Worcester Combi", text: $label)
                 }
                 Section {
-                    Text("Position will be marked as estimated. Refine in room review after scanning.")
+                    Text("Pin will be saved as screen-only until anchored in AR review.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -570,9 +570,11 @@ private struct V2PinPickerSheet: View {
         let pin = SpatialPinV1(
             roomId: roomId,
             positionX: 0, positionY: 0, positionZ: 0,
+            screenPositionX: 0.5,
+            screenPositionY: 0.5,
             objectType: selectedType,
             label: label.isEmpty ? nil : label,
-            anchorConfidence: .estimated
+            anchorConfidence: .screenOnly
         )
         onSave(pin)
     }

@@ -10,6 +10,10 @@ struct VanModeView: View {
     @State private var showPinPicker = false
     @State private var selectedPinType: PinnedObjectType = .boiler
 
+    private var currentRoom: RoomCaptureV2 {
+        coordinator.room(withId: room.id) ?? room
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -20,7 +24,7 @@ struct VanModeView: View {
             }
             .padding()
         }
-        .navigationTitle(room.displayName)
+        .navigationTitle(currentRoom.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem {
@@ -44,40 +48,61 @@ struct VanModeView: View {
     private var roomOverview: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Floor Plan").font(.headline)
-            V2CustomRoomShapeRenderer(vertices: room.polygonVertices)
+            V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
                 .fill(Color.accentColor.opacity(0.12))
-                .stroke(Color.accentColor, lineWidth: 2)
+                .overlay(
+                    V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
+                        .stroke(Color.accentColor, lineWidth: 2)
+                )
                 .frame(maxWidth: .infinity)
                 .frame(height: 200)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             HStack {
-                Label(String(format: "%.1f m²", room.floorAreaM2), systemImage: "square.dashed")
+                if currentRoom.hasClosedFloorPolygon {
+                    Label(String(format: "%.1f m²", currentRoom.floorAreaM2), systemImage: "square.dashed")
+                } else {
+                    Label("Room outline incomplete", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
                 Spacer()
-                Label(String(format: "%.1f m ceiling", room.ceilingHeightM), systemImage: "arrow.up.and.down")
+                Label(String(format: "%.1f m ceiling", currentRoom.ceilingHeightM), systemImage: "arrow.up.and.down")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
+            if let raw = currentRoom.rawCapturedCeilingHeightM,
+               abs(raw - currentRoom.ceilingHeightM) > 0.05 {
+                Text(String(format: "Raw capture: %.1f m · Displayed: %.1f m", raw, currentRoom.ceilingHeightM))
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
         }
     }
 
     private var fabricSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Wall Fabric").font(.headline)
-            if room.wallSegments.isEmpty {
+            if currentRoom.wallSegments.isEmpty {
                 Text("No wall segments captured").foregroundStyle(.secondary).font(.subheadline)
             } else {
-                ForEach(room.wallSegments.indices, id: \.self) { i in
-                    let seg = room.wallSegments[i]
+                ForEach(currentRoom.wallSegments.indices, id: \.self) { i in
+                    let seg = currentRoom.wallSegments[i]
                     HStack {
                         Text("Wall \(i + 1)").font(.subheadline)
                         Spacer()
-                        Text(seg.fabric.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Menu(seg.fabric.displayName) {
+                            ForEach(WallFabric.allCases, id: \.self) { fabric in
+                                Button {
+                                    setWallFabric(fabric, at: i)
+                                } label: {
+                                    Label(fabric.displayName, systemImage: fabric.symbolName)
+                                }
+                            }
+                        }
+                        .font(.caption)
                     }
                     .padding(.vertical, 4)
-                    if i < room.wallSegments.count - 1 { Divider() }
+                    if i < currentRoom.wallSegments.count - 1 { Divider() }
                 }
             }
         }
@@ -88,14 +113,24 @@ struct VanModeView: View {
 
     private var pinsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Pinned Objects (\(room.pinnedObjects.count))").font(.headline)
-            ForEach(room.pinnedObjects) { pin in
+            Text("Pinned Objects (\(currentRoom.pinnedObjects.count))").font(.headline)
+            ForEach(currentRoom.pinnedObjects) { pin in
                 HStack {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
-                        Text(String(format: "(%.2f, %.2f, %.2f)", pin.positionX, pin.positionY, pin.positionZ))
-                            .font(.caption2).foregroundStyle(.secondary)
+                        if pin.hasResolvedWorldAnchor {
+                            Text(String(format: "(%.2f, %.2f, %.2f)", pin.positionX, pin.positionY, pin.positionZ))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Not anchored — needs review")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                        Text(anchorStatusLabel(pin.anchorConfidence))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.vertical, 4)
@@ -107,7 +142,7 @@ struct VanModeView: View {
     }
 
     private var qaSection: some View {
-        let roomFlags = coordinator.session.qaFlags.filter { $0.roomId == room.id }
+        let roomFlags = coordinator.session.qaFlags.filter { $0.roomId == currentRoom.id }
         return VStack(alignment: .leading, spacing: 8) {
             Text("QA Flags (\(roomFlags.count))").font(.headline)
             if roomFlags.isEmpty {
@@ -158,6 +193,7 @@ struct VanModeView: View {
         case .lowPhotoCount:          return "photo.badge.exclamationmark"
         case .incompleteTranscript:   return "mic.slash"
         case .flueConflict:           return "exclamationmark.triangle"
+        case .abnormalCeilingHeight:  return "arrow.up.and.down.circle.fill"
         }
     }
 
@@ -169,6 +205,27 @@ struct VanModeView: View {
         case .missingFabric:          return .orange
         case .lowPhotoCount:          return .orange
         case .incompleteTranscript:   return .orange
+        case .abnormalCeilingHeight:  return .orange
         }
+    }
+
+    private func anchorStatusLabel(_ confidence: SpatialPinAnchorConfidence) -> String {
+        switch confidence {
+        case .high: return "Anchor confidence: high"
+        case .medium: return "Anchor confidence: medium"
+        case .low: return "Anchor confidence: low"
+        case .estimated: return "Anchor confidence: estimated"
+        case .raycastEstimated: return "Anchor confidence: raycast estimated"
+        case .screenOnly: return "Anchor confidence: screen only"
+        }
+    }
+
+    private func setWallFabric(_ fabric: WallFabric, at index: Int) {
+        var updatedRoom = currentRoom
+        var segments = updatedRoom.wallSegments
+        guard segments.indices.contains(index) else { return }
+        segments[index].fabric = fabric
+        updatedRoom.fabricCapture = FloorPlanFabricCaptureV1(roomId: updatedRoom.id, segments: segments)
+        coordinator.upsertRoom(updatedRoom)
     }
 }

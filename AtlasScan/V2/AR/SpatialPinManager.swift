@@ -30,14 +30,39 @@ final class SpatialPinManager: NSObject {
         guard let arView else { return }
         let loc = gesture.location(in: arView)
         let results = arView.raycast(from: loc, allowing: .estimatedPlane, alignment: .any)
-        guard let result = results.first else { return }
+        guard let result = results.first else {
+            let fallback = SpatialPinV1(
+                roomId: roomId,
+                positionX: 0,
+                positionY: 0,
+                positionZ: 0,
+                screenPositionX: Double(loc.x / max(arView.bounds.width, 1)),
+                screenPositionY: Double(loc.y / max(arView.bounds.height, 1)),
+                objectType: pendingType,
+                anchorConfidence: .screenOnly
+            )
+            DispatchQueue.main.async { [weak self] in
+                self?.pinsBinding.wrappedValue.append(fallback)
+            }
+            return
+        }
         let col = result.worldTransform.columns.3
+        let confidence: SpatialPinAnchorConfidence
+        switch result.target {
+        case .estimatedPlane:
+            confidence = .raycastEstimated
+        case .existingPlaneGeometry, .existingPlaneInfinite, .existingPlaneUsingExtent:
+            confidence = .high
+        @unknown default:
+            confidence = .raycastEstimated
+        }
         let pin = SpatialPinV1(
             roomId: roomId,
             positionX: Double(col.x),
             positionY: Double(col.y),
             positionZ: Double(col.z),
-            objectType: pendingType
+            objectType: pendingType,
+            anchorConfidence: confidence
         )
         DispatchQueue.main.async { [weak self] in
             self?.pinsBinding.wrappedValue.append(pin)

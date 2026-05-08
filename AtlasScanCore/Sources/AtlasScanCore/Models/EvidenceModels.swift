@@ -132,6 +132,7 @@ public enum QAFlagType: String, Codable, CaseIterable, Sendable {
     case lowPhotoCount      = "LOW_PHOTO_COUNT"
     case incompleteTranscript = "INCOMPLETE_TRANSCRIPT"
     case flueConflict       = "FLUE_CONFLICT"
+    case abnormalCeilingHeight = "ABNORMAL_CEILING_HEIGHT"
 }
 
 public struct QAFlagV1: Codable, Identifiable, Sendable {

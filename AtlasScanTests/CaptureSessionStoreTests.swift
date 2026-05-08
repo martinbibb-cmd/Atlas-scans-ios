@@ -488,3 +488,82 @@ final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
         XCTAssertEqual(coordinator.session.transcripts.map(\.roomId), [prospectiveRoomId])
     }
 }
+
+final class RoomCaptureV2GeometryAndAnchoringTests: XCTestCase {
+    func test_hasClosedFloorPolygon_requiresNonZeroAreaPolygon() {
+        let lineRoom = RoomCaptureV2(
+            displayName: "Line",
+            polygonVertices: [
+                Vertex2D(x: 0, z: 0),
+                Vertex2D(x: 1, z: 1)
+            ]
+        )
+        XCTAssertFalse(lineRoom.hasClosedFloorPolygon)
+
+        let rectangleRoom = RoomCaptureV2(
+            displayName: "Rectangle",
+            polygonVertices: [
+                Vertex2D(x: 0, z: 0),
+                Vertex2D(x: 4, z: 0),
+                Vertex2D(x: 4, z: 3),
+                Vertex2D(x: 0, z: 3)
+            ]
+        )
+        XCTAssertTrue(rectangleRoom.hasClosedFloorPolygon)
+        XCTAssertGreaterThan(rectangleRoom.floorAreaM2, 0)
+    }
+
+    func test_wallSegments_defaultToExternalWallFabric() {
+        let room = RoomCaptureV2(
+            displayName: "Kitchen",
+            polygonVertices: [
+                Vertex2D(x: 0, z: 0),
+                Vertex2D(x: 4, z: 0),
+                Vertex2D(x: 4, z: 3),
+                Vertex2D(x: 0, z: 3)
+            ]
+        )
+        XCTAssertEqual(room.wallSegments.count, 4)
+        XCTAssertTrue(room.wallSegments.allSatisfy { $0.fabric == .externalWall })
+    }
+
+    func test_screenOnlyPin_isNotResolvedWorldAnchor() {
+        let unresolved = SpatialPinV1(
+            roomId: UUID(),
+            positionX: 0,
+            positionY: 0,
+            positionZ: 0,
+            screenPositionX: 0.4,
+            screenPositionY: 0.6,
+            objectType: .boiler,
+            anchorConfidence: .screenOnly
+        )
+        XCTAssertFalse(unresolved.hasResolvedWorldAnchor)
+
+        let anchored = SpatialPinV1(
+            roomId: UUID(),
+            positionX: 1.2,
+            positionY: 0.9,
+            positionZ: -0.3,
+            objectType: .boiler,
+            anchorConfidence: .raycastEstimated
+        )
+        XCTAssertTrue(anchored.hasResolvedWorldAnchor)
+    }
+
+    @MainActor
+    func test_abnormalCeilingHeight_emitsQAFlag() {
+        let coordinator = ScanSessionCoordinator(visitId: UUID(), store: AtomicSessionStore())
+        var room = RoomCaptureV2(displayName: "Kitchen")
+        room.rawCapturedCeilingHeightM = 4.8
+        room.ceilingHeightM = 4.8
+
+        coordinator.upsertRoom(room)
+
+        XCTAssertTrue(
+            coordinator.session.qaFlags.contains {
+                $0.type == .abnormalCeilingHeight && $0.roomId == room.id
+            }
+        )
+    }
+}

@@ -7,17 +7,23 @@ struct V2CustomRoomShapeRenderer: Shape {
     var vertices: [Vertex2D]
 
     func path(in rect: CGRect) -> Path {
-        guard vertices.count >= 2 else { return Path() }
+        guard vertices.count >= 3 else { return Path() }
+        guard RoomPolygon(vertices: vertices).area > 0.0001 else { return Path() }
         let xs = vertices.map(\.x)
         let zs = vertices.map(\.z)
         let minX = xs.min() ?? 0, maxX = xs.max() ?? 1
         let minZ = zs.min() ?? 0, maxZ = zs.max() ?? 1
         let rangeX = max(maxX - minX, 0.001)
         let rangeZ = max(maxZ - minZ, 0.001)
+        let scale = min(rect.width / CGFloat(rangeX), rect.height / CGFloat(rangeZ))
+        let contentWidth = CGFloat(rangeX) * scale
+        let contentHeight = CGFloat(rangeZ) * scale
+        let offsetX = rect.minX + (rect.width - contentWidth) / 2
+        let offsetY = rect.minY + (rect.height - contentHeight) / 2
         func toPoint(_ v: Vertex2D) -> CGPoint {
             CGPoint(
-                x: rect.minX + CGFloat((v.x - minX) / rangeX) * rect.width,
-                y: rect.minY + CGFloat(1 - (v.z - minZ) / rangeZ) * rect.height
+                x: offsetX + CGFloat(v.x - minX) * scale,
+                y: offsetY + contentHeight - CGFloat(v.z - minZ) * scale
             )
         }
         var path = Path()

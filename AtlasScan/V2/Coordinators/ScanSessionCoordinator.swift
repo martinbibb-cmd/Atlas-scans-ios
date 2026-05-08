@@ -38,6 +38,7 @@ public final class ScanSessionCoordinator: ObservableObject {
         } else {
             session.rooms.append(resolvedRoom)
         }
+        updateCeilingHeightQAFlag(for: resolvedRoom)
         scheduleSave()
     }
 
@@ -181,6 +182,22 @@ public final class ScanSessionCoordinator: ObservableObject {
             xs.max() ?? 0,
             zs.min() ?? 0,
             zs.max() ?? 0
+        )
+    }
+
+    private func updateCeilingHeightQAFlag(for room: RoomCaptureV2) {
+        session.qaFlags.removeAll { $0.type == .abnormalCeilingHeight && $0.roomId == room.id }
+
+        let sampledHeight = room.rawCapturedCeilingHeightM ?? room.ceilingHeightM
+        let domesticRange = 1.9...3.5
+        guard !domesticRange.contains(sampledHeight) else { return }
+
+        session.emitQAFlag(
+            QAFlagV1(
+                type: .abnormalCeilingHeight,
+                roomId: room.id,
+                detail: String(format: "Captured ceiling height %.2f m is outside normal domestic range.", sampledHeight)
+            )
         )
     }
 }
