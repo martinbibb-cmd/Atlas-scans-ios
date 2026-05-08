@@ -652,7 +652,8 @@ private struct LiveSpatialCaptureView: View {
         )
         pendingGhostPlacementsLocal.append(placement)
         onGhostPlacementAdded(placement)
-        recentGhostModelIds = Array(([definition.modelId] + recentGhostModelIds).uniqued().prefix(maxRecentModelCount))
+        let updatedRecentModelIds = ([definition.modelId] + recentGhostModelIds).uniqued()
+        recentGhostModelIds = Array(updatedRecentModelIds.prefix(maxRecentModelCount))
         selectedGhostApplianceDefinition = nil
     }
 
