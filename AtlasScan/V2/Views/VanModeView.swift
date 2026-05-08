@@ -39,6 +39,7 @@ struct VanModeView: View {
                 fabricSection
                 pinsSection
                 ghostPlacementsSection
+                measurementsSection
                 qaSection
             }
             .padding()
@@ -207,6 +208,20 @@ struct VanModeView: View {
                     }
                 )
             }
+
+            ForEach(group.measurements) { measurement in
+                evidenceRow(
+                    icon: "ruler.fill",
+                    title: measurementTitle(measurement),
+                    subtitle: measurementSubtitle(measurement),
+                    needsReview: measurement.needsReview,
+                    onDelete: {
+                        coordinator.deleteEvidenceItem(
+                            RecentCaptureItemV1.from(measurement: measurement)
+                        )
+                    }
+                )
+            }
         }
         .padding(.vertical, 4)
     }
@@ -281,6 +296,14 @@ struct VanModeView: View {
                 groups[key] = CapturePointEvidenceGroup(capturePointId: key)
             }
             groups[key]?.ghosts.append(ghost)
+        }
+
+        for measurement in currentRoom.measurements {
+            let key: UUID? = measurement.startCapturePointId
+            if groups[key] == nil {
+                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
+            }
+            groups[key]?.measurements.append(measurement)
         }
 
         // Sort: anchored capture points (non-nil id) first, unanchored last.
@@ -444,6 +467,59 @@ struct VanModeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    private var measurementsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Measurements (\(currentRoom.measurements.count))").font(.headline)
+            if currentRoom.measurements.isEmpty {
+                Text("No measurements captured.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                ForEach(currentRoom.measurements) { measurement in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Label(measurementTitle(measurement), systemImage: "ruler.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(measurement.needsReview ? .orange : .primary)
+                            Spacer()
+                            Button(role: .destructive) {
+                                coordinator.deleteEvidenceItem(
+                                    RecentCaptureItemV1.from(measurement: measurement)
+                                )
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption2)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                        }
+                        if let sub = measurementSubtitle(measurement) {
+                            Text(sub)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("Start: \(measurement.startSurfaceSemantic.displayName) → End: \(measurement.endSurfaceSemantic.displayName)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(anchorStatusLabel(measurement.anchorConfidence))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if measurement.needsReview {
+                            Label("Needs review", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     private var backButton: some View {
         Button("Back") { dismiss() }
     }
@@ -564,6 +640,20 @@ struct VanModeView: View {
         Task { await coordinator.saveSession() }
     }
 
+    private func measurementTitle(_ measurement: SpatialMeasurementV1) -> String {
+        String(format: "%.2f m", measurement.distanceMeters)
+    }
+
+    private func measurementSubtitle(_ measurement: SpatialMeasurementV1) -> String? {
+        let h = measurement.horizontalDistanceMeters
+        let v = measurement.verticalOffsetMeters
+        if abs(v) >= 0.01 {
+            let vSign = v >= 0 ? "▲" : "▼"
+            return String(format: "H: %.2f m · %@%.2f m vertical", h, vSign, abs(v))
+        }
+        return String(format: "H: %.2f m · level", h)
+    }
+
     private func wallFabricLabel(_ fabric: WallFabric) -> String {
         switch fabric {
         case .externalWall: return "External Wall"
@@ -595,6 +685,7 @@ private struct CapturePointEvidenceGroup: Identifiable {
     let capturePointId: UUID?
     var pins: [SpatialPinV1] = []
     var ghosts: [GhostAppliancePlacementV1] = []
+    var measurements: [SpatialMeasurementV1] = []
 
     var id: String { capturePointId?.uuidString ?? "unanchored" }
 

@@ -108,6 +108,11 @@ public final class ScanSessionCoordinator: ObservableObject {
             for i in session.rooms.indices {
                 session.rooms[i].ghostAppliancePlacements.removeAll { $0.id == item.sourceEvidenceId }
             }
+
+        case .measurement:
+            for i in session.rooms.indices {
+                session.rooms[i].measurements.removeAll { $0.id == item.sourceEvidenceId }
+            }
         }
         scheduleSave()
     }

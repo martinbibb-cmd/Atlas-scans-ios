@@ -362,4 +362,206 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         XCTAssertEqual(coordinator.session.photos.count, 1,
                        "Deleting an unknown id must not affect unrelated evidence.")
     }
-}
+
+    // MARK: - Spatial measurements
+
+    func test_spatialMeasurement_persistsOnRoom() async throws {
+        let roomId = UUID()
+        let startPt = LiveCapturePointV1(
+            roomId: roomId,
+            screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+            worldPosition: SIMD3<Double>(0, 0, 0),
+            anchorConfidence: .raycastEstimated,
+            hitNormal: SIMD3<Double>(0, 0, -1)
+        )
+        let endPt = LiveCapturePointV1(
+            roomId: roomId,
+            screenPoint: CGPointCodable(x: 0.6, y: 0.5),
+            worldPosition: SIMD3<Double>(2.5, 0, 0),
+            anchorConfidence: .raycastEstimated,
+            hitNormal: SIMD3<Double>(0, 0, -1)
+        )
+        let measurement = SpatialMeasurementV1(
+            roomId: roomId,
+            startCapturePointId: startPt.id,
+            endCapturePointId: endPt.id,
+            startWorldPosition: startPt.worldPosition!,
+            endWorldPosition: endPt.worldPosition!,
+            startSurfaceSemantic: startPt.surfaceSemantic ?? .unknown,
+            endSurfaceSemantic: endPt.surfaceSemantic ?? .unknown,
+            anchorConfidence: .raycastEstimated
+        )
+
+        var room = RoomCaptureV2(id: roomId, displayName: "Measured Room")
+        room.measurements = [measurement]
+        coordinator.addRoom(room)
+        await coordinator.saveSession()
+
+        let savedRoom = coordinator.room(withId: roomId)
+        XCTAssertEqual(savedRoom?.measurements.count, 1, "Measurement must be persisted on the room.")
+        XCTAssertEqual(savedRoom?.measurements.first?.id, measurement.id)
+        XCTAssertFalse(savedRoom?.measurements.first?.needsReview ?? true,
+                       "Fully anchored measurement must not require review.")
+    }
+
+    func test_spatialMeasurement_distanceComputed() {
+        let roomId = UUID()
+        let start = SIMD3<Double>(0, 0, 0)
+        let end = SIMD3<Double>(3, 4, 0)
+        let m = SpatialMeasurementV1(
+            roomId: roomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: start,
+            endWorldPosition: end,
+            anchorConfidence: .high
+        )
+        XCTAssertEqual(m.distanceMeters, 5.0, accuracy: 0.001)
+        XCTAssertEqual(m.horizontalDistanceMeters, 5.0, accuracy: 0.001)
+        XCTAssertEqual(m.verticalOffsetMeters, 0.0, accuracy: 0.001)
+    }
+
+    func test_spatialMeasurement_verticalOffsetCorrect() {
+        let roomId = UUID()
+        let m = SpatialMeasurementV1(
+            roomId: roomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(0, 1.5, 0),
+            anchorConfidence: .high
+        )
+        XCTAssertEqual(m.distanceMeters, 1.5, accuracy: 0.001)
+        XCTAssertEqual(m.horizontalDistanceMeters, 0.0, accuracy: 0.001)
+        XCTAssertEqual(m.verticalOffsetMeters, 1.5, accuracy: 0.001)
+        XCTAssertFalse(m.needsReview)
+    }
+
+    func test_spatialMeasurement_screenOnlyNeedsReview() {
+        let m = SpatialMeasurementV1(
+            roomId: UUID(),
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(1, 0, 0),
+            anchorConfidence: .screenOnly
+        )
+        XCTAssertTrue(m.needsReview, "Screen-only measurement must require review.")
+    }
+
+    func test_deleteEvidenceItem_removesMeasurementFromSavedRoom() async throws {
+        let roomId = UUID()
+        let measurement = SpatialMeasurementV1(
+            roomId: roomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(1, 0, 0),
+            anchorConfidence: .raycastEstimated
+        )
+        var room = RoomCaptureV2(id: roomId, displayName: "Room With Measurement")
+        room.measurements = [measurement]
+        coordinator.addRoom(room)
+
+        let item = RecentCaptureItemV1.from(measurement: measurement)
+        coordinator.deleteEvidenceItem(item)
+
+        let savedRoom = coordinator.room(withId: roomId)
+        XCTAssertTrue(savedRoom?.measurements.isEmpty ?? false,
+                      "Measurement should be removed from saved room.")
+    }
+
+    func test_draftRecovery_measurementAttachedToCorrectRoom() async throws {
+        let prospectiveRoomId = UUID()
+        let nextId = UUID()
+        let measurement = SpatialMeasurementV1(
+            roomId: prospectiveRoomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(2, 0, 0),
+            anchorConfidence: .raycastEstimated
+        )
+        let otherRoomId = UUID()
+        let otherMeasurement = SpatialMeasurementV1(
+            roomId: otherRoomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(1, 0, 0),
+            anchorConfidence: .screenOnly
+        )
+
+        let transition = V2RoomLoopLifecycle.makeDraftRoomRecoveryTransition(
+            prospectiveRoomId: prospectiveRoomId,
+            pendingPins: [],
+            pendingGhostPlacements: [],
+            pendingMeasurements: [measurement, otherMeasurement],
+            nextProspectiveRoomId: nextId
+        )
+
+        XCTAssertEqual(transition.draftRoom.measurements.count, 1)
+        XCTAssertEqual(transition.draftRoom.measurements.first?.id, measurement.id)
+        XCTAssertEqual(transition.remainingPendingMeasurements.count, 1)
+        XCTAssertEqual(transition.remainingPendingMeasurements.first?.id, otherMeasurement.id)
+    }
+
+    func test_discardRecovery_removesMeasurementsForDiscardedRoom() async throws {
+        let keptRoomId = UUID()
+        let discardedRoomId = UUID()
+
+        let keptMeasurement = SpatialMeasurementV1(
+            roomId: keptRoomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(1, 0, 0),
+            anchorConfidence: .high
+        )
+        let discardedMeasurement = SpatialMeasurementV1(
+            roomId: discardedRoomId,
+            startCapturePointId: UUID(),
+            endCapturePointId: UUID(),
+            startWorldPosition: SIMD3<Double>(0, 0, 0),
+            endWorldPosition: SIMD3<Double>(2, 0, 0),
+            anchorConfidence: .high
+        )
+
+        var keptRoom = RoomCaptureV2(id: keptRoomId, displayName: "Kept")
+        keptRoom.measurements = [keptMeasurement]
+        var discardedRoom = RoomCaptureV2(id: discardedRoomId, displayName: "Discarded")
+        discardedRoom.measurements = [discardedMeasurement]
+
+        coordinator.addRoom(keptRoom)
+        coordinator.addRoom(discardedRoom)
+
+        coordinator.discardUnfinishedRoomEvidence(for: discardedRoomId)
+
+        XCTAssertFalse(coordinator.session.rooms.contains { $0.id == discardedRoomId },
+                       "Discarded room must be removed (including its measurements).")
+        XCTAssertEqual(coordinator.session.rooms.first(where: { $0.id == keptRoomId })?.measurements.count, 1,
+                       "Measurements for other rooms must be preserved.")
+    }
+
+    func test_roomCaptureV2_decodesWithoutMeasurements() throws {
+        // Simulate old serialised data that has no measurements key.
+        let json = """
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "displayName": "Old Room",
+            "polygonVertices": [],
+            "floorLevelY": 0.0,
+            "ceilingHeightM": 2.4,
+            "pinnedObjects": [],
+            "ghostAppliancePlacements": [],
+            "customApplianceDefinitions": [],
+            "capturedAt": "2024-01-01T00:00:00Z"
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let room = try decoder.decode(RoomCaptureV2.self, from: json)
+        XCTAssertTrue(room.measurements.isEmpty,
+                      "Room decoded from old data must default to empty measurements array.")
+        XCTAssertEqual(room.displayName, "Old Room")
+    }
