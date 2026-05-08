@@ -758,7 +758,7 @@ private struct LiveSpatialCaptureView: View {
         _ a: SpatialPinAnchorConfidence,
         _ b: SpatialPinAnchorConfidence
     ) -> SpatialPinAnchorConfidence {
-        let order: [SpatialPinAnchorConfidence] = [.screenOnly, .low, .estimated, .raycastEstimated, .worldLocked, .medium, .high]
+        let order: [SpatialPinAnchorConfidence] = [.screenOnly, .estimated, .raycastEstimated, .low, .medium, .high, .worldLocked]
         let ai = order.firstIndex(of: a) ?? 0
         let bi = order.firstIndex(of: b) ?? 0
         return order[min(ai, bi)]
@@ -1809,7 +1809,7 @@ private struct V2PinPickerSheet: View {
 
     private func savePinAndDismiss() {
         let worldPosition = capturePoint?.worldPosition
-        let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence == .screenOnly ? .screenOnly : .raycastEstimated
+        let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence ?? .screenOnly
         let reviewStatus: SpatialPinReviewStatus = confidence == .screenOnly ? .needsReview : .confirmed
         let option = selectedOption()
         let manualEntry = selectedManualEntry()
