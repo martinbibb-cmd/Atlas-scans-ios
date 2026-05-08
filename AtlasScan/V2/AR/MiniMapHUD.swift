@@ -9,39 +9,57 @@ struct MiniMapHUD: View {
     var activeRoomId: UUID?
     var pins: [SpatialPinV1] = []
 
+    private var hasData: Bool {
+        !rooms.isEmpty || !livePolygonVertices.isEmpty
+    }
+
     var body: some View {
-        GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            let projection = MiniMapProjection(rooms: rooms, liveVertices: livePolygonVertices, pins: minimapPins, size: size)
+        Group {
+            if hasData {
+                GeometryReader { proxy in
+                    let size = min(proxy.size.width, proxy.size.height)
+                    let projection = MiniMapProjection(rooms: rooms, liveVertices: livePolygonVertices, pins: minimapPins, size: size)
 
-            ZStack {
-                Canvas { context, _ in
-                    for room in rooms {
-                        let path = projection.path(for: room.polygonVertices)
-                        let isActive = room.id == activeRoomId
-                        context.fill(path, with: .color(isActive ? .cyan.opacity(0.22) : .white.opacity(0.08)))
-                        context.stroke(path, with: .color(isActive ? .cyan : .white.opacity(0.45)), lineWidth: isActive ? 2.2 : 1.1)
-                    }
+                    ZStack {
+                        Canvas { context, _ in
+                            for room in rooms {
+                                let path = projection.path(for: room.polygonVertices)
+                                let isActive = room.id == activeRoomId
+                                context.fill(path, with: .color(isActive ? .cyan.opacity(0.22) : .white.opacity(0.08)))
+                                context.stroke(path, with: .color(isActive ? .cyan : .white.opacity(0.45)), lineWidth: isActive ? 2.2 : 1.1)
+                            }
 
-                    if !livePolygonVertices.isEmpty {
-                        let livePath = projection.path(for: livePolygonVertices)
-                        context.fill(livePath, with: .color(.cyan.opacity(0.16)))
-                        context.stroke(livePath, with: .color(.cyan), lineWidth: 2.4)
-                    }
-                }
-
-                ForEach(minimapPins) { pin in
-                    let point = projection.point(for: pin)
-                    Circle()
-                        .fill(color(for: pin.objectType))
-                        .frame(width: 8, height: 8)
-                        .overlay {
-                            Circle().stroke(.black.opacity(0.35), lineWidth: 1)
+                            if !livePolygonVertices.isEmpty {
+                                let livePath = projection.path(for: livePolygonVertices)
+                                context.fill(livePath, with: .color(.cyan.opacity(0.16)))
+                                context.stroke(livePath, with: .color(.cyan), lineWidth: 2.4)
+                            }
                         }
-                        .position(point)
+
+                        ForEach(minimapPins) { pin in
+                            let point = projection.point(for: pin)
+                            Circle()
+                                .fill(color(for: pin.objectType))
+                                .frame(width: 8, height: 8)
+                                .overlay {
+                                    Circle().stroke(.black.opacity(0.35), lineWidth: 1)
+                                }
+                                .position(point)
+                        }
+                    }
+                    .frame(width: size, height: size)
                 }
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "map")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.55))
+                    Text("Map building…")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(width: size, height: size)
         }
         .frame(width: 140, height: 140)
         .clipShape(RoundedRectangle(cornerRadius: 14))

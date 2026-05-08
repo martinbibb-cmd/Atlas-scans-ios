@@ -58,10 +58,19 @@ struct VanModeView: View {
                     Text("Scan more wall edges or save as draft.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    HStack(spacing: 16) {
-                        Label("\(currentRoom.wallSegments.count) walls", systemImage: "line.3.horizontal")
-                        Label("\(currentRoom.pinnedObjects.count) pins", systemImage: "mappin.circle")
-                        Label("\(currentRoom.ghostAppliancePlacements.count) ghost boxes", systemImage: "cube.transparent")
+                    let photoCount = coordinator.session.photos.filter { $0.roomId == currentRoom.id }.count
+                    let voiceCount = coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }.count
+                    let transcriptCount = coordinator.session.transcripts.filter { $0.roomId == currentRoom.id }.count
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 16) {
+                            Label("\(currentRoom.pinnedObjects.count) pin\(currentRoom.pinnedObjects.count == 1 ? "" : "s")", systemImage: "mappin.circle")
+                            Label("\(photoCount) photo\(photoCount == 1 ? "" : "s")", systemImage: "camera")
+                            Label("\(voiceCount) voice note\(voiceCount == 1 ? "" : "s")", systemImage: "mic")
+                        }
+                        HStack(spacing: 16) {
+                            Label("\(transcriptCount) transcript\(transcriptCount == 1 ? "" : "s")", systemImage: "text.quote")
+                            Label("\(currentRoom.ghostAppliancePlacements.count) ghost box\(currentRoom.ghostAppliancePlacements.count == 1 ? "" : "es")", systemImage: "cube.transparent")
+                        }
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
