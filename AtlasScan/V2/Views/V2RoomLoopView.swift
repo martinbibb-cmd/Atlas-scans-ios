@@ -488,10 +488,14 @@ private struct LiveSpatialCaptureView: View {
                         onCaptureEndedWithoutRoom()
                     },
                     onCapturePointProbeReady: { probe in
-                        capturePointProbe = probe
+                        DispatchQueue.main.async {
+                            capturePointProbe = probe
+                        }
                     },
                     onWorldPointProjectionReady: { projector in
-                        worldPointProjector = projector
+                        DispatchQueue.main.async {
+                            worldPointProjector = projector
+                        }
                     }
                 )
                 .id(refreshToken)
