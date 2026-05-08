@@ -398,7 +398,11 @@ private struct LiveSpatialCaptureView: View {
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
     private let maxOffscreenPointers = 5
-    private static let pointerDateFormatter = ISO8601DateFormatter()
+    private static let pointerDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
     private static let pointerDateFormatterFractional: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -1086,6 +1090,7 @@ private struct LiveSpatialCaptureView: View {
         if let fractional = Self.pointerDateFormatterFractional.date(from: timestamp) {
             return fractional
         }
+        print("[LiveSpatialCaptureView] Unable to parse pointer timestamp: \(timestamp)")
         return .distantPast
     }
 
