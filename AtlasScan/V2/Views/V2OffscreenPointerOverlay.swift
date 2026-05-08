@@ -35,6 +35,7 @@ struct OffscreenPointerOverlay: View {
     private let edgeInset: CGFloat = 18
     /// Keep central overlays uncluttered around the capture reticle.
     private let centerHideRadiusFraction: CGFloat = 0.18
+    private let maxLabelLength = 20
 
     var body: some View {
         GeometryReader { geometry in
@@ -126,8 +127,8 @@ struct OffscreenPointerOverlay: View {
 
     private func shortLabel(_ title: String) -> String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 20 else { return trimmed }
-        return String(trimmed.prefix(20)) + "…"
+        guard trimmed.count > maxLabelLength else { return trimmed }
+        return String(trimmed.prefix(maxLabelLength)) + "…"
     }
 }
 

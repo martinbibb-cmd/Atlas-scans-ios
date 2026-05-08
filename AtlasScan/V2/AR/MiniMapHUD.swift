@@ -9,6 +9,8 @@ struct MiniMapHUD: View {
     var activeRoomId: UUID?
     var pins: [SpatialPinV1] = []
     var ghostPlacements: [GhostAppliancePlacementV1] = []
+    private let ghostMarkerOpacity = 0.85
+    private let ghostMarkerSize: CGFloat = 9
 
     private var hasData: Bool {
         !rooms.isEmpty || !livePolygonVertices.isEmpty
@@ -57,8 +59,8 @@ struct MiniMapHUD: View {
                         ForEach(minimapGhostPlacements) { placement in
                             let point = projection.point(for: placement)
                             Circle()
-                                .fill(.cyan.opacity(0.85))
-                                .frame(width: 9, height: 9)
+                                .fill(.cyan.opacity(ghostMarkerOpacity))
+                                .frame(width: ghostMarkerSize, height: ghostMarkerSize)
                                 .overlay {
                                     Image(systemName: "cube.transparent.fill")
                                         .font(.system(size: 6, weight: .bold))
@@ -146,12 +148,12 @@ private struct MiniMapProjection {
         let allVertices = rooms.flatMap(\.polygonVertices) + liveVertices
         let allX = allVertices.map(\.x) + pins.map(\.positionX)
         let allZ = allVertices.map(\.z) + pins.map(\.positionZ)
-        let withGhostX = allX + ghostPlacements.map(\.worldPositionX)
-        let withGhostZ = allZ + ghostPlacements.map(\.worldPositionZ)
-        self.minX = withGhostX.min() ?? -1
-        self.maxX = withGhostX.max() ?? 1
-        self.minZ = withGhostZ.min() ?? -1
-        self.maxZ = withGhostZ.max() ?? 1
+        let allXIncludingGhosts = allX + ghostPlacements.map(\.worldPositionX)
+        let allZIncludingGhosts = allZ + ghostPlacements.map(\.worldPositionZ)
+        self.minX = allXIncludingGhosts.min() ?? -1
+        self.maxX = allXIncludingGhosts.max() ?? 1
+        self.minZ = allZIncludingGhosts.min() ?? -1
+        self.maxZ = allZIncludingGhosts.max() ?? 1
         self.size = size
         self.padding = size * 0.12
     }

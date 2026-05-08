@@ -398,6 +398,7 @@ private struct LiveSpatialCaptureView: View {
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
     private let maxVisibleOffscreenPointers = 5
+    private let normalizedScreenCenter = 0.5
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -1047,8 +1048,8 @@ private struct LiveSpatialCaptureView: View {
 
     private func distanceFromCenter(for point: CGPointCodable?) -> Double {
         guard let point else { return .greatestFiniteMagnitude }
-        let dx = point.x - 0.5
-        let dy = point.y - 0.5
+        let dx = point.x - normalizedScreenCenter
+        let dy = point.y - normalizedScreenCenter
         return sqrt(dx * dx + dy * dy)
     }
 
