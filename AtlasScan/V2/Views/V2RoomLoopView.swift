@@ -84,7 +84,6 @@ struct V2RoomLoopView: View {
                     onExit: { dismiss() },
                     onReview: { showVisitReview = true },
                     onPinAdded: { pin in pendingPins.append(pin) },
-                    onGhostPlacementAdded: { placement in pendingGhostPlacements.append(placement) },
                     customApplianceDefinitions: allCustomApplianceDefinitions,
                     onCustomApplianceDefinitionAdded: { definition in
                         pendingCustomApplianceDefinitions.append(definition)
@@ -133,7 +132,6 @@ struct V2RoomLoopView: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             summaryLine("Pins", value: pinCountForReviewRoom)
-                            summaryLine("Possible appliances", value: ghostPlacementsCountForReviewRoom)
                             summaryLine("Photos", value: photoCountForReviewRoom)
                             summaryLine("Voice notes", value: voiceNoteCountForReviewRoom)
                             summaryLine("Transcripts", value: transcriptCountForReviewRoom)
@@ -327,10 +325,6 @@ struct V2RoomLoopView: View {
 
     private var pinCountForReviewRoom: Int {
         currentReviewRoom?.pinnedObjects.count ?? 0
-    }
-
-    private var ghostPlacementsCountForReviewRoom: Int {
-        currentReviewRoom?.ghostAppliancePlacements.count ?? 0
     }
 
     private var allCustomApplianceDefinitions: [CustomApplianceDefinitionV1] {
@@ -592,7 +586,6 @@ private struct LiveSpatialCaptureView: View {
     let onExit: () -> Void
     let onReview: () -> Void
     let onPinAdded: (SpatialPinV1) -> Void
-    let onGhostPlacementAdded: (GhostAppliancePlacementV1) -> Void
     let customApplianceDefinitions: [CustomApplianceDefinitionV1]
     let onCustomApplianceDefinitionAdded: (CustomApplianceDefinitionV1) -> Void
     let onMeasurementAdded: (SpatialMeasurementV1) -> Void
@@ -607,7 +600,7 @@ private struct LiveSpatialCaptureView: View {
     @State private var shouldStopCapture = false
     @State private var liveMapVertices: [Vertex2D] = []
     @State private var pendingPinsLocal: [SpatialPinV1] = []
-    @State private var pendingGhostPlacementsLocal: [GhostAppliancePlacementV1] = []
+    @State private var ghostPreview: GhostAppliancePreview?
     @State private var pendingMeasurementsLocal: [SpatialMeasurementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
     @State private var worldPointProjector: ((SIMD3<Double>) -> CGPointCodable?)?
@@ -677,7 +670,7 @@ private struct LiveSpatialCaptureView: View {
                                 livePolygonVertices: liveMapVertices,
                                 activeRoomId: prospectiveRoomId,
                                 pins: pendingPinsLocal,
-                                ghostPlacements: pendingGhostPlacementsLocal
+                                ghostPlacements: []
                             )
                         }
                         .zIndex(hudOverlayLayer)
@@ -696,9 +689,6 @@ private struct LiveSpatialCaptureView: View {
                             }
                             if !pendingPinsLocal.isEmpty {
                                 PinsCountBadge(count: pendingPinsLocal.count)
-                            }
-                            if !pendingGhostPlacementsLocal.isEmpty {
-                                GhostPlacementsCountBadge(count: pendingGhostPlacementsLocal.count)
                             }
                             if !pendingMeasurementsLocal.isEmpty {
                                 MeasurementsCountBadge(count: pendingMeasurementsLocal.count)
@@ -742,11 +732,9 @@ private struct LiveSpatialCaptureView: View {
                     )
                     .zIndex(hudOverlayLayer + 10)
 
-                ForEach(pendingGhostPlacementsLocal) { placement in
+                if let ghostPreview {
                     GhostPlacementOverlay(
-                        placement: placement,
-                        label: ghostLabel(for: placement),
-                        screenPoint: placement.screenPoint
+                        preview: ghostPreview
                     )
                     .zIndex(hudOverlayLayer + 5)
                 }
@@ -773,7 +761,23 @@ private struct LiveSpatialCaptureView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if showCapturePointMenu, pendingCapturePoint != nil {
+            if let ghostPreview {
+                GhostPreviewActionBar(
+                    title: ghostPreview.displayName,
+                    onConfirm: confirmGhostPreview,
+                    onAdjust: { showPlacementPlanePicker = true },
+                    onChangeAppliance: {
+                        self.ghostPreview = nil
+                        selectedGhostApplianceDefinition = nil
+                        showGhostAppliancePicker = true
+                    },
+                    onCancel: {
+                        self.ghostPreview = nil
+                        selectedGhostApplianceDefinition = nil
+                    }
+                )
+                .padding(.bottom, 104)
+            } else if showCapturePointMenu, pendingCapturePoint != nil {
                 CaptureActionBubbleMenu(
                     onTagObject: {
                         showObjectPicker = true
@@ -844,8 +848,8 @@ private struct LiveSpatialCaptureView: View {
             isPresented: $showPlacementPlanePicker,
             titleVisibility: .visible
         ) {
-            Button("Wall mounted") { placeGhostAppliance(on: .wall) }
-            Button("Floor standing") { placeGhostAppliance(on: .floor) }
+            Button("Wall mounted") { stageGhostPreview(on: .wall) }
+            Button("Floor standing") { stageGhostPreview(on: .floor) }
             Button("Cancel", role: .cancel) {}
         }
         .fullScreenCover(isPresented: $showPhotoPicker) {
@@ -999,7 +1003,7 @@ private struct LiveSpatialCaptureView: View {
         return point.screenPoint
     }
 
-    private func placeGhostAppliance(on plane: GhostPlacementPlaneV1) {
+    private func stageGhostPreview(on plane: GhostPlacementPlaneV1) {
         guard let capturePoint = pendingCapturePoint, let definition = selectedGhostApplianceDefinition else { return }
         let resolvedPlane = resolvedPlacementPlane(for: plane, capturePoint: capturePoint)
         let planeNormal = resolvedPlaneNormal(for: resolvedPlane, capturePoint: capturePoint)
@@ -1009,47 +1013,101 @@ private struct LiveSpatialCaptureView: View {
             capturePoint: capturePoint,
             planeNormal: planeNormal
         )
-        // Derive the surface semantic: prefer the capture-point semantic (from the
-        // live hit normal) when the resolved plane is `.wall`; otherwise derive
-        // from the resolved plane so floor/ceiling/worktop are correctly classified.
-        let semantic: SurfaceSemanticV1
-        if resolvedPlane == .wall, let pointSemantic = capturePoint.surfaceSemantic {
-            semantic = pointSemantic
-        } else {
-            semantic = SurfaceSemanticV1.derived(from: resolvedPlane)
-        }
-        let placement = GhostAppliancePlacementV1(
-            roomId: prospectiveRoomId,
-            capturePointId: capturePoint.id,
-            applianceModelId: definition.modelId,
-            customApplianceDefinitionId: definition.customDefinitionId,
+        ghostPreview = GhostAppliancePreview(
+            templateId: definition.templateId,
+            displayName: definition.displayTitle,
+            dimensionsMm: definition.dimensionsMm,
+            worldPosition: world,
             screenPoint: capturePoint.screenPoint,
             placementPlane: resolvedPlane,
-            surfaceSemantic: semantic,
-            planeNormalX: planeNormal.x,
-            planeNormalY: planeNormal.y,
-            planeNormalZ: planeNormal.z,
-            worldPositionX: world.x,
-            worldPositionY: world.y,
-            worldPositionZ: world.z,
-            rotationYaw: 0,
-            dimensionsMm: definition.dimensionsMm,
-            clearanceOffsetsMm: definition.clearanceOffsetsMm,
-            anchorConfidence: capturePoint.worldPosition == nil ? .screenOnly : capturePoint.anchorConfidence,
-            notes: definition.note
+            planeNormal: planeNormal,
+            confidence: capturePoint.worldPosition == nil ? .screenOnly : capturePoint.anchorConfidence,
+            capturePointId: capturePoint.id,
+            anchorId: capturePoint.anchorId,
+            worldTransform: capturePoint.worldTransform,
+            objectCategory: definition.objectCategory,
+            objectType: definition.objectType,
+            manufacturer: definition.brand,
+            modelName: definition.modelName,
+            applianceRole: definition.boilerRole,
+            customDefinitionId: definition.customDefinitionId,
+            note: definition.note
         )
-        pendingGhostPlacementsLocal.append(placement)
-        onGhostPlacementAdded(placement)
-        let displayLabel = ghostLabel(for: placement)
-        recentCaptures.append(RecentCaptureItemV1.from(ghost: placement, displayLabel: displayLabel))
-        var updatedRecentModelIds = recentGhostModelIds
-        updatedRecentModelIds.removeAll { $0 == definition.modelId }
-        updatedRecentModelIds.insert(definition.modelId, at: 0)
-        if updatedRecentModelIds.count > maxRecentModelCount {
-            updatedRecentModelIds.removeSubrange(maxRecentModelCount...)
+
+        if definition.templateId != nil {
+            var updatedRecentModelIds = recentGhostModelIds
+            updatedRecentModelIds.removeAll { $0 == definition.modelId }
+            updatedRecentModelIds.insert(definition.modelId, at: 0)
+            if updatedRecentModelIds.count > maxRecentModelCount {
+                updatedRecentModelIds.removeSubrange(maxRecentModelCount...)
+            }
+            recentGhostModelIds = updatedRecentModelIds
         }
-        recentGhostModelIds = updatedRecentModelIds
+    }
+
+    private func confirmGhostPreview() {
+        guard let preview = ghostPreview else { return }
+
+        let manualEntry: SpatialPinManualEntryV1? = {
+            guard preview.templateId == nil || preview.customDefinitionId != nil else { return nil }
+            return SpatialPinManualEntryV1(
+                manufacturer: trimmedPreviewValue(preview.manufacturer),
+                model: trimmedPreviewValue(preview.modelName),
+                type: trimmedPreviewValue(preview.applianceRole),
+                widthMm: preview.dimensionsMm.width,
+                heightMm: preview.dimensionsMm.height,
+                depthMm: preview.dimensionsMm.depth,
+                flueOrientation: nil,
+                notes: trimmedPreviewValue(preview.note),
+                photoEvidenceRecommended: true
+            )
+        }()
+
+        let pin = SpatialPinV1(
+            roomId: prospectiveRoomId,
+            locationContext: locationContext(for: preview.placementPlane),
+            capturePointId: preview.capturePointId,
+            anchorId: preview.anchorId,
+            worldTransform: preview.worldTransform,
+            positionX: preview.worldPosition.x,
+            positionY: preview.worldPosition.y,
+            positionZ: preview.worldPosition.z,
+            screenPositionX: preview.screenPoint.x,
+            screenPositionY: preview.screenPoint.y,
+            objectType: preview.objectType,
+            label: preview.displayName,
+            objectCategory: preview.objectCategory,
+            selectedTemplateId: preview.templateId,
+            manualEntry: manualEntry,
+            anchorConfidence: .worldLocked,
+            reviewStatus: .needsReview,
+            provenance: .manualCapture
+        )
+        pendingPinsLocal.append(pin)
+        onPinAdded(pin)
+        recentCaptures.append(RecentCaptureItemV1.from(pin: pin))
+        ghostPreview = nil
         selectedGhostApplianceDefinition = nil
+    }
+
+    private func locationContext(for plane: GhostPlacementPlaneV1) -> PinPlacementLocationContext {
+        switch plane {
+        case .wall: return .wall
+        case .floor: return .floor
+        case .ceiling: return .ceiling
+        case .worktop: return .cupboard
+        case .unknown: return .unknownNeedsReview
+        }
+    }
+
+    private func trimmedPreviewValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.lowercased().contains("unknown") {
+            return nil
+        }
+        return trimmed
     }
 
     private func resolvedPlacementPlane(
@@ -1190,9 +1248,7 @@ private struct LiveSpatialCaptureView: View {
     private var offscreenPointerItems: [OffscreenPointerItemV1] {
         let activeSavedRoom = rooms.first(where: { $0.id == prospectiveRoomId })
         let savedPins = activeSavedRoom?.pinnedObjects ?? []
-        let savedGhosts = activeSavedRoom?.ghostAppliancePlacements ?? []
         let allPins = V2IdentifiableDedupe.byUUID(primary: savedPins, secondary: pendingPinsLocal)
-        let allGhosts = V2IdentifiableDedupe.byUUID(primary: savedGhosts, secondary: pendingGhostPlacementsLocal)
         let roomCapturePoints = capturePointsById.values.filter { $0.roomId == prospectiveRoomId }
         let capturePointMap = Dictionary(uniqueKeysWithValues: roomCapturePoints.map { ($0.id, $0) })
         let recentDateByEvidenceId = Dictionary(
@@ -1229,35 +1285,6 @@ private struct LiveSpatialCaptureView: View {
                     needsReview: pin.anchorConfidence == .screenOnly,
                     sourceEvidenceId: pin.id,
                     createdAt: recentDateByEvidenceId[pin.id] ?? .distantPast
-                )
-            )
-        }
-
-        for ghost in allGhosts {
-            let world = ghost.anchorConfidence == .screenOnly ? nil : ghost.worldPosition
-            let fallbackScreen = ghost.screenPoint
-            guard let resolvedScreen = resolvedScreenPoint(
-                worldPosition: world,
-                fallback: fallbackScreen,
-                anchorConfidence: ghost.anchorConfidence
-            ) else {
-                continue
-            }
-
-            items.append(
-                OffscreenPointerItemV1(
-                    id: UUID(),
-                    roomId: ghost.roomId,
-                    capturePointId: ghost.capturePointId,
-                    evidenceType: .ghostAppliance,
-                    title: ghostLabel(for: ghost),
-                    iconName: "cube.transparent.fill",
-                    worldPosition: world,
-                    screenPoint: resolvedScreen,
-                    anchorConfidence: ghost.anchorConfidence,
-                    needsReview: ghost.needsReview,
-                    sourceEvidenceId: ghost.id,
-                    createdAt: ghost.createdAt
                 )
             )
         }
@@ -1427,8 +1454,7 @@ private struct LiveSpatialCaptureView: View {
             }
             return nil
         case .ghostAppliance:
-            if let ghost = pendingGhostPlacementsLocal.first(where: { $0.id == pointer.sourceEvidenceId }) ??
-                rooms.flatMap(\.ghostAppliancePlacements).first(where: { $0.id == pointer.sourceEvidenceId }) {
+            if let ghost = rooms.flatMap(\.ghostAppliancePlacements).first(where: { $0.id == pointer.sourceEvidenceId }) {
                 return RecentCaptureItemV1.from(ghost: ghost, displayLabel: ghostLabel(for: ghost))
             }
             return nil
@@ -1456,7 +1482,7 @@ private struct LiveSpatialCaptureView: View {
         case .objectPin:
             pendingPinsLocal.removeAll { $0.id == item.sourceEvidenceId }
         case .ghostAppliance:
-            pendingGhostPlacementsLocal.removeAll { $0.id == item.sourceEvidenceId }
+            break
         case .measurement:
             pendingMeasurementsLocal.removeAll { $0.id == item.sourceEvidenceId }
         case .photo, .voiceNote, .note:
@@ -1603,7 +1629,7 @@ private struct CaptureActionBubbleMenu: View {
             HStack(spacing: 8) {
                 bubbleAction(title: "Measure", systemImage: "ruler.fill", action: onMeasure)
                 bubbleAction(title: "Note", systemImage: "note.text", action: onNote)
-                bubbleAction(title: "Ghost", systemImage: "cube.transparent.fill", action: onGhostAppliance)
+                bubbleAction(title: "Preview", systemImage: "cube.transparent.fill", action: onGhostAppliance)
             }
             Button("Close", action: onDismiss)
                 .font(.caption.weight(.semibold))
@@ -1638,19 +1664,6 @@ private struct PinsCountBadge: View {
 
     var body: some View {
         Label("\(count) pin\(count == 1 ? "" : "s")", systemImage: "mappin.circle.fill")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-private struct GhostPlacementsCountBadge: View {
-    let count: Int
-
-    var body: some View {
-        Label("\(count) ghost appliance\(count == 1 ? "" : "s")", systemImage: "cube.transparent.fill")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
@@ -1718,18 +1731,16 @@ private struct MeasurementGuideLineOverlay: View {
 }
 
 private struct GhostPlacementOverlay: View {
-    let placement: GhostAppliancePlacementV1
-    let label: String
-    let screenPoint: CGPointCodable?
+    let preview: GhostAppliancePreview
 
     private var overlaySize: CGSize {
-        let width = max(CGFloat(placement.dimensionsMm.width) / 10, 50)
-        let height = max(CGFloat(placement.dimensionsMm.height) / 10, 60)
+        let width = max(CGFloat(preview.dimensionsMm.width) / 10, 50)
+        let height = max(CGFloat(preview.dimensionsMm.height) / 10, 60)
         return CGSize(width: min(width, 180), height: min(height, 220))
     }
 
     private var needsReview: Bool {
-        placement.anchorConfidence == .screenOnly || placement.placementPlane == .unknown
+        preview.confidence == .screenOnly || preview.placementPlane == .unknown
     }
 
     var body: some View {
@@ -1739,11 +1750,14 @@ private struct GhostPlacementOverlay: View {
                     .fill(.cyan.opacity(0.22))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(.cyan.opacity(0.9), lineWidth: 2))
                     .frame(width: overlaySize.width, height: overlaySize.height)
-                Text("\(label) · \(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
+                Text("Preview: \(preview.displayName)")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                Text("\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height) × \(preview.dimensionsMm.depth) mm")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.9))
                 if needsReview {
                     Text("Needs review")
                         .font(.caption2.weight(.bold))
@@ -1756,11 +1770,41 @@ private struct GhostPlacementOverlay: View {
             .padding(8)
             .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
             .position(
-                x: (screenPoint?.x ?? 0.5) * geometry.size.width,
-                y: (screenPoint?.y ?? 0.5) * geometry.size.height
+                x: preview.screenPoint.x * geometry.size.width,
+                y: preview.screenPoint.y * geometry.size.height
             )
         }
         .allowsHitTesting(false)
+    }
+}
+
+private struct GhostPreviewActionBar: View {
+    let title: String
+    let onConfirm: () -> Void
+    let onAdjust: () -> Void
+    let onChangeAppliance: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text("Preview: \(title)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+            HStack(spacing: 8) {
+                Button("Confirm placement", action: onConfirm)
+                    .buttonStyle(.borderedProminent)
+                Button("Adjust", action: onAdjust)
+                    .buttonStyle(.bordered)
+                Button("Change appliance", action: onChangeAppliance)
+                    .buttonStyle(.bordered)
+                Button("Cancel", role: .destructive, action: onCancel)
+                    .buttonStyle(.bordered)
+            }
+            .font(.caption2.weight(.semibold))
+        }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 12)
     }
 }
 
@@ -2274,17 +2318,61 @@ private struct V2PinPickerSheet: View {
     }
 }
 
+private struct GhostAppliancePreview {
+    let templateId: String?
+    let displayName: String
+    let dimensionsMm: GhostApplianceDimensionsMmV1
+    let worldPosition: SIMD3<Double>
+    let screenPoint: CGPointCodable
+    let placementPlane: GhostPlacementPlaneV1
+    let planeNormal: SIMD3<Double>
+    let confidence: SpatialPinAnchorConfidence
+    let capturePointId: UUID
+    let anchorId: UUID?
+    let worldTransform: WorldTransformV1?
+    let objectCategory: PinObjectCategoryV1
+    let objectType: PinnedObjectType
+    let manufacturer: String?
+    let modelName: String?
+    let applianceRole: String?
+    let customDefinitionId: String?
+    let note: String?
+    let sourcePinId: UUID? = nil
+    let isConfirmed = false
+}
+
 private struct GhostApplianceCandidate: Identifiable {
     let modelId: String
+    let templateId: String?
     let brand: String
     let modelName: String
     let applianceType: String
+    let boilerRole: String?
+    let objectCategory: PinObjectCategoryV1
+    let objectType: PinnedObjectType
     let dimensionsMm: GhostApplianceDimensionsMmV1
     let clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1
     let customDefinitionId: String?
     let note: String?
 
     var id: String { modelId }
+
+    var displayTitle: String {
+        if modelName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "model unknown" {
+            if applianceType.lowercased().contains("boiler") {
+                switch boilerRole {
+                case "regular_heat_only": return "Regular / heat-only boiler"
+                case "combi": return "Combi boiler"
+                case "system": return "System boiler"
+                default: return "Boiler"
+                }
+            }
+            let fallback = applianceType.trimmingCharacters(in: .whitespacesAndNewlines)
+            return fallback.isEmpty ? "Appliance preview" : fallback.capitalized
+        }
+        let composed = "\(brand) \(modelName)".trimmingCharacters(in: .whitespacesAndNewlines)
+        return composed.isEmpty ? "Appliance preview" : composed
+    }
 }
 
 private struct V2GhostAppliancePickerSheet: View {
@@ -2294,8 +2382,66 @@ private struct V2GhostAppliancePickerSheet: View {
     let onCustomDefinitionCreated: (CustomApplianceDefinitionV1) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
     @State private var showCustomCreator = false
+    @State private var selectedCategory: ApplianceCategory = .boiler
+    @State private var selectedBoilerRole: BoilerRole = .unknown
+    @State private var selectedManufacturer = "Manufacturer unknown"
+    @State private var selectedModelId: String?
+    @State private var useTemplateDimensions = true
+    @State private var widthMm = "700"
+    @State private var heightMm = "800"
+    @State private var depthMm = "550"
+
+    private enum ApplianceCategory: String, CaseIterable, Identifiable {
+        case boiler
+        case cylinder
+        case radiator
+        case control
+        case pump
+        case gasMeter = "gas_meter"
+        case other
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .boiler: return "Boiler"
+            case .cylinder: return "Cylinder"
+            case .radiator: return "Radiator"
+            case .control: return "Control"
+            case .pump: return "Pump"
+            case .gasMeter: return "Gas meter"
+            case .other: return "Other"
+            }
+        }
+    }
+
+    private enum BoilerRole: String, CaseIterable, Identifiable {
+        case combi
+        case system
+        case regularHeatOnly = "regular_heat_only"
+        case unknown
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .combi: return "Combi"
+            case .system: return "System"
+            case .regularHeatOnly: return "Regular heat-only"
+            case .unknown: return "Unknown"
+            }
+        }
+
+        var summaryLabel: String {
+            switch self {
+            case .regularHeatOnly: return "Regular / heat-only"
+            case .combi: return "Combi"
+            case .system: return "System"
+            case .unknown: return "Boiler"
+            }
+        }
+    }
 
     private var staticCandidates: [GhostApplianceCandidate] {
         MasterHardwareRegistry.registry.definitions.values
@@ -2305,9 +2451,13 @@ private struct V2GhostAppliancePickerSheet: View {
             .map {
                 GhostApplianceCandidate(
                     modelId: $0.modelId,
+                    templateId: $0.modelId,
                     brand: $0.brand,
                     modelName: $0.displayName,
                     applianceType: $0.category,
+                    boilerRole: boilerRole(for: $0),
+                    objectCategory: objectCategory(for: $0.category),
+                    objectType: objectType(for: $0.category),
                     dimensionsMm: .init(
                         width: $0.dimensions.widthMm,
                         height: $0.dimensions.heightMm,
@@ -2330,9 +2480,13 @@ private struct V2GhostAppliancePickerSheet: View {
         customDefinitions.map {
             GhostApplianceCandidate(
                 modelId: $0.id,
+                templateId: $0.id,
                 brand: $0.brand,
                 modelName: $0.modelName,
                 applianceType: $0.applianceType,
+                boilerRole: nil,
+                objectCategory: objectCategory(for: $0.applianceType),
+                objectType: objectType(for: $0.applianceType),
                 dimensionsMm: $0.dimensionsMm,
                 clearanceOffsetsMm: $0.clearanceOffsetsMm,
                 customDefinitionId: $0.id,
@@ -2345,37 +2499,147 @@ private struct V2GhostAppliancePickerSheet: View {
         staticCandidates + customCandidates
     }
 
-    private var filteredCandidates: [GhostApplianceCandidate] {
-        let base = allCandidates
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return base }
-        let needle = searchText.lowercased()
-        return base.filter {
-            $0.brand.lowercased().contains(needle) ||
-            $0.modelName.lowercased().contains(needle) ||
-            $0.applianceType.lowercased().contains(needle)
-        }
-    }
-
     private var recentCandidates: [GhostApplianceCandidate] {
         recentModelIds.compactMap { id in allCandidates.first(where: { $0.modelId == id }) }
     }
 
+    private var categoryCandidates: [GhostApplianceCandidate] {
+        let filtered = allCandidates.filter { normalizedCategory($0.applianceType) == selectedCategory }
+        guard selectedCategory == .boiler else { return filtered }
+        switch selectedBoilerRole {
+        case .combi:
+            return filtered.filter { $0.boilerRole == "combi" }
+        case .system:
+            return filtered.filter { $0.boilerRole == "system" }
+        case .regularHeatOnly:
+            return filtered.filter { $0.boilerRole == "regular_heat_only" }
+        case .unknown:
+            return filtered
+        }
+    }
+
+    private var manufacturerOptions: [String] {
+        let known = Set(categoryCandidates.map(\.brand))
+        let sortedKnown = known.sorted()
+        return ["Manufacturer unknown"] + sortedKnown
+    }
+
+    private var modelOptions: [GhostApplianceCandidate] {
+        guard selectedManufacturer != "Manufacturer unknown" else { return [] }
+        return categoryCandidates.filter { $0.brand == selectedManufacturer }
+    }
+
+    private var selectedModelCandidate: GhostApplianceCandidate? {
+        guard let selectedModelId else { return nil }
+        return modelOptions.first { $0.modelId == selectedModelId }
+    }
+
+    private var fallbackTemplateCandidate: GhostApplianceCandidate? {
+        switch selectedCategory {
+        case .boiler:
+            let fallbackId: String
+            switch selectedBoilerRole {
+            case .combi: fallbackId = "combi_generic"
+            case .system: fallbackId = "system_generic"
+            case .regularHeatOnly, .unknown: fallbackId = "regular_generic"
+            }
+            return allCandidates.first(where: { $0.modelId == fallbackId })
+        case .cylinder:
+            return allCandidates.first { normalizedCategory($0.applianceType) == .cylinder }
+        default:
+            return nil
+        }
+    }
+
+    private var selectedDimensionsMm: GhostApplianceDimensionsMmV1 {
+        if let selectedModelCandidate {
+            return selectedModelCandidate.dimensionsMm
+        }
+        if let fallbackTemplateCandidate {
+            return fallbackTemplateCandidate.dimensionsMm
+        }
+        return .init(width: intValue(widthMm, fallback: 700), height: intValue(heightMm, fallback: 800), depth: intValue(depthMm, fallback: 550))
+    }
+
     var body: some View {
         NavigationStack {
-            List {
+            Form {
                 if !recentCandidates.isEmpty {
-                    Section("Recent models") {
-                        ForEach(recentCandidates) { candidate in
-                            candidateRow(candidate)
+                    Section("Recent") {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(recentCandidates) { candidate in
+                                    Button(candidate.displayTitle) {
+                                        selectRecentCandidate(candidate)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .font(.caption2)
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
-                Section("Appliances") {
-                    ForEach(filteredCandidates) { candidate in
-                        candidateRow(candidate)
+
+                Section("1. Category") {
+                    Picker("Category", selection: $selectedCategory) {
+                        ForEach(ApplianceCategory.allCases) { category in
+                            Text(category.title).tag(category)
+                        }
                     }
                 }
-                Section {
+
+                if selectedCategory == .boiler {
+                    Section("2. Boiler role") {
+                        Picker("Boiler role", selection: $selectedBoilerRole) {
+                            ForEach(BoilerRole.allCases) { role in
+                                Text(role.title).tag(role)
+                            }
+                        }
+                    }
+                }
+
+                Section("3. Manufacturer") {
+                    Picker("Manufacturer", selection: $selectedManufacturer) {
+                        ForEach(manufacturerOptions, id: \.self) { manufacturer in
+                            Text(manufacturer).tag(manufacturer)
+                        }
+                    }
+                }
+
+                Section("4. Model / range") {
+                    if modelOptions.isEmpty {
+                        Text("Model unknown")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("Model", selection: $selectedModelId) {
+                            Text("Model unknown").tag(Optional<String>.none)
+                            ForEach(modelOptions) { candidate in
+                                Text(candidate.modelName).tag(Optional(candidate.modelId))
+                            }
+                        }
+                    }
+                }
+
+                Section("5. Confirm dimensions") {
+                    Toggle("Use template dimensions", isOn: $useTemplateDimensions)
+                    TextField("Width (mm)", text: $widthMm)
+                        .keyboardType(.numberPad)
+                    TextField("Height (mm)", text: $heightMm)
+                        .keyboardType(.numberPad)
+                    TextField("Depth (mm)", text: $depthMm)
+                        .keyboardType(.numberPad)
+                }
+
+                Section("Selection summary") {
+                    Text(summaryLine1)
+                    Text(summaryLine2)
+                    Text(summaryLine3)
+                    Text("Template: \(summaryTemplateLine)")
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Manual / custom appliance") {
                     Button {
                         showCustomCreator = true
                     } label: {
@@ -2383,12 +2647,37 @@ private struct V2GhostAppliancePickerSheet: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search model, brand, type")
-            .navigationTitle("Possible appliance found — needs review")
+            .onAppear(perform: syncDimensionsFromTemplate)
+            .onChange(of: selectedCategory) { _, _ in
+                selectedManufacturer = "Manufacturer unknown"
+                selectedModelId = nil
+                syncDimensionsFromTemplate()
+            }
+            .onChange(of: selectedBoilerRole) { _, _ in
+                selectedModelId = nil
+                syncDimensionsFromTemplate()
+            }
+            .onChange(of: selectedManufacturer) { _, _ in
+                selectedModelId = nil
+                syncDimensionsFromTemplate()
+            }
+            .onChange(of: selectedModelId) { _, _ in
+                syncDimensionsFromTemplate()
+            }
+            .onChange(of: useTemplateDimensions) { _, _ in
+                syncDimensionsFromTemplate()
+            }
+            .navigationTitle("Select appliance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Use preview") {
+                        onSelect(selectedCandidateForPreview())
+                        dismiss()
+                    }
                 }
             }
             .sheet(isPresented: $showCustomCreator) {
@@ -2397,9 +2686,13 @@ private struct V2GhostAppliancePickerSheet: View {
                     onSelect(
                         GhostApplianceCandidate(
                             modelId: definition.id,
+                            templateId: definition.id,
                             brand: definition.brand,
                             modelName: definition.modelName,
                             applianceType: definition.applianceType,
+                            boilerRole: nil,
+                            objectCategory: objectCategory(for: definition.applianceType),
+                            objectType: objectType(for: definition.applianceType),
                             dimensionsMm: definition.dimensionsMm,
                             clearanceOffsetsMm: definition.clearanceOffsetsMm,
                             customDefinitionId: definition.id,
@@ -2412,20 +2705,121 @@ private struct V2GhostAppliancePickerSheet: View {
         }
     }
 
-    private func candidateRow(_ candidate: GhostApplianceCandidate) -> some View {
-        Button {
-            onSelect(candidate)
-            dismiss()
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(candidate.brand) \(candidate.modelName)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text("\(candidate.applianceType.capitalized) · \(candidate.dimensionsMm.width)x\(candidate.dimensionsMm.height)x\(candidate.dimensionsMm.depth) mm")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private func selectRecentCandidate(_ candidate: GhostApplianceCandidate) {
+        selectedCategory = normalizedCategory(candidate.applianceType)
+        selectedManufacturer = candidate.brand
+        selectedModelId = candidate.modelId
+        if candidate.boilerRole == "combi" { selectedBoilerRole = .combi }
+        if candidate.boilerRole == "system" { selectedBoilerRole = .system }
+        if candidate.boilerRole == "regular_heat_only" { selectedBoilerRole = .regularHeatOnly }
+        syncDimensionsFromTemplate()
+    }
+
+    private func selectedCandidateForPreview() -> GhostApplianceCandidate {
+        if let selectedModelCandidate {
+            return selectedModelCandidate
         }
+
+        let dims = GhostApplianceDimensionsMmV1(
+            width: intValue(widthMm, fallback: selectedDimensionsMm.width),
+            height: intValue(heightMm, fallback: selectedDimensionsMm.height),
+            depth: intValue(depthMm, fallback: selectedDimensionsMm.depth)
+        )
+        return GhostApplianceCandidate(
+            modelId: "manual-\(UUID().uuidString.lowercased())",
+            templateId: nil,
+            brand: "Manufacturer unknown",
+            modelName: "Model unknown",
+            applianceType: selectedCategory.rawValue,
+            boilerRole: selectedCategory == .boiler ? selectedBoilerRole.rawValue : nil,
+            objectCategory: objectCategory(for: selectedCategory.rawValue),
+            objectType: objectType(for: selectedCategory.rawValue),
+            dimensionsMm: dims,
+            clearanceOffsetsMm: fallbackTemplateCandidate?.clearanceOffsetsMm ?? .init(),
+            customDefinitionId: nil,
+            note: "Template: generic \(dims.width) × \(dims.height) × \(dims.depth) mm"
+        )
+    }
+
+    private func syncDimensionsFromTemplate() {
+        guard useTemplateDimensions else { return }
+        let dims = selectedDimensionsMm
+        widthMm = "\(dims.width)"
+        heightMm = "\(dims.height)"
+        depthMm = "\(dims.depth)"
+    }
+
+    private var summaryLine1: String {
+        if selectedCategory == .boiler {
+            return "\(selectedBoilerRole.summaryLabel) boiler"
+        }
+        return selectedCategory.title
+    }
+
+    private var summaryLine2: String {
+        selectedManufacturer
+    }
+
+    private var summaryLine3: String {
+        selectedModelCandidate?.modelName ?? "Model unknown"
+    }
+
+    private var summaryTemplateLine: String {
+        "\(intValue(widthMm, fallback: selectedDimensionsMm.width)) × \(intValue(heightMm, fallback: selectedDimensionsMm.height)) × \(intValue(depthMm, fallback: selectedDimensionsMm.depth)) mm"
+    }
+
+    private func normalizedCategory(_ value: String) -> ApplianceCategory {
+        let lower = value.lowercased()
+        if lower.contains("boiler") { return .boiler }
+        if lower.contains("cylinder") { return .cylinder }
+        if lower.contains("radiator") { return .radiator }
+        if lower.contains("control") { return .control }
+        if lower.contains("pump") { return .pump }
+        if lower.contains("gas") && lower.contains("meter") { return .gasMeter }
+        return .other
+    }
+
+    private func intValue(_ text: String, fallback: Int) -> Int {
+        Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) ?? fallback
+    }
+
+    private func objectType(for applianceType: String) -> PinnedObjectType {
+        let lower = applianceType.lowercased()
+        if lower.contains("boiler") || lower.contains("heat") {
+            return .boiler
+        }
+        if lower.contains("cylinder") {
+            return .hotWaterCylinder
+        }
+        if lower.contains("gas") && lower.contains("meter") {
+            return .gasmeter
+        }
+        return .other
+    }
+
+    private func objectCategory(for applianceType: String) -> PinObjectCategoryV1 {
+        let lower = applianceType.lowercased()
+        if lower.contains("boiler") || lower.contains("heat") {
+            return .heatSource
+        }
+        if lower.contains("cylinder") {
+            return .hotWaterStorage
+        }
+        if lower.contains("radiator") {
+            return .emitters
+        }
+        if lower.contains("gas") || lower.contains("flue") {
+            return .flueExternal
+        }
+        return .heatingSystemComponents
+    }
+
+    private func boilerRole(for definition: ApplianceDefinitionV1) -> String? {
+        let family = definition.family.lowercased()
+        if family.contains("combi") { return "combi" }
+        if family.contains("system") { return "system" }
+        if family.contains("regular") { return "regular_heat_only" }
+        return nil
     }
 }
 

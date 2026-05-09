@@ -13,7 +13,6 @@ struct VanModeView: View {
     var onFinishVisit: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
-    @State private var placementBeingRefined: GhostAppliancePlacementV1?
     @State private var selectedWallIndex = 0
     @State private var showNextRoomConnectionDialog = false
 
@@ -58,7 +57,6 @@ struct VanModeView: View {
                 evidenceByPointSection
                 fabricSection
                 pinsSection
-                ghostPlacementsSection
                 measurementsSection
                 qaSection
             }
@@ -67,15 +65,6 @@ struct VanModeView: View {
         .navigationTitle(currentRoom.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarLeading) { backButton } }
-        .sheet(item: $placementBeingRefined) { placement in
-            V2GhostPlacementRefinementSheet(
-                title: ghostModelLabel(for: placement),
-                placement: placement
-            ) { updatedPlacement in
-                saveRefinedGhostPlacement(updatedPlacement)
-            }
-            .presentationDetents([.medium])
-        }
         .safeAreaInset(edge: .bottom) {
             reviewNavigationBar
         }
@@ -140,7 +129,6 @@ struct VanModeView: View {
                         }
                         HStack(spacing: 16) {
                             Label(pluralLabel(transcriptCount, singular: "transcript"), systemImage: "text.quote")
-                            Label(pluralLabel(currentRoom.ghostAppliancePlacements.count, singular: "ghost box", plural: "ghost boxes"), systemImage: "cube.transparent")
                         }
                     }
                     .font(.caption)
@@ -578,21 +566,6 @@ struct VanModeView: View {
                 )
             }
 
-            ForEach(group.ghosts) { placement in
-                let dims = placement.dimensionsMm
-                evidenceRow(
-                    icon: "cube.transparent.fill",
-                    title: ghostModelLabel(for: placement),
-                    subtitle: "\(dims.width)×\(dims.height)×\(dims.depth) mm",
-                    needsReview: placement.needsReview,
-                    onDelete: {
-                        coordinator.deleteEvidenceItem(
-                            RecentCaptureItemV1.from(ghost: placement, displayLabel: ghostModelLabel(for: placement))
-                        )
-                    }
-                )
-            }
-
             ForEach(group.measurements) { measurement in
                 evidenceRow(
                     icon: "ruler.fill",
@@ -674,14 +647,6 @@ struct VanModeView: View {
             }
         }
 
-        for ghost in currentRoom.ghostAppliancePlacements {
-            let key = ghost.capturePointId
-            if groups[key] == nil {
-                groups[key] = CapturePointEvidenceGroup(capturePointId: key)
-            }
-            groups[key]?.ghosts.append(ghost)
-        }
-
         for measurement in currentRoom.measurements {
             let key: UUID? = measurement.startCapturePointId
             if groups[key] == nil {
@@ -756,61 +721,6 @@ struct VanModeView: View {
                     Label(flag.detail, systemImage: flagIcon(for: flag.type))
                         .font(.subheadline)
                         .foregroundStyle(flagColor(for: flag.type))
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var ghostPlacementsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Possible appliances (\(currentRoom.ghostAppliancePlacements.count))").font(.headline)
-            if currentRoom.ghostAppliancePlacements.isEmpty {
-                Text("No ghost appliance placements captured.")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-            } else {
-                ForEach(currentRoom.ghostAppliancePlacements) { placement in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Label(ghostModelLabel(for: placement), systemImage: "cube.transparent")
-                                .font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Label(placement.surfaceSemantic.displayName,
-                                  systemImage: placement.surfaceSemantic.symbolName)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(placement.surfaceSemantic.requiresReview ? .orange : .secondary)
-                        }
-                        Text("\(placement.dimensionsMm.width)x\(placement.dimensionsMm.height)x\(placement.dimensionsMm.depth) mm")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("Capture point: \(placement.capturePointId.uuidString)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(anchorStatusLabel(placement.anchorConfidence))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(String(format: "Yaw %.0f° · Screen (%.0f%%, %.0f%%)", placement.rotationYaw, placement.screenPoint.x * 100, placement.screenPoint.y * 100))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        if placement.needsReview {
-                            Text("Needs review")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.orange)
-                        }
-                        Text(clearanceSummary(placement.clearanceOffsetsMm))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Button("Refine placement") {
-                            placementBeingRefined = placement
-                        }
-                            .font(.caption2.weight(.semibold))
-                            .buttonStyle(.bordered)
-                    }
-                    .padding(.vertical, 4)
-                    Divider()
                 }
             }
         }
@@ -962,21 +872,6 @@ struct VanModeView: View {
         }
     }
 
-    private func ghostModelLabel(for placement: GhostAppliancePlacementV1) -> String {
-        if let customId = placement.customApplianceDefinitionId,
-           let custom = currentRoom.customApplianceDefinitions.first(where: { $0.id == customId }) {
-            return "\(custom.brand) \(custom.modelName)"
-        }
-        if let definition = MasterHardwareRegistry.registry.definition(for: placement.applianceModelId) {
-            return "\(definition.brand) \(definition.displayName)"
-        }
-        return placement.applianceModelId
-    }
-
-    private func clearanceSummary(_ clearance: GhostApplianceClearanceOffsetsMmV1) -> String {
-        clearance.formattedSummary
-    }
-
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {
         var updatedRoom = currentRoom
         var segments = updatedRoom.wallSegments
@@ -984,14 +879,6 @@ struct VanModeView: View {
         segments[index].fabric = fabric
         updatedRoom.fabricCapture = FloorPlanFabricCaptureV1(roomId: updatedRoom.id, segments: segments)
         coordinator.upsertRoom(updatedRoom)
-    }
-
-    private func saveRefinedGhostPlacement(_ placement: GhostAppliancePlacementV1) {
-        var updatedRoom = currentRoom
-        guard let index = updatedRoom.ghostAppliancePlacements.firstIndex(where: { $0.id == placement.id }) else { return }
-        updatedRoom.ghostAppliancePlacements[index] = placement
-        coordinator.upsertRoom(updatedRoom)
-        Task { await coordinator.saveSession() }
     }
 
     private func measurementTitle(_ measurement: SpatialMeasurementV1) -> String {
@@ -1315,7 +1202,6 @@ private struct WallInferenceBadge: View {
 private struct CapturePointEvidenceGroup: Identifiable {
     let capturePointId: UUID?
     var pins: [SpatialPinV1] = []
-    var ghosts: [GhostAppliancePlacementV1] = []
     var measurements: [SpatialMeasurementV1] = []
 
     var id: String { capturePointId?.uuidString ?? "unanchored" }
@@ -1328,205 +1214,9 @@ private struct CapturePointEvidenceGroup: Identifiable {
     }
 }
 
-private extension GhostApplianceClearanceOffsetsMmV1 {
-    var formattedSummary: String {
-        let entries: [(String, Int)] = [
-            ("Top", top),
-            ("Bottom", bottom),
-            ("Front", front),
-            ("Back", back),
-            ("Left", left),
-            ("Right", right),
-        ]
-        let nonZero = entries.filter { $0.1 != 0 }
-        guard !nonZero.isEmpty else { return "Clearance: none specified" }
-        let summary = nonZero
-            .map { "\($0.0): \($0.1)mm" }
-            .joined(separator: ", ")
-        return "Clearance: \(summary)"
-    }
-}
-
 private extension Array {
     subscript(safe index: Int) -> Element? {
         guard indices.contains(index) else { return nil }
         return self[index]
-    }
-}
-
-private struct V2GhostPlacementRefinementSheet: View {
-    let title: String
-    let onSave: (GhostAppliancePlacementV1) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var draftPlacement: GhostAppliancePlacementV1
-    @State private var draftSurfaceSemantic: SurfaceSemanticV1
-
-    private let nudgeStepM: Double = 0.05
-    private let rotationStepDegrees: Double = 15
-
-    init(
-        title: String,
-        placement: GhostAppliancePlacementV1,
-        onSave: @escaping (GhostAppliancePlacementV1) -> Void
-    ) {
-        self.title = title
-        self.onSave = onSave
-        _draftPlacement = State(initialValue: placement)
-        _draftSurfaceSemantic = State(initialValue: placement.surfaceSemantic)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Placement") {
-                    Text(title)
-                    Text("\(draftPlacement.dimensionsMm.width)x\(draftPlacement.dimensionsMm.height)x\(draftPlacement.dimensionsMm.depth) mm")
-                        .foregroundStyle(.secondary)
-                    Text(placementSummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if draftPlacement.needsReview {
-                        Label("Needs review", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                Section("Surface") {
-                    Picker("Surface type", selection: $draftSurfaceSemantic) {
-                        ForEach(SurfaceSemanticV1.allCases, id: \.self) { semantic in
-                            Label(semantic.displayName, systemImage: semantic.symbolName)
-                                .tag(semantic)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    if draftSurfaceSemantic.requiresReview {
-                        Text("Surface type is unknown — please select the correct surface before saving.")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                Section("Rotate") {
-                    HStack {
-                        Button("-15°") { rotate(by: -rotationStepDegrees) }
-                        Spacer()
-                        Text("\(Int(draftPlacement.rotationYaw.rounded()))°")
-                            .font(.headline.monospacedDigit())
-                        Spacer()
-                        Button("+15°") { rotate(by: rotationStepDegrees) }
-                    }
-                }
-
-                Section("Nudge") {
-                    HStack {
-                        Button("Left") { nudge(by: horizontalVector * -nudgeStepM) }
-                        Spacer()
-                        Button("Right") { nudge(by: horizontalVector * nudgeStepM) }
-                    }
-                    HStack {
-                        Button(verticalMinusLabel) { nudge(by: verticalVector * -nudgeStepM) }
-                        Spacer()
-                        Button(verticalPlusLabel) { nudge(by: verticalVector * nudgeStepM) }
-                    }
-                    HStack {
-                        Button(depthMinusLabel) { nudge(by: depthVector * -nudgeStepM) }
-                        Spacer()
-                        Button(depthPlusLabel) { nudge(by: depthVector * nudgeStepM) }
-                    }
-                }
-            }
-            .navigationTitle("Refine placement")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(draftPlacement.withSurfaceSemantic(draftSurfaceSemantic))
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private var placementSummary: String {
-        String(
-            format: "World (%.2f, %.2f, %.2f) · Capture %@",
-            draftPlacement.worldPositionX,
-            draftPlacement.worldPositionY,
-            draftPlacement.worldPositionZ,
-            draftPlacement.capturePointId.uuidString
-        )
-    }
-
-    private var verticalPlusLabel: String {
-        draftPlacement.placementPlane == .wall ? "Up" : "Raise"
-    }
-
-    private var verticalMinusLabel: String {
-        draftPlacement.placementPlane == .wall ? "Down" : "Lower"
-    }
-
-    private var depthPlusLabel: String {
-        draftPlacement.placementPlane == .wall ? "Away from wall" : "Forward"
-    }
-
-    private var depthMinusLabel: String {
-        draftPlacement.placementPlane == .wall ? "Toward wall" : "Back"
-    }
-
-    private var horizontalVector: SIMD3<Double> {
-        switch draftPlacement.placementPlane {
-        case .wall:
-            let up = SIMD3<Double>(0, 1, 0)
-            let normal = planeNormal
-            return normalized(simd_cross(up, normal), fallback: SIMD3<Double>(1, 0, 0))
-        case .floor, .ceiling, .worktop, .unknown:
-            return SIMD3<Double>(1, 0, 0)
-        }
-    }
-
-    private var verticalVector: SIMD3<Double> {
-        SIMD3<Double>(0, 1, 0)
-    }
-
-    private var depthVector: SIMD3<Double> {
-        switch draftPlacement.placementPlane {
-        case .wall:
-            return planeNormal
-        case .floor, .ceiling, .worktop, .unknown:
-            return SIMD3<Double>(0, 0, -1)
-        }
-    }
-
-    private var planeNormal: SIMD3<Double> {
-        normalized(
-            SIMD3<Double>(
-                draftPlacement.planeNormalX,
-                draftPlacement.planeNormalY,
-                draftPlacement.planeNormalZ
-            ),
-            fallback: SIMD3<Double>(0, 0, -1)
-        )
-    }
-
-    private func rotate(by delta: Double) {
-        draftPlacement = draftPlacement.translated(rotationYawDelta: delta)
-    }
-
-    private func nudge(by delta: SIMD3<Double>) {
-        draftPlacement = draftPlacement.translated(dx: delta.x, dy: delta.y, dz: delta.z)
-    }
-
-    private func normalized(
-        _ vector: SIMD3<Double>,
-        fallback: SIMD3<Double>
-    ) -> SIMD3<Double> {
-        let length = simd_length(vector)
-        guard length > 0.000_1 else { return fallback }
-        return vector / length
     }
 }
