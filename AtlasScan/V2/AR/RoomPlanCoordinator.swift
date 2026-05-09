@@ -190,15 +190,15 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         // Prefer confirmed plane geometry/infinite planes first so evidence
         // locks to stable surfaces; fall back to estimated planes only when
         // no confirmed plane hit is available.
-        let geometryResults = captureView.captureSession.arSession.raycast(
+        let existingPlaneGeometryResults = captureView.captureSession.arSession.raycast(
             frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any)
         )
-        if !geometryResults.isEmpty { return geometryResults }
+        if !existingPlaneGeometryResults.isEmpty { return existingPlaneGeometryResults }
 
-        let infiniteResults = captureView.captureSession.arSession.raycast(
+        let existingPlaneInfiniteResults = captureView.captureSession.arSession.raycast(
             frame.raycastQuery(from: point, allowing: .existingPlaneInfinite, alignment: .any)
         )
-        if !infiniteResults.isEmpty { return infiniteResults }
+        if !existingPlaneInfiniteResults.isEmpty { return existingPlaneInfiniteResults }
 
         return captureView.captureSession.arSession.raycast(
             frame.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any)
