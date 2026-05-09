@@ -1,6 +1,6 @@
 /// VisitCaptureLifecycleState — Tracks the current phase of an active V2 capture visit.
 
-enum VisitCaptureLifecycleState: String, Codable {
+public enum VisitCaptureLifecycleState: String, Codable {
     /// No active visit. App is at home screen.
     case noVisit
     /// User is setting up visit reference / label before scanning.
