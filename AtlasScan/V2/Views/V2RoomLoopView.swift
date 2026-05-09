@@ -509,6 +509,7 @@ private struct V2VisitReviewView: View {
                             .font(.caption)
                             .lineLimit(3)
                             .truncationMode(.tail)
+                            .accessibilityHint("Transcript preview. Open item details for full text.")
                         Toggle("Include in customer report", isOn: binding(for: "voice-\(note.id.uuidString)"))
                             .font(.caption)
                     }
@@ -1592,7 +1593,7 @@ private struct CaptureActionBubbleMenu: View {
             }
             Button("Close", action: onDismiss)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(.white)
         }
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))

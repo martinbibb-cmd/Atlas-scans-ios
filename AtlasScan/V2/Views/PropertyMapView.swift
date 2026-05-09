@@ -115,6 +115,7 @@ struct PropertyMapView: View {
                     Label("Add Room", systemImage: "plus.circle")
                 }
                 .disabled(!hasVisitReference)
+                .accessibilityHint("Visit reference required before adding rooms.")
                 Button { showOutdoorFlue = true } label: {
                     Label("Outdoor Flue Check", systemImage: "wind")
                 }
