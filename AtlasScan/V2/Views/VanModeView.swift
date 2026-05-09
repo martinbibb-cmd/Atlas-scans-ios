@@ -17,6 +17,12 @@ struct VanModeView: View {
     @State private var selectedWallIndex = 0
     @State private var showNextRoomConnectionDialog = false
 
+    private let sharedWallMidpointToleranceM = 0.45
+    private let sharedWallAngleToleranceRadians = 0.35
+    private let sharedWallLengthToleranceM = 0.8
+    private let maxPinToWallDistanceM = 0.9
+    private let minimumSegmentLengthSquared = 0.0001
+
     private var currentRoom: RoomCaptureV2 {
         coordinator.room(withId: room.id) ?? room
     }
@@ -170,7 +176,10 @@ struct VanModeView: View {
             let manualFabric = manualWallFabric(at: index)
             let displayedFabric = manualFabric ?? inferred.fabric
             let confidence: ReviewWallConfidence = {
-                if let manualFabric, manualFabric != inferred.fabric || manualFabric == .partyWall {
+                if let manualFabric, manualFabric == .partyWall {
+                    return .manualException
+                }
+                if let manualFabric, manualFabric != inferred.fabric {
                     return .manualException
                 }
                 if inferred.isConfident {
@@ -366,7 +375,13 @@ struct VanModeView: View {
                         let midpointDelta = distanceBetween(midpoint, wallMidpoint(candidate))
                         let angleDelta = wallAlignmentDifference(angle, wallAngle(candidate))
                         let lengthDelta = abs(length - candidate.lengthM)
-                        guard midpointDelta <= 0.45, angleDelta <= 0.35, lengthDelta <= 0.8 else { return nil }
+                        guard
+                            midpointDelta <= sharedWallMidpointToleranceM,
+                            angleDelta <= sharedWallAngleToleranceRadians,
+                            lengthDelta <= sharedWallLengthToleranceM
+                        else {
+                            return nil
+                        }
                         return (midpointDelta + lengthDelta + angleDelta, candidate)
                     }
                     .compactMap { $0 }
@@ -384,7 +399,7 @@ struct VanModeView: View {
                 Vertex2D(x: pin.positionX, z: pin.positionZ),
                 to: segment
             )
-            guard distance <= 0.9 else { return nil }
+            guard distance <= maxPinToWallDistanceM else { return nil }
             return (distance, wallContextLabel(for: pin))
         }
         return candidates.min(by: { $0.0 < $1.0 })?.1
@@ -464,7 +479,7 @@ struct VanModeView: View {
         let dx = segment.endVertex.x - segment.startVertex.x
         let dz = segment.endVertex.z - segment.startVertex.z
         let lengthSquared = dx * dx + dz * dz
-        guard lengthSquared > 0.0001 else { return distanceBetween(point, segment.startVertex) }
+        guard lengthSquared > minimumSegmentLengthSquared else { return distanceBetween(point, segment.startVertex) }
         let t = max(0, min(1, ((point.x - segment.startVertex.x) * dx + (point.z - segment.startVertex.z) * dz) / lengthSquared))
         let projection = Vertex2D(
             x: segment.startVertex.x + t * dx,
@@ -1130,6 +1145,8 @@ private struct WallFabricRoomPlan: View {
 }
 
 private struct WallPlanMetrics {
+    private static let planInset: CGFloat = 24
+
     let minX: Double
     let minZ: Double
     let scale: CGFloat
@@ -1147,7 +1164,7 @@ private struct WallPlanMetrics {
         let maxZ = zs.max() ?? 1
         let rangeX = max(maxX - minX, 0.001)
         let rangeZ = max(maxZ - minZ, 0.001)
-        let inset: CGFloat = 24
+        let inset = Self.planInset
         let availableWidth = max(size.width - inset * 2, 1)
         let availableHeight = max(size.height - inset * 2, 1)
         let scale = min(availableWidth / CGFloat(rangeX), availableHeight / CGFloat(rangeZ))

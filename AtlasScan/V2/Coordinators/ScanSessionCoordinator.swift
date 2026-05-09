@@ -15,6 +15,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     /// 50ms debounce coalesces rapid evidence mutations into one write while
     /// still feeling immediate during live capture interactions.
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
+    private let minimumRotationRadians = 0.0001
     private var pendingSaveTask: Task<Void, Never>?
     private var pendingRoomConnectionHint: NextRoomConnectionHint?
 
@@ -329,7 +330,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     }
 
     private func rotated(_ room: RoomCaptureV2, by angle: Double) -> RoomCaptureV2 {
-        guard abs(angle) > 0.0001 else { return room }
+        guard abs(angle) > minimumRotationRadians else { return room }
         let centre = roomCentroid(room)
         var rotatedRoom = room
         rotatedRoom.polygonVertices = room.polygonVertices.map {
