@@ -506,14 +506,14 @@ private struct NextRoomConnectionHint: Sendable {
     let kind: NextRoomConnectionKind
 }
 
-func v2WallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
+internal func v2WallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
     Vertex2D(
         x: (wall.startVertex.x + wall.endVertex.x) / 2,
         z: (wall.startVertex.z + wall.endVertex.z) / 2
     )
 }
 
-func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
+internal func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
     let raw = fmod(lhs - rhs + .pi, 2 * .pi)
     let wrapped = raw < 0 ? raw + 2 * .pi : raw
     return wrapped - .pi

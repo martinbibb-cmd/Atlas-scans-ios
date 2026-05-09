@@ -1011,11 +1011,7 @@ private struct ReviewWallModel: Identifiable {
         if let relatedRoomName {
             return relatedRoomName
         }
-        switch displayedFabric {
-        case .externalWall: return "External"
-        case .internalWall: return "Internal"
-        case .partyWall: return "Party"
-        }
+        return displayedFabricBadgeTitle
     }
 
     var displayedFabricBadgeTitle: String {
