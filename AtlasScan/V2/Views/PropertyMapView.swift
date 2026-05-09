@@ -119,7 +119,8 @@ struct PropertyMapView: View {
                         .foregroundStyle(.orange)
                 }
                 if let review = room.incomingConnectionReview {
-                    Text(review.note + (review.status == .needsReview ? " · needs review" : ""))
+                    let statusSuffix = review.status == .needsReview ? " · needs review" : ""
+                    Text("\(review.note)\(statusSuffix)")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(review.status == .needsReview ? .orange : .secondary)
                 }

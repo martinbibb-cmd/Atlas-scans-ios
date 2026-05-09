@@ -21,6 +21,7 @@ struct VanModeView: View {
     private let sharedWallAngleToleranceRadians = 0.35
     private let sharedWallLengthToleranceM = 0.8
     private let maxPinToWallDistanceM = 0.9
+    private let noSharedWallMatchText = "No shared wall match yet"
     /// Rejects effectively zero-length walls before point-to-segment projection.
     private let minimumValidSegmentLengthSquared = 0.0001
 
@@ -232,16 +233,17 @@ struct VanModeView: View {
     }
 
     private var nextRoomConnectionPrompt: String {
+        let preview = nextRoomAlignmentPreview
         guard let wall = selectedReviewWall else {
-            return "Choose how the next room connects.\n\(nextRoomAlignmentPreview)"
+            return "Choose how the next room connects.\n\(preview)"
         }
-        return "Use “\(wall.label)” as the connection context for the next room.\n\(nextRoomAlignmentPreview)"
+        return "Use “\(wall.label)” as the connection context for the next room.\n\(preview)"
     }
 
     private var nextRoomAlignmentPreview: String {
-        guard let wall = selectedReviewWall else { return "No shared wall match yet" }
+        guard let wall = selectedReviewWall else { return noSharedWallMatchText }
         if wall.confidence == .needsReview {
-            return "No shared wall match yet"
+            return noSharedWallMatchText
         }
         if wall.relatedRoomName != nil {
             return "Shared wall candidate found"
@@ -878,7 +880,7 @@ struct VanModeView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(nextRoomAlignmentPreview)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(nextRoomAlignmentPreview == "No shared wall match yet" ? .orange : .secondary)
+                .foregroundStyle(nextRoomAlignmentPreview == noSharedWallMatchText ? .orange : .secondary)
             HStack(spacing: 10) {
                 Button("Continue to Next Room") {
                     showNextRoomConnectionDialog = true

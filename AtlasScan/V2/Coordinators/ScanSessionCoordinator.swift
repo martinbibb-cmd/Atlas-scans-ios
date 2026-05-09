@@ -17,6 +17,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private let minimumRotationRadians = 0.0001
     private let minimumWallLengthForScoreM = 0.5
+    /// Alignment score where lower is better (`0` is ideal). Candidate walls must
+    /// score at or below this threshold to be treated as a valid connection.
     private let maximumWallMatchScoreForAlignment = 0.95
     private var pendingSaveTask: Task<Void, Never>?
     private var pendingRoomConnectionHint: NextRoomConnectionHint?
