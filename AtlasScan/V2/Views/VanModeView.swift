@@ -533,7 +533,7 @@ struct VanModeView: View {
                 evidenceRow(
                     icon: iconName(for: pin.objectType),
                     title: pin.label ?? pin.objectType.rawValue.capitalized,
-                    subtitle: pin.anchorConfidence == .screenOnly ? "Room note only — not spatially anchored" : nil,
+                    subtitle: pinSubtitle(for: pin),
                     needsReview: pin.anchorConfidence == .screenOnly,
                     onDelete: {
                         coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(pin: pin))
@@ -684,8 +684,11 @@ struct VanModeView: View {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
-                        if pin.anchorConfidence == .screenOnly {
-                            Text("Room note only — not spatially anchored")
+                        Text(pin.locationContext.summaryLabel)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
+                            Text(roomNoteOnly)
                                 .font(.caption2)
                                 .foregroundStyle(.orange)
                         } else if pin.hasResolvedWorldAnchor {
@@ -870,6 +873,14 @@ struct VanModeView: View {
         case .worldLocked: return "Anchor confidence: world locked"
         case .screenOnly: return "Anchor confidence: room-note-only (not spatially anchored)"
         }
+    }
+
+    private func pinSubtitle(for pin: SpatialPinV1) -> String {
+        let location = pin.locationContext.summaryLabel
+        if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
+            return "\(location) · \(roomNoteOnly)"
+        }
+        return location
     }
 
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {

@@ -606,6 +606,12 @@ public enum SpatialPinAnchorConfidence: String, Codable, CaseIterable, Sendable 
     case screenOnly = "screen_only"
 }
 
+public extension SpatialPinAnchorConfidence {
+    var roomNoteOnlySummary: String? {
+        self == .screenOnly ? "Room note only — not spatially anchored" : nil
+    }
+}
+
 public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {
     case boiler
     case heatPump
@@ -625,6 +631,45 @@ public enum PinPlacementLocationContext: String, Codable, CaseIterable, Sendable
     case airingCupboard = "airing_cupboard"
     case externalWall = "external_wall"
     case unknownNeedsReview = "unknown_needs_review"
+}
+
+public extension PinPlacementLocationContext {
+    var displayName: String {
+        switch self {
+        case .wall: return "Wall"
+        case .floor: return "Floor"
+        case .ceiling: return "Ceiling"
+        case .cupboard: return "Cupboard"
+        case .airingCupboard: return "Airing cupboard"
+        case .externalWall: return "External wall"
+        case .unknownNeedsReview: return "Unknown — needs review"
+        }
+    }
+
+    var summaryLabel: String {
+        "Location: \(displayName)"
+    }
+
+    static func derived(from surfaceSemantic: SurfaceSemanticV1?) -> PinPlacementLocationContext {
+        switch surfaceSemantic {
+        case .some(.externalWall):
+            return .externalWall
+        case .some(.internalWall), .some(.partyWall):
+            return .wall
+        case .some(.floor):
+            return .floor
+        case .some(.ceiling):
+            return .ceiling
+        case .some(.cupboardSide), .some(.cupboardBase), .some(.worktop):
+            return .cupboard
+        case .some(.utilitySpace):
+            return .airingCupboard
+        case .some(.loftSpace), .some(.unknown), .none:
+            return .unknownNeedsReview
+        @unknown default:
+            return .unknownNeedsReview
+        }
+    }
 }
 
 public enum PinObjectCategoryV1: String, Codable, CaseIterable, Sendable {

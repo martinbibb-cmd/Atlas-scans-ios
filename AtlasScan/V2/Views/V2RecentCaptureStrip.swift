@@ -41,9 +41,13 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
     // MARK: - Static factories
 
     static func from(pin: SpatialPinV1) -> RecentCaptureItemV1 {
-        let subtitle: String? = pin.anchorConfidence == .screenOnly
-            ? "Room note only — not spatially anchored"
-            : nil
+        let subtitle: String? = {
+            let locationSummary = pin.locationContext.summaryLabel
+            if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
+                return "\(locationSummary) · \(roomNoteOnly)"
+            }
+            return locationSummary
+        }()
         return RecentCaptureItemV1(
             id: UUID(),
             roomId: pin.roomId,
