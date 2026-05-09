@@ -3,6 +3,9 @@
 /// Compiled and visible only in DEBUG builds. Attach via the
 /// `.v2DebugLifecycleOverlay()` view modifier on any view that has
 /// `ScanSessionCoordinator` in the environment.
+///
+/// The overlay can be hidden by tapping the "Hide" button inside the HUD;
+/// a small wrench button appears in its place so it can be restored.
 
 #if DEBUG
 
@@ -12,6 +15,8 @@ import SwiftUI
 
 struct V2DebugLifecycleOverlay: View {
     @ObservedObject var coordinator: ScanSessionCoordinator
+    /// Persisted across launches so engineers don't have to hide the HUD every session.
+    @AppStorage("show_v2_debug_hud") private var showHUD = true
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -20,30 +25,57 @@ struct V2DebugLifecycleOverlay: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            label("🔄 State", value: coordinator.lifecycleState.rawValue)
-            label("🆔 visitId", value: shortId(coordinator.session.visitId))
-            label("🏷 ref", value: coordinator.session.visitReference ?? "—")
-            Divider().overlay(Color.white.opacity(0.4))
-            label("🏠 rooms", value: "\(coordinator.session.rooms.count)")
-            label("📌 pins", value: "\(totalPins)")
-            label("👻 ghosts", value: "\(totalGhosts)")
-            label("📐 measures", value: "\(totalMeasurements)")
-            label("📷 photos", value: "\(coordinator.session.photos.count)")
-            label("🎙 voice", value: "\(coordinator.session.voiceNotes.count)")
-            Divider().overlay(Color.white.opacity(0.4))
-            label("💾 saved", value: saveLabel)
+        if showHUD {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        label("🔄 State", value: coordinator.lifecycleState.rawValue)
+                        label("🆔 visitId", value: shortId(coordinator.session.visitId))
+                        label("🏷 ref", value: coordinator.session.visitReference ?? "—")
+                    }
+                    Spacer(minLength: 8)
+                    Button {
+                        showHUD = false
+                    } label: {
+                        Text("Hide")
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                }
+                Divider().overlay(Color.white.opacity(0.4))
+                label("🏠 rooms", value: "\(coordinator.session.rooms.count)")
+                label("📌 pins", value: "\(totalPins)")
+                label("👻 ghosts", value: "\(totalGhosts)")
+                label("📐 measures", value: "\(totalMeasurements)")
+                label("📷 photos", value: "\(coordinator.session.photos.count)")
+                label("🎙 voice", value: "\(coordinator.session.voiceNotes.count)")
+                Divider().overlay(Color.white.opacity(0.4))
+                label("💾 saved", value: saveLabel)
+            }
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.72))
+            )
+            .padding(10)
+        } else {
+            // Compact restore button so engineers can bring the HUD back.
+            Button {
+                showHUD = true
+            } label: {
+                Image(systemName: "wrench.adjustable.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.black.opacity(0.55), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(10)
         }
-        .font(.system(size: 10, weight: .medium, design: .monospaced))
-        .foregroundStyle(.white)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.72))
-        )
-        .padding(10)
-        .allowsHitTesting(false)
     }
 
     // MARK: - Computed helpers
