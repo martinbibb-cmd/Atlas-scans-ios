@@ -45,9 +45,10 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             let location = pin.locationContext.displayName
             let roomNoteOnly = "Room note only — not spatially anchored"
             if pin.anchorConfidence == .screenOnly {
-                return pin.locationContext == .unknownNeedsReview
-                    ? roomNoteOnly
-                    : "\(location) · \(roomNoteOnly)"
+                if pin.locationContext == .unknownNeedsReview {
+                    return roomNoteOnly
+                }
+                return "\(location) · \(roomNoteOnly)"
             }
             return "Location: \(location)"
         }()

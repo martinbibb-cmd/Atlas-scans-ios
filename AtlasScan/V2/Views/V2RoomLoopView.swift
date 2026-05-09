@@ -2597,13 +2597,14 @@ private struct V2PinPickerSheet: View {
     private var reviewSummary: String {
         let roomSummary = "Linked to the current room."
         let locationSummary = "Location: \(selectedLocationContext.displayName)."
+        let baseSummary = "\(roomSummary) \(locationSummary)"
         if capturePoint?.anchorConfidence == .screenOnly {
-            return "\(roomSummary) \(locationSummary) Room note only — not spatially anchored."
+            return "\(baseSummary) Room note only — not spatially anchored."
         }
         if isLocationLockedToCapturePoint {
-            return "\(roomSummary) \(locationSummary) Spatially locked to the tapped location."
+            return "\(baseSummary) Spatially locked to the tapped location."
         }
-        return "\(roomSummary) \(locationSummary)"
+        return baseSummary
     }
 
     private func savePinAndDismiss() {
