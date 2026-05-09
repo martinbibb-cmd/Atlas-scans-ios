@@ -168,6 +168,10 @@
 		AAV2000D /* PropertyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000D /* PropertyMapView.swift */; };
 		AAV2000E /* VanModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000E /* VanModeView.swift */; };
 		AAV2000F /* V2RoomLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3000F /* V2RoomLoopView.swift */; };
+		AAV20014 /* V2VisitLifecycleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30014 /* V2VisitLifecycleState.swift */; };
+		AAV20015 /* V2PostScanRoomReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30015 /* V2PostScanRoomReviewView.swift */; };
+		AAV20016 /* V2FinishVisitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30016 /* V2FinishVisitView.swift */; };
+		AAV20017 /* V2IdentifiableDedupe.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30017 /* V2IdentifiableDedupe.swift */; };
 		AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30010 /* V2LiveCaptureJourneyTests.swift */; };
 		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
@@ -351,6 +355,10 @@
 		AAV3000F /* V2RoomLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomLoopView.swift; sourceTree = "<group>"; };
 		AAV30010 /* V2LiveCaptureJourneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2LiveCaptureJourneyTests.swift; sourceTree = "<group>"; };
 		AAV30011 /* V2RecentCaptureStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RecentCaptureStrip.swift; sourceTree = "<group>"; };
+		AAV30014 /* V2VisitLifecycleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2VisitLifecycleState.swift; sourceTree = "<group>"; };
+		AAV30015 /* V2PostScanRoomReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2PostScanRoomReviewView.swift; sourceTree = "<group>"; };
+		AAV30016 /* V2FinishVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2FinishVisitView.swift; sourceTree = "<group>"; };
+		AAV30017 /* V2IdentifiableDedupe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2IdentifiableDedupe.swift; sourceTree = "<group>"; };
 		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
 		AAV30013 /* V2OffscreenPointerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OffscreenPointerOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -768,6 +776,7 @@
 				AAV50002 /* Coordinators */,
 				AAV50003 /* AR */,
 				AAV50004 /* Views */,
+				AAV50005 /* Models */,
 			);
 			path = V2;
 			sourceTree = "<group>";
@@ -805,8 +814,19 @@
 				AAV3000F /* V2RoomLoopView.swift */,
 				AAV30011 /* V2RecentCaptureStrip.swift */,
 				AAV30013 /* V2OffscreenPointerOverlay.swift */,
+				AAV30015 /* V2PostScanRoomReviewView.swift */,
+				AAV30016 /* V2FinishVisitView.swift */,
+				AAV30017 /* V2IdentifiableDedupe.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		AAV50005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30014 /* V2VisitLifecycleState.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -1119,6 +1139,10 @@
 				AAV2000D /* PropertyMapView.swift in Sources */,
 				AAV2000E /* VanModeView.swift in Sources */,
 				AAV2000F /* V2RoomLoopView.swift in Sources */,
+				AAV20014 /* V2VisitLifecycleState.swift in Sources */,
+				AAV20015 /* V2PostScanRoomReviewView.swift in Sources */,
+				AAV20016 /* V2FinishVisitView.swift in Sources */,
+				AAV20017 /* V2IdentifiableDedupe.swift in Sources */,
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
 				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,

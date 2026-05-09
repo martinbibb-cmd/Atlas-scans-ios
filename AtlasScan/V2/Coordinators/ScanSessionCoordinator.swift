@@ -10,6 +10,11 @@ public final class ScanSessionCoordinator: ObservableObject {
     @Published public var showHandoff = false
     @Published public var isSaving = false
     @Published public var saveError: Error?
+    /// Current phase of the visit capture workflow.
+    @Published public var lifecycleState: VisitCaptureLifecycleState = .noVisit
+    /// True when the coordinator loaded an existing session from disk on launch
+    /// (i.e. the user has a visit in progress that can be resumed).
+    @Published public var isResumingExistingSession = false
 
     private let store: AtomicSessionStore
     /// 50ms debounce coalesces rapid evidence mutations into one write while
@@ -23,12 +28,66 @@ public final class ScanSessionCoordinator: ObservableObject {
     private var pendingSaveTask: Task<Void, Never>?
     private var pendingRoomConnectionHint: NextRoomConnectionHint?
 
+    /// UserDefaults key that stores the active visit's UUID between app launches.
+    static let activeVisitIdKey = "v2ActiveVisitId"
+    /// UserDefaults key that stores the last-known lifecycle state string.
+    static let activeLifecycleStateKey = "v2LifecycleState"
+
     public init(
-        visitId: UUID = UUID(),
+        visitId: UUID? = nil,
         store: AtomicSessionStore = .shared
     ) {
-        self.session = SessionCaptureV2(visitId: visitId)
         self.store = store
+
+        if let visitId {
+            // Caller-specified visitId — load if session file exists, otherwise create fresh.
+            if let loaded = try? store.load(visitId: visitId) {
+                self.session = loaded
+                let rawState = UserDefaults.standard.string(forKey: Self.activeLifecycleStateKey) ?? ""
+                self.lifecycleState = VisitCaptureLifecycleState(rawValue: rawState) ?? .choosingNextStep
+                self.isResumingExistingSession = true
+            } else {
+                self.session = SessionCaptureV2(visitId: visitId)
+                self.lifecycleState = .noVisit
+                self.isResumingExistingSession = false
+            }
+        } else if
+            let savedIdString = UserDefaults.standard.string(forKey: Self.activeVisitIdKey),
+            let savedId = UUID(uuidString: savedIdString),
+            let loaded = try? store.load(visitId: savedId)
+        {
+            // Resume an existing session recorded in UserDefaults.
+            self.session = loaded
+            let rawState = UserDefaults.standard.string(forKey: Self.activeLifecycleStateKey) ?? ""
+            self.lifecycleState = VisitCaptureLifecycleState(rawValue: rawState) ?? .choosingNextStep
+            self.isResumingExistingSession = true
+        } else {
+            // Fresh session.
+            self.session = SessionCaptureV2(visitId: UUID())
+            self.lifecycleState = .noVisit
+            self.isResumingExistingSession = false
+        }
+    }
+
+    // MARK: - Lifecycle transitions
+
+    /// Transitions the coordinator to a new lifecycle state and persists it.
+    public func transition(to state: VisitCaptureLifecycleState) {
+        lifecycleState = state
+        UserDefaults.standard.set(state.rawValue, forKey: Self.activeLifecycleStateKey)
+        scheduleSave()
+    }
+
+    /// Discards the current active session: clears UserDefaults, removes the
+    /// session file from disk, and creates a fresh empty session in memory.
+    public func discardActiveSession() {
+        let oldVisitId = session.visitId
+        UserDefaults.standard.removeObject(forKey: Self.activeVisitIdKey)
+        UserDefaults.standard.removeObject(forKey: Self.activeLifecycleStateKey)
+        try? store.delete(visitId: oldVisitId)
+        session = SessionCaptureV2(visitId: UUID())
+        lifecycleState = .noVisit
+        isResumingExistingSession = false
     }
 
     // MARK: - Room management
@@ -150,6 +209,13 @@ public final class ScanSessionCoordinator: ObservableObject {
         isSaving = true
         saveError = nil
         defer { isSaving = false }
+        // Persist the visit ID pointer whenever the session has a reference so the
+        // app can resume after being killed.
+        let hasReference = !(session.visitReference?.isEmpty ?? true)
+        if hasReference || !session.rooms.isEmpty {
+            UserDefaults.standard.set(session.visitId.uuidString, forKey: Self.activeVisitIdKey)
+            UserDefaults.standard.set(lifecycleState.rawValue, forKey: Self.activeLifecycleStateKey)
+        }
         do {
             try store.save(session)
         } catch {
