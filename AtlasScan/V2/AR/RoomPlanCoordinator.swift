@@ -24,6 +24,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     /// Set to true once stopSession() has been called so updateUIViewController
     /// does not fire a second stop.
     private(set) var isStopped = false
+    private var latestCapturedRoom: CapturedRoom?
 
     init(capturedRoom: Binding<RoomCaptureV2?>) {
         self.capturedRoomBinding = capturedRoom
@@ -50,7 +51,14 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 anchorConfidence: .screenOnly,
                 hitNormal: nil,
                 anchorId: nil,
-                worldTransform: nil
+                worldTransform: nil,
+                debugDiagnostics: CaptureProbeDiagnosticsV1(
+                    raycastAttempted: false,
+                    resultType: .failed,
+                    hitDistanceM: nil,
+                    planeAlignment: "none",
+                    trackingState: "viewUnavailable"
+                )
             )
         }
 
@@ -68,25 +76,58 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 anchorConfidence: .screenOnly,
                 hitNormal: nil,
                 anchorId: nil,
-                worldTransform: nil
+                worldTransform: nil,
+                debugDiagnostics: CaptureProbeDiagnosticsV1(
+                    raycastAttempted: false,
+                    resultType: .failed,
+                    hitDistanceM: nil,
+                    planeAlignment: "none",
+                    trackingState: "frameUnavailable"
+                )
             )
         }
-        let results = raycastResults(from: center, frame: frame, captureView: captureView)
-        guard let result = results.first else {
+        let samplePoints = reticleSamplePoints(around: center, in: bounds)
+        var candidates: [ProbeHitCandidate] = []
+        for samplePoint in samplePoints {
+            if let raycastCandidate = raycastCandidate(
+                from: samplePoint,
+                frame: frame,
+                captureView: captureView
+            ) {
+                candidates.append(raycastCandidate)
+            }
+            if let query = frame.raycastQuery(from: samplePoint, allowing: .estimatedPlane, alignment: .any) {
+                if let featurePointCandidate = featurePointCandidate(from: query, frame: frame) {
+                    candidates.append(featurePointCandidate)
+                }
+                if let roomMeshCandidate = roomMeshCandidate(from: query) {
+                    candidates.append(roomMeshCandidate)
+                }
+            }
+        }
+
+        guard let best = selectPreferredCandidate(from: candidates) else {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
                 anchorConfidence: .screenOnly,
                 hitNormal: nil,
                 anchorId: nil,
-                worldTransform: nil
+                worldTransform: nil,
+                debugDiagnostics: CaptureProbeDiagnosticsV1(
+                    raycastAttempted: !samplePoints.isEmpty,
+                    resultType: .failed,
+                    hitDistanceM: nil,
+                    planeAlignment: "none",
+                    trackingState: trackingStateDescription(frame.camera.trackingState)
+                )
             )
         }
 
-        let anchor = ARAnchor(transform: result.worldTransform)
+        let anchor = ARAnchor(transform: best.worldTransform)
         captureView.captureSession.arSession.add(anchor: anchor)
-        let position = result.worldTransform.columns.3
-        let forward = result.worldTransform.columns.2
+        let position = best.worldTransform.columns.3
+        let forward = best.worldTransform.columns.2
         let normal = SIMD3(
             Double(-forward.x),
             Double(-forward.y),
@@ -100,7 +141,14 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             anchorConfidence: confidence,
             hitNormal: normal,
             anchorId: anchor.identifier,
-            worldTransform: worldTransform(from: result.worldTransform)
+            worldTransform: worldTransform(from: best.worldTransform),
+            debugDiagnostics: CaptureProbeDiagnosticsV1(
+                raycastAttempted: true,
+                resultType: best.resultType,
+                hitDistanceM: Double(best.distanceMeters),
+                planeAlignment: planeAlignmentDescription(best.planeAlignment),
+                trackingState: trackingStateDescription(frame.camera.trackingState)
+            )
         )
     }
 
@@ -146,6 +194,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
 
     /// Live incremental update — extract the current floor polygon for the mini-map.
     func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
+        latestCapturedRoom = room
         let vertices = polygonVertices(from: room)
         DispatchQueue.main.async { [weak self] in
             self?.onLiveVertices?(vertices)
@@ -181,28 +230,304 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private let polygonToleranceFraction: Float = 0.10
     private let polygonToleranceMax: Float = 0.25
     private let minimumAreaM2 = 0.05
+    private let reticleToleranceRadiusPixels: CGFloat = 18
+    private let featurePointToleranceMeters: Float = 0.08
+    private let roomSurfaceToleranceMeters: Float = 0.06
+    private let featurePointToleranceDistanceMultiplier: Float = 0.04
+    private let featurePointLateralTieBreakThreshold: Float = 0.005
+    private let rayDirectionEpsilon: Float = 1e-4
+    private let normalLengthEpsilon: Float = 1e-4
+    private let parallelNormalThreshold: Float = 0.95
+    private let horizontalAlignmentThreshold: Float = 0.75
+    private let reticleSamplePattern: [CGPoint] = [
+        CGPoint(x: 0, y: 0),
+        CGPoint(x: 1, y: 0),
+        CGPoint(x: -1, y: 0),
+        CGPoint(x: 0, y: 1),
+        CGPoint(x: 0, y: -1),
+        CGPoint(x: 0.7071, y: 0.7071),
+        CGPoint(x: -0.7071, y: 0.7071),
+        CGPoint(x: 0.7071, y: -0.7071),
+        CGPoint(x: -0.7071, y: -0.7071),
+    ]
 
-    private func raycastResults(
+    private struct ProbeHitCandidate {
+        let worldTransform: simd_float4x4
+        let distanceMeters: Float
+        let resultType: CaptureProbeResultTypeV1
+        let planeAlignment: ARRaycastQuery.TargetAlignment
+        let confidenceRank: Int
+    }
+
+    /// Samples a small 9-point screen-space pattern around the reticle center
+    /// (center, cardinal, diagonals) to avoid requiring a pixel-perfect hit.
+    private func reticleSamplePoints(around center: CGPoint, in bounds: CGRect) -> [CGPoint] {
+        return reticleSamplePattern.map { offset in
+            CGPoint(
+                x: min(max(center.x + (offset.x * reticleToleranceRadiusPixels), bounds.minX), bounds.maxX),
+                y: min(max(center.y + (offset.y * reticleToleranceRadiusPixels), bounds.minY), bounds.maxY)
+            )
+        }
+    }
+
+    /// Layered ARKit raycast strategy: prefer confirmed plane geometry, then
+    /// infinite planes, and finally estimated planes as lowest confidence.
+    private func raycastCandidate(
         from point: CGPoint,
         frame: ARFrame,
         captureView: RoomCaptureView
-    ) -> [ARRaycastResult] {
-        // Prefer confirmed plane geometry/infinite planes first so evidence
-        // locks to stable surfaces; fall back to estimated planes only when
-        // no confirmed plane hit is available.
-        let existingPlaneGeometryResults = captureView.captureSession.arSession.raycast(
-            frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any)
+    ) -> ProbeHitCandidate? {
+        let plans: [(ARRaycastQuery.Target, CaptureProbeResultTypeV1, Int)] = [
+            (.existingPlaneGeometry, .existingPlaneGeometry, 5),
+            (.existingPlaneInfinite, .existingPlaneInfinite, 4),
+            (.estimatedPlane, .estimatedPlane, 2),
+        ]
+        let cameraPosition = SIMD3<Float>(
+            frame.camera.transform.columns.3.x,
+            frame.camera.transform.columns.3.y,
+            frame.camera.transform.columns.3.z
         )
-        if !existingPlaneGeometryResults.isEmpty { return existingPlaneGeometryResults }
 
-        let existingPlaneInfiniteResults = captureView.captureSession.arSession.raycast(
-            frame.raycastQuery(from: point, allowing: .existingPlaneInfinite, alignment: .any)
-        )
-        if !existingPlaneInfiniteResults.isEmpty { return existingPlaneInfiniteResults }
+        for (target, type, rank) in plans {
+            guard let query = frame.raycastQuery(from: point, allowing: target, alignment: .any) else { continue }
+            guard let result = captureView.captureSession.arSession.raycast(query).first else { continue }
+            let hit = SIMD3<Float>(
+                result.worldTransform.columns.3.x,
+                result.worldTransform.columns.3.y,
+                result.worldTransform.columns.3.z
+            )
+            return ProbeHitCandidate(
+                worldTransform: result.worldTransform,
+                distanceMeters: simd_distance(cameraPosition, hit),
+                resultType: type,
+                planeAlignment: result.targetAlignment,
+                confidenceRank: rank
+            )
+        }
+        return nil
+    }
 
-        return captureView.captureSession.arSession.raycast(
-            frame.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any)
+    /// Finds a feature-point-backed hit by projecting the query ray through raw
+    /// AR feature points, applying lateral tolerance, then tie-breaking by
+    /// nearest lateral distance and then depth along ray.
+    private func featurePointCandidate(from query: ARRaycastQuery, frame: ARFrame) -> ProbeHitCandidate? {
+        guard let points = frame.rawFeaturePoints?.points, !points.isEmpty else { return nil }
+        let origin = query.origin
+        let direction = simd_normalize(query.direction)
+        var best: (point: SIMD3<Float>, along: Float, lateral: Float)?
+
+        for point in points {
+            let delta = point - origin
+            let along = simd_dot(delta, direction)
+            guard along > 0 else { continue }
+            let lateral = simd_length(simd_cross(delta, direction))
+            let maxTolerance = max(featurePointToleranceMeters, along * featurePointToleranceDistanceMultiplier)
+            guard lateral <= maxTolerance else { continue }
+            if let current = best {
+                if shouldReplaceFeatureCandidate(
+                    newLateral: lateral,
+                    newAlong: along,
+                    currentLateral: current.lateral,
+                    currentAlong: current.along
+                ) {
+                    best = (point, along, lateral)
+                }
+            } else {
+                best = (point, along, lateral)
+            }
+        }
+
+        guard let best else { return nil }
+        let normal = simd_normalize(-direction)
+        let transform = worldTransform(position: best.point, normal: normal)
+        return ProbeHitCandidate(
+            worldTransform: transform,
+            distanceMeters: best.along,
+            resultType: .featurePoint,
+            planeAlignment: alignment(from: normal),
+            confidenceRank: 3
         )
+    }
+
+    /// Fallback that intersects the reticle ray with latest RoomPlan-rendered
+    /// wall/floor surfaces so visible room geometry can be used for anchoring.
+    private func roomMeshCandidate(from query: ARRaycastQuery) -> ProbeHitCandidate? {
+        guard let room = latestCapturedRoom else { return nil }
+        let surfaces = room.walls + room.floors
+        let origin = query.origin
+        let direction = simd_normalize(query.direction)
+        var best: (point: SIMD3<Float>, normal: SIMD3<Float>, distance: Float)?
+
+        for surface in surfaces {
+            guard let hit = intersectRay(origin: origin, direction: direction, with: surface) else { continue }
+            if let current = best {
+                if hit.distance < current.distance {
+                    best = hit
+                }
+            } else {
+                best = hit
+            }
+        }
+
+        guard let best else { return nil }
+        return ProbeHitCandidate(
+            worldTransform: worldTransform(position: best.point, normal: best.normal),
+            distanceMeters: best.distance,
+            resultType: .roomMesh,
+            planeAlignment: alignment(from: best.normal),
+            confidenceRank: 3
+        )
+    }
+
+    /// Intersects the ray in surface-local space using the smallest-dimension
+    /// axis as thickness/plane normal, then checks in-plane extents with a
+    /// tolerance expansion to be robust near edges.
+    private func intersectRay(
+        origin: SIMD3<Float>,
+        direction: SIMD3<Float>,
+        with surface: CapturedRoom.Surface
+    ) -> (point: SIMD3<Float>, normal: SIMD3<Float>, distance: Float)? {
+        let worldToLocal = simd_inverse(surface.transform)
+        let localOrigin = transformPoint(origin, with: worldToLocal)
+        let localDirection = transformDirection(direction, with: worldToLocal)
+
+        let thicknessAxis = thicknessAxis(for: surface)
+        let axisA: Int
+        let axisB: Int
+        let halfA: Float
+        let halfB: Float
+        switch thicknessAxis {
+        case 0:
+            axisA = 1
+            axisB = 2
+            halfA = surface.dimensions.y / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.z / 2 + roomSurfaceToleranceMeters
+        case 1:
+            axisA = 0
+            axisB = 2
+            halfA = surface.dimensions.x / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.z / 2 + roomSurfaceToleranceMeters
+        default:
+            axisA = 0
+            axisB = 1
+            halfA = surface.dimensions.x / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.y / 2 + roomSurfaceToleranceMeters
+        }
+
+        let directionThickness = localDirection[thicknessAxis]
+        guard abs(directionThickness) > rayDirectionEpsilon else { return nil }
+        // Solve the ray/plane equation in local space to find distance t.
+        let t = -localOrigin[thicknessAxis] / directionThickness
+        guard t > 0 else { return nil }
+
+        let localHit = localOrigin + localDirection * t
+        guard abs(localHit[axisA]) <= halfA, abs(localHit[axisB]) <= halfB else { return nil }
+
+        var localNormal = SIMD3<Float>(0, 0, 0)
+        localNormal[thicknessAxis] = directionThickness > 0 ? -1 : 1
+
+        let worldPoint = transformPoint(localHit, with: surface.transform)
+        let worldNormal = simd_normalize(transformDirection(localNormal, with: surface.transform))
+        let distance = simd_distance(origin, worldPoint)
+        return (worldPoint, worldNormal, distance)
+    }
+
+    /// Builds a stable world transform from hit position + surface normal by
+    /// constructing an orthonormal basis with an alternate up vector fallback
+    /// when the normal is nearly parallel to world-up.
+    private func worldTransform(position: SIMD3<Float>, normal: SIMD3<Float>) -> simd_float4x4 {
+        let safeNormal = simd_length(normal) > normalLengthEpsilon ? simd_normalize(normal) : SIMD3<Float>(0, 1, 0)
+        var up = SIMD3<Float>(0, 1, 0)
+        if abs(simd_dot(up, safeNormal)) > parallelNormalThreshold {
+            up = SIMD3<Float>(0, 0, 1)
+        }
+        let right = simd_normalize(simd_cross(up, safeNormal))
+        let adjustedUp = simd_normalize(simd_cross(safeNormal, right))
+        let forward = -safeNormal
+        return simd_float4x4(
+            SIMD4<Float>(right.x, right.y, right.z, 0),
+            SIMD4<Float>(adjustedUp.x, adjustedUp.y, adjustedUp.z, 0),
+            SIMD4<Float>(forward.x, forward.y, forward.z, 0),
+            SIMD4<Float>(position.x, position.y, position.z, 1)
+        )
+    }
+
+    private func alignment(from normal: SIMD3<Float>) -> ARRaycastQuery.TargetAlignment {
+        abs(normal.y) >= horizontalAlignmentThreshold ? .horizontal : .vertical
+    }
+
+    private func shouldReplaceFeatureCandidate(
+        newLateral: Float,
+        newAlong: Float,
+        currentLateral: Float,
+        currentAlong: Float
+    ) -> Bool {
+        if newLateral < currentLateral {
+            return true
+        }
+        if abs(newLateral - currentLateral) >= featurePointLateralTieBreakThreshold {
+            return false
+        }
+        return newAlong < currentAlong
+    }
+
+    private func thicknessAxis(for surface: CapturedRoom.Surface) -> Int {
+        let x = surface.dimensions.x
+        let y = surface.dimensions.y
+        let z = surface.dimensions.z
+        if x <= y && x <= z { return 0 }
+        if y <= x && y <= z { return 1 }
+        return 2
+    }
+
+    private func transformPoint(_ point: SIMD3<Float>, with matrix: simd_float4x4) -> SIMD3<Float> {
+        let transformed = matrix * SIMD4<Float>(point.x, point.y, point.z, 1)
+        return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
+    }
+
+    private func transformDirection(_ direction: SIMD3<Float>, with matrix: simd_float4x4) -> SIMD3<Float> {
+        let transformed = matrix * SIMD4<Float>(direction.x, direction.y, direction.z, 0)
+        return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
+    }
+
+    /// Selects the preferred hit candidate by confidence rank first, then distance.
+    private func selectPreferredCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
+        candidates.max { lhs, rhs in
+            if lhs.confidenceRank != rhs.confidenceRank {
+                return lhs.confidenceRank < rhs.confidenceRank
+            }
+            return lhs.distanceMeters > rhs.distanceMeters
+        }
+    }
+
+    private func planeAlignmentDescription(_ alignment: ARRaycastQuery.TargetAlignment) -> String {
+        switch alignment {
+        case .horizontal:
+            return "horizontal"
+        case .vertical:
+            return "vertical"
+        case .any:
+            return "any"
+        @unknown default:
+            return "unknown"
+        }
+    }
+
+    private func trackingStateDescription(_ state: ARCamera.TrackingState) -> String {
+        switch state {
+        case .normal:
+            return "normal"
+        case .notAvailable:
+            return "notAvailable"
+        case .limited(let reason):
+            switch reason {
+            case .initializing: return "limited.initializing"
+            case .relocalizing: return "limited.relocalizing"
+            case .excessiveMotion: return "limited.excessiveMotion"
+            case .insufficientFeatures: return "limited.insufficientFeatures"
+            @unknown default: return "limited.unknown"
+            }
+        }
     }
 
     private func worldTransform(from matrix: simd_float4x4) -> WorldTransformV1 {
