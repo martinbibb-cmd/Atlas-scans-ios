@@ -233,6 +233,12 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private let reticleToleranceRadiusPixels: CGFloat = 18
     private let featurePointToleranceMeters: Float = 0.08
     private let roomSurfaceToleranceMeters: Float = 0.06
+    private let featurePointToleranceDistanceMultiplier: Float = 0.04
+    private let featurePointLateralTieBreakThreshold: Float = 0.005
+    private let rayDirectionEpsilon: Float = 1e-4
+    private let normalLengthEpsilon: Float = 1e-4
+    private let parallelNormalThreshold: Float = 0.95
+    private let horizontalAlignmentThreshold: Float = 0.75
 
     private struct ProbeHitCandidate {
         let worldTransform: simd_float4x4
@@ -308,10 +314,12 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             let along = simd_dot(delta, direction)
             guard along > 0 else { continue }
             let lateral = simd_length(simd_cross(delta, direction))
-            let maxTolerance = max(featurePointToleranceMeters, along * 0.04)
+            let maxTolerance = max(featurePointToleranceMeters, along * featurePointToleranceDistanceMultiplier)
             guard lateral <= maxTolerance else { continue }
             if let current = best {
-                if lateral < current.lateral || (abs(lateral - current.lateral) < 0.005 && along < current.along) {
+                if lateral < current.lateral || (
+                    abs(lateral - current.lateral) < featurePointLateralTieBreakThreshold && along < current.along
+                ) {
                     best = (point, along, lateral)
                 }
             } else {
@@ -379,7 +387,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         let axisB = axes[1]
 
         let directionThickness = localDirection[thicknessAxis]
-        guard abs(directionThickness) > 1e-4 else { return nil }
+        guard abs(directionThickness) > rayDirectionEpsilon else { return nil }
         let t = -localOrigin[thicknessAxis] / directionThickness
         guard t > 0 else { return nil }
 
@@ -400,9 +408,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     }
 
     private func worldTransform(position: SIMD3<Float>, normal: SIMD3<Float>) -> simd_float4x4 {
-        let safeNormal = simd_length(normal) > 1e-4 ? simd_normalize(normal) : SIMD3<Float>(0, 1, 0)
+        let safeNormal = simd_length(normal) > normalLengthEpsilon ? simd_normalize(normal) : SIMD3<Float>(0, 1, 0)
         var up = SIMD3<Float>(0, 1, 0)
-        if abs(simd_dot(up, safeNormal)) > 0.95 {
+        if abs(simd_dot(up, safeNormal)) > parallelNormalThreshold {
             up = SIMD3<Float>(0, 0, 1)
         }
         let right = simd_normalize(simd_cross(up, safeNormal))
@@ -417,7 +425,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     }
 
     private func alignment(from normal: SIMD3<Float>) -> ARRaycastQuery.TargetAlignment {
-        abs(normal.y) >= 0.75 ? .horizontal : .vertical
+        abs(normal.y) >= horizontalAlignmentThreshold ? .horizontal : .vertical
     }
 
     private func bestCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
