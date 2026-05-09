@@ -684,7 +684,7 @@ struct VanModeView: View {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
-                        Text("Location: \(pin.locationContext.displayName)")
+                        Text(pin.locationContext.summaryLabel)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                         if pin.anchorConfidence == .screenOnly {
@@ -876,7 +876,7 @@ struct VanModeView: View {
     }
 
     private func pinSubtitle(for pin: SpatialPinV1) -> String {
-        let location = "Location: \(pin.locationContext.displayName)"
+        let location = pin.locationContext.summaryLabel
         if pin.anchorConfidence == .screenOnly {
             return "\(location) · Room note only — not spatially anchored"
         }

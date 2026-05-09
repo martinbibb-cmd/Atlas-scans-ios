@@ -47,7 +47,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
             if pin.anchorConfidence == .screenOnly {
                 return "\(locationLabel) · \(roomNoteOnly)"
             }
-            return "Location: \(locationLabel)"
+            return pin.locationContext.summaryLabel
         }()
         return RecentCaptureItemV1(
             id: UUID(),

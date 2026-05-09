@@ -640,6 +640,10 @@ public extension PinPlacementLocationContext {
         }
     }
 
+    var summaryLabel: String {
+        "Location: \(displayName)"
+    }
+
     static func derived(from surfaceSemantic: SurfaceSemanticV1?) -> PinPlacementLocationContext {
         switch surfaceSemantic {
         case .externalWall:
