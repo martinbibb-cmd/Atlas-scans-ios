@@ -284,6 +284,7 @@ public final class ScanSessionCoordinator: ObservableObject {
         sourceRoom: RoomCaptureV2,
         hint: NextRoomConnectionHint
     ) -> RoomCaptureV2? {
+        guard !room.wallSegments.isEmpty else { return nil }
         let sourceWalls = sourceRoom.wallSegments
         guard sourceWalls.indices.contains(hint.sourceWallIndex) else { return nil }
         let sourceWall = sourceWalls[hint.sourceWallIndex]
@@ -415,7 +416,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             worldPositionX: rotated.x,
             worldPositionY: placement.worldPositionY,
             worldPositionZ: rotated.z,
-            rotationYaw: placement.rotationYaw + radiansToDegrees(angle),
+            rotationYaw: normalizedDegrees(placement.rotationYaw + radiansToDegrees(angle)),
             dimensionsMm: placement.dimensionsMm,
             clearanceOffsetsMm: placement.clearanceOffsetsMm,
             anchorConfidence: placement.anchorConfidence,
@@ -522,4 +523,9 @@ internal func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double 
 
 internal func radiansToDegrees(_ radians: Double) -> Double {
     radians * 180 / .pi
+}
+
+internal func normalizedDegrees(_ degrees: Double) -> Double {
+    let wrapped = degrees.truncatingRemainder(dividingBy: 360)
+    return wrapped < 0 ? wrapped + 360 : wrapped
 }

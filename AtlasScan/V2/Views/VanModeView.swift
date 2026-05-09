@@ -246,7 +246,7 @@ struct VanModeView: View {
                                 selectedWallIndex = candidate.index
                             } label: {
                                 WallSelectorChip(
-                                    title: candidate.shortLabel,
+                                    title: candidate.chipLabel,
                                     subtitle: candidate.displayedFabricBadgeTitle,
                                     isSelected: candidate.index == wall.index
                                 )
@@ -383,7 +383,11 @@ struct VanModeView: View {
                         else {
                             return nil
                         }
-                        return (midpointDelta + lengthDelta + angleDelta, candidate)
+                        let score =
+                            (midpointDelta / sharedWallMidpointToleranceM) +
+                            (angleDelta / sharedWallAngleToleranceRadians) +
+                            (lengthDelta / sharedWallLengthToleranceM)
+                        return (score, candidate)
                     }
                     .compactMap { $0 }
                     .min(by: { $0.score < $1.score })
@@ -1008,7 +1012,7 @@ private struct ReviewWallModel: Identifiable {
 
     var id: Int { index }
 
-    var shortLabel: String {
+    var chipLabel: String {
         if let relatedRoomName {
             return relatedRoomName
         }
