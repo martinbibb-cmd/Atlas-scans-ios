@@ -1809,7 +1809,7 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         self.hitNormal = hitNormal
         self.anchorId = anchorId
         self.worldTransform = worldTransform
-        self.reviewStatus = anchorConfidence == .screenOnly ? .needsReview : .confirmed
+        self.reviewStatus = .needsReview
         self.surfaceSemantic = worldPosition != nil
             ? SurfaceSemanticV1.derived(fromHitNormal: hitNormal)
             : nil
