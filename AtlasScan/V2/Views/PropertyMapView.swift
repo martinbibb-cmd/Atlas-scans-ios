@@ -75,9 +75,24 @@ struct PropertyMapView: View {
     }
 
     private var roomList: some View {
-        List(coordinator.session.rooms) { room in
-            NavigationLink(destination: VanModeView(room: room, coordinator: coordinator)) {
-                roomRow(room)
+        List {
+            Section("Stitched Property Plan") {
+                if coordinator.session.rooms.isEmpty {
+                    Text("No rooms captured yet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    StitchedPropertyMapPreview(rooms: coordinator.session.rooms)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            Section("Rooms") {
+                ForEach(coordinator.session.rooms) { room in
+                    NavigationLink(destination: VanModeView(room: room, coordinator: coordinator)) {
+                        roomRow(room)
+                    }
+                }
             }
         }
     }
@@ -102,6 +117,12 @@ struct PropertyMapView: View {
                     Text("Room outline incomplete")
                         .font(.caption)
                         .foregroundStyle(.orange)
+                }
+                if let review = room.incomingConnectionReview {
+                    let statusSuffix = review.status == .needsReview ? " · needs review" : ""
+                    Text("\(review.note)\(statusSuffix)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(review.status == .needsReview ? .orange : .secondary)
                 }
             }
         }
@@ -135,6 +156,101 @@ struct PropertyMapView: View {
 
     private var hasVisitReference: Bool {
         !(coordinator.session.visitReference?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
+}
+
+private struct StitchedPropertyMapPreview: View {
+    let rooms: [RoomCaptureV2]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let metrics = PropertyMapMetrics(rooms: rooms, size: geometry.size)
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.accentColor.opacity(0.06))
+
+                ForEach(Array(rooms.enumerated()), id: \.element.id) { index, room in
+                    let points = metrics.points(for: room.polygonVertices)
+                    if points.count >= 3 {
+                        Path { path in
+                            path.move(to: points[0])
+                            points.dropFirst().forEach { path.addLine(to: $0) }
+                            path.closeSubpath()
+                        }
+                        .fill(Color.accentColor.opacity(0.08 + Double(index % 3) * 0.04))
+                        .overlay(
+                            Path { path in
+                                path.move(to: points[0])
+                                points.dropFirst().forEach { path.addLine(to: $0) }
+                                path.closeSubpath()
+                            }
+                            .stroke(Color.accentColor.opacity(0.8), lineWidth: 1.5)
+                        )
+                    }
+
+                    let centroid = metrics.point(for: roomCentroid(room))
+                    Text(room.displayName)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color(.systemBackground).opacity(0.9), in: Capsule())
+                        .position(centroid)
+                }
+            }
+        }
+    }
+
+    private func roomCentroid(_ room: RoomCaptureV2) -> Vertex2D {
+        guard !room.polygonVertices.isEmpty else { return .init(x: 0, z: 0) }
+        let sum = room.polygonVertices.reduce((x: 0.0, z: 0.0)) { partial, vertex in
+            (partial.x + vertex.x, partial.z + vertex.z)
+        }
+        let count = Double(room.polygonVertices.count)
+        return Vertex2D(x: sum.x / count, z: sum.z / count)
+    }
+}
+
+private struct PropertyMapMetrics {
+    private static let inset: CGFloat = 18
+    let minX: Double
+    let minZ: Double
+    let scale: CGFloat
+    let offsetX: CGFloat
+    let offsetY: CGFloat
+    let contentHeight: CGFloat
+
+    init(rooms: [RoomCaptureV2], size: CGSize) {
+        let vertices = rooms.flatMap(\.polygonVertices)
+        let xs = vertices.map(\.x)
+        let zs = vertices.map(\.z)
+        let minX = xs.min() ?? 0
+        let maxX = xs.max() ?? 1
+        let minZ = zs.min() ?? 0
+        let maxZ = zs.max() ?? 1
+        let rangeX = max(maxX - minX, 0.001)
+        let rangeZ = max(maxZ - minZ, 0.001)
+        let availableWidth = max(size.width - Self.inset * 2, 1)
+        let availableHeight = max(size.height - Self.inset * 2, 1)
+        let scale = min(availableWidth / CGFloat(rangeX), availableHeight / CGFloat(rangeZ))
+        let contentWidth = CGFloat(rangeX) * scale
+        let contentHeight = CGFloat(rangeZ) * scale
+        self.minX = minX
+        self.minZ = minZ
+        self.scale = scale
+        self.offsetX = Self.inset + (availableWidth - contentWidth) / 2
+        self.offsetY = Self.inset + (availableHeight - contentHeight) / 2
+        self.contentHeight = contentHeight
+    }
+
+    func point(for vertex: Vertex2D) -> CGPoint {
+        CGPoint(
+            x: offsetX + CGFloat(vertex.x - minX) * scale,
+            y: offsetY + contentHeight - CGFloat(vertex.z - minZ) * scale
+        )
+    }
+
+    func points(for vertices: [Vertex2D]) -> [CGPoint] {
+        vertices.map(point(for:))
     }
 }
 

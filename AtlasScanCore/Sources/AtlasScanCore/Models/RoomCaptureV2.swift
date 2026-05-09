@@ -63,6 +63,9 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
     // ── Van-mode asset ───────────────────────────────────────────────────────
     /// Relative path under `Documents/captures/{visitId}/` to the .usdz mesh.
     public var usdzAssetPath: String?
+    /// Optional connection outcome from the previous room-to-room alignment step.
+    /// Stored so Property Map can surface when a connection needs manual review.
+    public var incomingConnectionReview: RoomConnectionReviewV1?
 
     // ── Timestamps ───────────────────────────────────────────────────────────
     public let capturedAt: Date
@@ -88,6 +91,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.customApplianceDefinitions = []
         self.measurements = []
         self.usdzAssetPath = nil
+        self.incomingConnectionReview = nil
         self.capturedAt = capturedAt
     }
 
@@ -98,7 +102,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         case rawCapturedCeilingHeightM, fabricCapture
         case pinnedObjects, ghostAppliancePlacements, customApplianceDefinitions
         case measurements
-        case usdzAssetPath, capturedAt
+        case usdzAssetPath, incomingConnectionReview, capturedAt
     }
 
     public init(from decoder: any Decoder) throws {
@@ -116,6 +120,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         // Backward-compat: measurements absent in records written before this field.
         measurements = try c.decodeIfPresent([SpatialMeasurementV1].self, forKey: .measurements) ?? []
         usdzAssetPath = try c.decodeIfPresent(String.self, forKey: .usdzAssetPath)
+        incomingConnectionReview = try c.decodeIfPresent(RoomConnectionReviewV1.self, forKey: .incomingConnectionReview)
         capturedAt = try c.decode(Date.self, forKey: .capturedAt)
     }
 
@@ -143,6 +148,37 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
                 fabric: fabricCapture?.segments[safe: i]?.fabric ?? .externalWall
             )
         }
+    }
+}
+
+public enum RoomConnectionReviewStatusV1: String, Codable, Sendable {
+    case attached
+    case sharedWallCandidate = "shared_wall_candidate"
+    case needsReview = "needs_review"
+}
+
+public struct RoomConnectionReviewV1: Codable, Sendable {
+    public let sourceRoomId: UUID
+    public let sourceWallIndex: Int
+    public let connectionKind: String
+    public let status: RoomConnectionReviewStatusV1
+    public let note: String
+    public let createdAt: Date
+
+    public init(
+        sourceRoomId: UUID,
+        sourceWallIndex: Int,
+        connectionKind: String,
+        status: RoomConnectionReviewStatusV1,
+        note: String,
+        createdAt: Date = Date()
+    ) {
+        self.sourceRoomId = sourceRoomId
+        self.sourceWallIndex = sourceWallIndex
+        self.connectionKind = connectionKind
+        self.status = status
+        self.note = note
+        self.createdAt = createdAt
     }
 }
 

@@ -21,6 +21,7 @@ struct VanModeView: View {
     private let sharedWallAngleToleranceRadians = 0.35
     private let sharedWallLengthToleranceM = 0.8
     private let maxPinToWallDistanceM = 0.9
+    private let noSharedWallMatchText = "No shared wall match yet"
     /// Rejects effectively zero-length walls before point-to-segment projection.
     private let minimumValidSegmentLengthSquared = 0.0001
 
@@ -177,23 +178,26 @@ struct VanModeView: View {
             let manualFabric = manualWallFabric(at: index)
             let displayedFabric = manualFabric ?? inferred.fabric
             let confidence: ReviewWallConfidence = {
-                if let manualFabric, manualFabric == .partyWall {
-                    return .manualException
+                if manualFabric != nil {
+                    return .userConfirmed
                 }
-                if let manualFabric, manualFabric != inferred.fabric {
-                    return .manualException
+                if !inferred.isConfident {
+                    return .needsReview
                 }
-                if inferred.isConfident {
+                if inferred.sharedRoomName != nil {
                     return .inferred
                 }
-                return .unconfirmed
+                return .confident
             }()
             let reason: String = {
-                if confidence == .manualException {
+                if confidence == .userConfirmed {
                     if displayedFabric == .partyWall {
                         return "Marked as party wall by user."
                     }
-                    return "Corrected from \(lowercasedWallFabricLabel(inferred.fabric))."
+                    if manualFabric != inferred.fabric {
+                        return "Corrected from \(lowercasedWallFabricLabel(inferred.fabric))."
+                    }
+                    return "Confirmed by user."
                 }
                 return inferred.reason
             }()
@@ -229,10 +233,22 @@ struct VanModeView: View {
     }
 
     private var nextRoomConnectionPrompt: String {
+        let preview = nextRoomAlignmentPreview
         guard let wall = selectedReviewWall else {
-            return "Choose how the next room connects."
+            return "Choose how the next room connects.\n\(preview)"
         }
-        return "Use “\(wall.label)” as the connection context for the next room."
+        return "Use “\(wall.label)” as the connection context for the next room.\n\(preview)"
+    }
+
+    private var nextRoomAlignmentPreview: String {
+        guard let wall = selectedReviewWall else { return noSharedWallMatchText }
+        if wall.confidence == .needsReview {
+            return noSharedWallMatchText
+        }
+        if wall.relatedRoomName != nil {
+            return "Shared wall candidate found"
+        }
+        return "Next room will attach to this wall"
     }
 
     private var fabricSection: some View {
@@ -295,7 +311,7 @@ struct VanModeView: View {
                         }
                     }
 
-                    if wall.displayedFabric != wall.inferredFabric || wall.confidence == .manualException {
+                    if wall.displayedFabric != wall.inferredFabric || wall.confidence == .userConfirmed {
                         Button("Use inferred \(wallFabricLabel(wall.inferredFabric))") {
                             setWallFabric(wall.inferredFabric, at: wall.index)
                         }
@@ -348,16 +364,27 @@ struct VanModeView: View {
         at index: Int,
         inferred: InferredWallState
     ) -> String {
+        if !inferred.isConfident {
+            return "Unconfirmed"
+        }
         if let sharedRoomName = inferred.sharedRoomName {
-            return "Shared with \(sharedRoomName)"
+            return "Internal — shared with \(sharedRoomName)"
         }
         if manualWallFabric(at: index) == .partyWall {
-            return "Party wall"
+            return "Party — user marked"
         }
-        if let nearbyPinLabel = nearestPinWallLabel(to: segment) {
+        let displayedFabric = manualWallFabric(at: index) ?? inferred.fabric
+        if let nearbyPinLabel = nearestPinWallLabel(to: segment), displayedFabric == .externalWall {
             return nearbyPinLabel
         }
-        return inferred.fabric == .externalWall ? "External boundary wall" : "Internal wall"
+        switch displayedFabric {
+        case .externalWall:
+            return "External"
+        case .internalWall:
+            return "Internal"
+        case .partyWall:
+            return "Party — user marked"
+        }
     }
 
     private func sharedWallMatch(
@@ -850,29 +877,34 @@ struct VanModeView: View {
     }
 
     private var reviewNavigationBar: some View {
-        HStack(spacing: 10) {
-            Button("Continue to Next Room") {
-                showNextRoomConnectionDialog = true
-            }
-            .buttonStyle(.borderedProminent)
-
-            Button("Property Map") {
-                if let onPropertyMap {
-                    onPropertyMap()
-                } else {
-                    dismiss()
+        VStack(alignment: .leading, spacing: 8) {
+            Text(nextRoomAlignmentPreview)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(nextRoomAlignmentPreview == noSharedWallMatchText ? .orange : .secondary)
+            HStack(spacing: 10) {
+                Button("Continue to Next Room") {
+                    showNextRoomConnectionDialog = true
                 }
-            }
-            .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
 
-            Button("Finish Visit") {
-                if let onFinishVisit {
-                    onFinishVisit()
-                } else {
-                    dismiss()
+                Button("Property Map") {
+                    if let onPropertyMap {
+                        onPropertyMap()
+                    } else {
+                        dismiss()
+                    }
                 }
+                .buttonStyle(.bordered)
+
+                Button("Finish Visit") {
+                    if let onFinishVisit {
+                        onFinishVisit()
+                    } else {
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
         }
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 12)
@@ -1030,6 +1062,13 @@ private struct ReviewWallModel: Identifiable {
         case .partyWall: return "Party"
         }
     }
+
+    var overlayLabel: String {
+        if confidence == .needsReview {
+            return "Unconfirmed"
+        }
+        return label
+    }
 }
 
 private struct InferredWallState {
@@ -1045,23 +1084,26 @@ private struct SharedWallMatch {
 }
 
 private enum ReviewWallConfidence: Equatable {
+    case confident
     case inferred
-    case manualException
-    case unconfirmed
+    case userConfirmed
+    case needsReview
 
     var badgeTitle: String {
         switch self {
-        case .inferred: return "Inferred"
-        case .manualException: return "Exception"
-        case .unconfirmed: return "Unconfirmed"
+        case .confident: return "confident"
+        case .inferred: return "inferred"
+        case .userConfirmed: return "user confirmed"
+        case .needsReview: return "needs review"
         }
     }
 
     var tint: Color {
         switch self {
+        case .confident: return .green
         case .inferred: return .blue
-        case .manualException: return .orange
-        case .unconfirmed: return .gray
+        case .userConfirmed: return .orange
+        case .needsReview: return .gray
         }
     }
 }
@@ -1074,6 +1116,9 @@ private struct WallPlanPin: Identifiable {
 }
 
 private struct WallFabricRoomPlan: View {
+    private let needsReviewDashPattern: [CGFloat] = [6, 5]
+    private let internalWallDashPattern: [CGFloat] = [10, 4]
+    private let partyWallDashPattern: [CGFloat] = [3, 4]
     let walls: [ReviewWallModel]
     let selectedWallIndex: Int?
     let pinMarkers: [WallPlanPin]
@@ -1105,11 +1150,8 @@ private struct WallFabricRoomPlan: View {
                         path.addLine(to: line.end)
                     }
                     .stroke(
-                        wall.index == selectedWallIndex ? Color.accentColor : wall.confidence.tint.opacity(0.7),
-                        style: StrokeStyle(
-                            lineWidth: wall.index == selectedWallIndex ? 10 : 6,
-                            lineCap: .round
-                        )
+                        wallStrokeColor(for: wall, isSelected: wall.index == selectedWallIndex),
+                        style: wallStrokeStyle(for: wall, isSelected: wall.index == selectedWallIndex)
                     )
                     .overlay {
                         Path { path in
@@ -1120,6 +1162,21 @@ private struct WallFabricRoomPlan: View {
                         .contentShape(Rectangle())
                         .onTapGesture { onSelectWall(wall.index) }
                     }
+
+                    let midpoint = CGPoint(
+                        x: (line.start.x + line.end.x) / 2,
+                        y: (line.start.y + line.end.y) / 2
+                    )
+                    Text(wall.overlayLabel)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color(.systemBackground).opacity(0.9), in: Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(wallStrokeColor(for: wall, isSelected: wall.index == selectedWallIndex).opacity(0.6), lineWidth: 1)
+                        )
+                        .position(midpoint)
                 }
 
                 ForEach(pinMarkers) { pin in
@@ -1132,6 +1189,35 @@ private struct WallFabricRoomPlan: View {
                         .position(point)
                 }
             }
+        }
+    }
+
+    private func wallStrokeColor(for wall: ReviewWallModel, isSelected: Bool) -> Color {
+        if wall.confidence == .needsReview {
+            return isSelected ? .orange : .gray
+        }
+        switch wall.displayedFabric {
+        case .externalWall:
+            return isSelected ? .indigo : .indigo.opacity(0.75)
+        case .internalWall:
+            return isSelected ? .green : .green.opacity(0.75)
+        case .partyWall:
+            return isSelected ? .orange : .orange.opacity(0.8)
+        }
+    }
+
+    private func wallStrokeStyle(for wall: ReviewWallModel, isSelected: Bool) -> StrokeStyle {
+        let width: CGFloat = isSelected ? 10 : 6
+        if wall.confidence == .needsReview {
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: needsReviewDashPattern)
+        }
+        switch wall.displayedFabric {
+        case .externalWall:
+            return StrokeStyle(lineWidth: width, lineCap: .round)
+        case .internalWall:
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: internalWallDashPattern)
+        case .partyWall:
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: partyWallDashPattern)
         }
     }
 }

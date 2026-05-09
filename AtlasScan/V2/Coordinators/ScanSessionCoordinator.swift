@@ -17,6 +17,9 @@ public final class ScanSessionCoordinator: ObservableObject {
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private let minimumRotationRadians = 0.0001
     private let minimumWallLengthForScoreM = 0.5
+    /// Alignment score where lower is better (`0` is ideal). Candidate walls must
+    /// score at or below this threshold to be treated as a valid connection.
+    private let maximumWallMatchScoreForAlignment = 0.95
     private var pendingSaveTask: Task<Void, Never>?
     private var pendingRoomConnectionHint: NextRoomConnectionHint?
 
@@ -189,17 +192,32 @@ public final class ScanSessionCoordinator: ObservableObject {
     private func resolvedPlacement(for room: RoomCaptureV2) -> RoomCaptureV2 {
         guard session.rooms.allSatisfy({ $0.id != room.id }) else { return room }
         guard !session.rooms.isEmpty else { return room }
+        var pendingRoom = room
 
         if let hint = pendingRoomConnectionHint,
-           let sourceRoom = session.rooms.first(where: { $0.id == hint.sourceRoomId }),
-           let connectedPlacement = connectedPlacement(for: room, sourceRoom: sourceRoom, hint: hint) {
+           let sourceRoom = session.rooms.first(where: { $0.id == hint.sourceRoomId }) {
             pendingRoomConnectionHint = nil
-            return connectedPlacement
+            if let connectedPlacement = connectedPlacement(for: pendingRoom, sourceRoom: sourceRoom, hint: hint) {
+                var connectedRoom = connectedPlacement
+                connectedRoom.incomingConnectionReview = connectionReview(
+                    from: hint,
+                    status: hint.kind == .throughOpening ? .sharedWallCandidate : .attached,
+                    note: hint.kind == .throughOpening
+                        ? "Shared wall candidate found"
+                        : "Next room will attach to this wall"
+                )
+                return connectedRoom
+            }
+            pendingRoom.incomingConnectionReview = connectionReview(
+                from: hint,
+                status: .needsReview,
+                note: "No shared wall match yet"
+            )
         }
 
         pendingRoomConnectionHint = nil
 
-        let roomBounds = bounds(for: room)
+        let roomBounds = bounds(for: pendingRoom)
         let existingBounds = combinedBounds(for: session.rooms)
         let needsOffset =
             roomBounds.minX < existingBounds.maxX + 0.1 &&
@@ -207,9 +225,9 @@ public final class ScanSessionCoordinator: ObservableObject {
             roomBounds.minZ < existingBounds.maxZ + 0.1 &&
             roomBounds.maxZ > existingBounds.minZ - 0.1
 
-        guard needsOffset else { return room }
+        guard needsOffset else { return pendingRoom }
         let dx = existingBounds.maxX - roomBounds.minX + 0.8
-        return translated(room, dx: dx, dz: 0)
+        return translated(pendingRoom, dx: dx, dz: 0)
     }
 
     private func translated(_ room: RoomCaptureV2, dx: Double, dz: Double) -> RoomCaptureV2 {
@@ -282,7 +300,12 @@ public final class ScanSessionCoordinator: ObservableObject {
         guard sourceWalls.indices.contains(hint.sourceWallIndex) else { return nil }
         let sourceWall = sourceWalls[hint.sourceWallIndex]
 
-        let candidateIndex = bestMatchingWallIndex(in: room, for: sourceWall)
+        guard let candidate = bestMatchingWallCandidate(in: room, for: sourceWall),
+              candidate.score <= maximumWallMatchScoreForAlignment
+        else {
+            return nil
+        }
+        let candidateIndex = candidate.index
         let candidateWall = room.wallSegments[candidateIndex]
         let sourceVector = wallVector(sourceWall)
         let candidateVector = wallVector(candidateWall)
@@ -299,16 +322,30 @@ public final class ScanSessionCoordinator: ObservableObject {
         return translated(rotatedRoom, dx: dx, dz: dz)
     }
 
-    private func bestMatchingWallIndex(in room: RoomCaptureV2, for sourceWall: WallSegmentV1) -> Int {
+    private func bestMatchingWallCandidate(in room: RoomCaptureV2, for sourceWall: WallSegmentV1) -> (index: Int, score: Double)? {
         let sourceLength = sourceWall.lengthM
         let sourceVector = wallVector(sourceWall)
         let desiredAngle = atan2(-sourceVector.dz, -sourceVector.dx)
 
-        return room.wallSegments.enumerated().min { lhs, rhs in
-            let lhsScore = wallMatchScore(lhs.element, targetLength: sourceLength, desiredAngle: desiredAngle)
-            let rhsScore = wallMatchScore(rhs.element, targetLength: sourceLength, desiredAngle: desiredAngle)
-            return lhsScore < rhsScore
-        }?.offset ?? 0
+        return room.wallSegments.enumerated().map { indexedWall in
+            (index: indexedWall.offset, score: wallMatchScore(indexedWall.element, targetLength: sourceLength, desiredAngle: desiredAngle))
+        }.min { lhs, rhs in
+            lhs.score < rhs.score
+        }
+    }
+
+    private func connectionReview(
+        from hint: NextRoomConnectionHint,
+        status: RoomConnectionReviewStatusV1,
+        note: String
+    ) -> RoomConnectionReviewV1 {
+        RoomConnectionReviewV1(
+            sourceRoomId: hint.sourceRoomId,
+            sourceWallIndex: hint.sourceWallIndex,
+            connectionKind: hint.kind.rawValue,
+            status: status,
+            note: note
+        )
     }
 
     private func wallMatchScore(
