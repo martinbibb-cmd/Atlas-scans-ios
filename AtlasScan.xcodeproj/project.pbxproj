@@ -176,6 +176,7 @@
 		AAV20011 /* V2RecentCaptureStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30011 /* V2RecentCaptureStrip.swift */; };
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
 		AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30013 /* V2OffscreenPointerOverlay.swift */; };
+		AAV20018 /* V2DebugLifecycleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30018 /* V2DebugLifecycleOverlay.swift */; };
 		AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C01 /* EquipmentEvidenceGroupedView.swift */; };
 		AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C02 /* EquipmentEvidenceMapperTests.swift */; };
 /* End PBXBuildFile section */
@@ -361,6 +362,7 @@
 		AAV30017 /* V2IdentifiableDedupe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2IdentifiableDedupe.swift; sourceTree = "<group>"; };
 		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
 		AAV30013 /* V2OffscreenPointerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OffscreenPointerOverlay.swift; sourceTree = "<group>"; };
+		AAV30018 /* V2DebugLifecycleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2DebugLifecycleOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -814,6 +816,7 @@
 				AAV3000F /* V2RoomLoopView.swift */,
 				AAV30011 /* V2RecentCaptureStrip.swift */,
 				AAV30013 /* V2OffscreenPointerOverlay.swift */,
+				AAV30018 /* V2DebugLifecycleOverlay.swift */,
 				AAV30015 /* V2PostScanRoomReviewView.swift */,
 				AAV30016 /* V2FinishVisitView.swift */,
 				AAV30017 /* V2IdentifiableDedupe.swift */,
@@ -1145,6 +1148,7 @@
 				AAV20017 /* V2IdentifiableDedupe.swift in Sources */,
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
+				AAV20018 /* V2DebugLifecycleOverlay.swift in Sources */,
 				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

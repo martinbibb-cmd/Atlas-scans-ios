@@ -963,6 +963,7 @@ private struct LiveSpatialCaptureView: View {
             }
             .presentationDetents([.height(260)])
         }
+        .v2DebugLifecycleOverlay()
     }
 
     // MARK: - Photo save
