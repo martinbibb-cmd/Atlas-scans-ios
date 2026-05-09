@@ -631,6 +631,13 @@ private struct LiveSpatialCaptureView: View {
     private let maxRecentModelCount = 6
     private let maxVisibleOffscreenPointers = 5
     private let normalizedScreenCenter = 0.5
+    private let noisyMeasurementThresholdMeters = 0.03
+    private let ghostSurfaceConflictThresholdMeters = 0.05
+    /// Classifies a measurement as axis-dominant when one component exceeds
+    /// the other by this ratio (e.g. vertical vs horizontal).
+    private let axisDominanceRatio = 1.2
+    private let accurateMeasurementQualityMessage = "Accurate (2 anchored points)"
+    private let estimatedMeasurementQualityMessage = "Estimated (room-note estimate)"
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -684,10 +691,12 @@ private struct LiveSpatialCaptureView: View {
     @State private var showCapturePointMenu = false
     @State private var showRoomNoteOnlyPrompt = false
     @State private var lastCaptureProbeDiagnostics: CaptureProbeDiagnosticsV1?
+    @State private var lastMeasurement: SpatialMeasurementV1?
     @State private var showMeasurementFeedback = false
     @State private var showObjectPicker = false
     @State private var showGhostAppliancePicker = false
     @State private var showPlacementPlanePicker = false
+    @State private var selectedGhostPlacementPlane: GhostPlacementPlaneV1 = .wall
     @State private var selectedGhostApplianceDefinition: GhostApplianceCandidate?
     @State private var showPhotoPicker = false
     @State private var showVoiceRecorder = false
@@ -756,8 +765,19 @@ private struct LiveSpatialCaptureView: View {
                                     isAnchorLost: isAnchorLost(for: pendingCapturePoint)
                                 )
                             }
+                            if let diagnostics = lastCaptureProbeDiagnostics {
+                                ProbeCaptureStatusBadge(
+                                    diagnostics: diagnostics,
+                                    pendingPoint: pendingCapturePoint
+                                )
+                            }
                             if measurementStartPoint != nil {
                                 MeasurementInProgressBadge()
+                            }
+                            if let lastMeasurement {
+                                MeasurementResultBadge(
+                                    summary: measurementSummary(for: lastMeasurement)
+                                )
                             }
                             if !pendingPinsLocal.isEmpty {
                                 PinsCountBadge(count: pendingPinsLocal.count)
@@ -806,7 +826,8 @@ private struct LiveSpatialCaptureView: View {
 
                 if let ghostPreview {
                     GhostPlacementOverlay(
-                        preview: ghostPreview
+                        preview: ghostPreview,
+                        clearanceState: ghostClearanceState(for: ghostPreview)
                     )
                     .zIndex(hudOverlayLayer + 5)
                 }
@@ -836,8 +857,13 @@ private struct LiveSpatialCaptureView: View {
             if let ghostPreview {
                 GhostPreviewActionBar(
                     title: ghostPreview.displayName,
+                    selectedPlane: selectedGhostPlacementPlane,
                     onConfirm: confirmGhostPreview,
                     onAdjust: { showPlacementPlanePicker = true },
+                    onSelectPlane: { plane in
+                        selectedGhostPlacementPlane = plane
+                        stageGhostPreview(on: plane)
+                    },
                     onChangeAppliance: {
                         self.ghostPreview = nil
                         selectedGhostApplianceDefinition = nil
@@ -916,6 +942,7 @@ private struct LiveSpatialCaptureView: View {
                 recentModelIds: recentGhostModelIds
             ) { selected in
                 selectedGhostApplianceDefinition = selected
+                selectedGhostPlacementPlane = .wall
                 showGhostAppliancePicker = false
                 showPlacementPlanePicker = true
             } onCustomDefinitionCreated: { definition in
@@ -927,8 +954,14 @@ private struct LiveSpatialCaptureView: View {
             isPresented: $showPlacementPlanePicker,
             titleVisibility: .visible
         ) {
-            Button("Wall mounted") { stageGhostPreview(on: .wall) }
-            Button("Floor standing") { stageGhostPreview(on: .floor) }
+            Button("Wall mounted") {
+                selectedGhostPlacementPlane = .wall
+                stageGhostPreview(on: .wall)
+            }
+            Button("Floor standing") {
+                selectedGhostPlacementPlane = .floor
+                stageGhostPreview(on: .floor)
+            }
             Button("Cancel", role: .cancel) {}
         }
         .fullScreenCover(isPresented: $showPhotoPicker) {
@@ -1052,17 +1085,24 @@ private struct LiveSpatialCaptureView: View {
                 endSurfaceSemantic: pendingCapturePoint.surfaceSemantic ?? .unknown,
                 anchorConfidence: confidence
             )
+            if bothAnchored, measurement.distanceMeters < noisyMeasurementThresholdMeters {
+                measurementFeedback = "Measurement not saved - distance fell below the stability threshold. Adjust your position and retake."
+                showMeasurementFeedback = true
+                return
+            }
             pendingMeasurementsLocal.append(measurement)
             onMeasurementAdded(measurement)
             recentCaptures.append(RecentCaptureItemV1.from(measurement: measurement))
+            lastMeasurement = measurement
             if bothAnchored {
                 let vSign = measurement.verticalOffsetMeters >= 0 ? "▲" : "▼"
                 let vText = abs(measurement.verticalOffsetMeters) >= 0.01
                     ? " · \(vSign)\(String(format: "%.2f m", abs(measurement.verticalOffsetMeters)))"
                     : ""
-                measurementFeedback = String(format: "Measured %.2f m%@", measurement.distanceMeters, vText)
+                let axis = measurementSummary(for: measurement).axisLabel
+                measurementFeedback = String(format: "Measured %.2f m%@ · %@ alignment", measurement.distanceMeters, vText, axis)
             } else {
-                measurementFeedback = "Measurement saved — one or both points are room-note-only and not spatially anchored."
+                measurementFeedback = "Measurement saved as room-note estimate - capture two anchored points for accurate measurement."
             }
             showMeasurementFeedback = true
             return
@@ -1070,6 +1110,38 @@ private struct LiveSpatialCaptureView: View {
         measurementStartPoint = pendingCapturePoint
         measurementFeedback = "Measurement start set. Tap centre reticle to capture the end point, then select Measure space again."
         showMeasurementFeedback = true
+    }
+
+    private func measurementSummary(for measurement: SpatialMeasurementV1) -> MeasurementResultSummary {
+        let horizontal = measurement.horizontalDistanceMeters
+        let vertical = abs(measurement.verticalOffsetMeters)
+        let axis: MeasurementAxisClassification
+        if measurement.distanceMeters < noisyMeasurementThresholdMeters {
+            axis = .unclassified
+        } else if vertical >= (horizontal * axisDominanceRatio) {
+            axis = .vertical
+        } else if horizontal >= (vertical * axisDominanceRatio) {
+            axis = .horizontal
+        } else {
+            axis = .depth
+        }
+        let isAccurate = measurement.anchorConfidence != .screenOnly
+        return MeasurementResultSummary(
+            distanceText: String(format: "%.2f m", measurement.distanceMeters),
+            axisLabel: axis.displayName,
+            qualityText: isAccurate ? accurateMeasurementQualityMessage : estimatedMeasurementQualityMessage,
+            qualityColor: isAccurate ? .green : .orange
+        )
+    }
+
+    private func ghostClearanceState(for preview: GhostAppliancePreview) -> GhostPreviewClearanceState {
+        if preview.confidence == .screenOnly || preview.placementPlane == .unknown {
+            return .warning("Needs stable anchor")
+        }
+        if let hitDistance = lastCaptureProbeDiagnostics?.hitDistanceM, hitDistance < ghostSurfaceConflictThresholdMeters {
+            return .conflict("Too close to surface")
+        }
+        return .clear("Clearance envelope active")
     }
 
     private func lowerAnchorConfidence(
@@ -1093,6 +1165,7 @@ private struct LiveSpatialCaptureView: View {
     private func stageGhostPreview(on plane: GhostPlacementPlaneV1) {
         guard let capturePoint = pendingCapturePoint, let definition = selectedGhostApplianceDefinition else { return }
         let resolvedPlane = resolvedPlacementPlane(for: plane, capturePoint: capturePoint)
+        selectedGhostPlacementPlane = resolvedPlane
         let planeNormal = resolvedPlaneNormal(for: resolvedPlane, capturePoint: capturePoint)
         let world = resolvedGhostWorldPosition(
             for: definition.dimensionsMm,
@@ -1104,6 +1177,7 @@ private struct LiveSpatialCaptureView: View {
             templateId: definition.templateId,
             displayName: definition.displayTitle,
             dimensionsMm: definition.dimensionsMm,
+            clearanceOffsetsMm: definition.clearanceOffsetsMm,
             worldPosition: world,
             screenPoint: capturePoint.screenPoint,
             placementPlane: resolvedPlane,
@@ -1166,7 +1240,7 @@ private struct LiveSpatialCaptureView: View {
             objectCategory: preview.objectCategory,
             selectedTemplateId: preview.templateId,
             manualEntry: manualEntry,
-            anchorConfidence: .worldLocked,
+            anchorConfidence: preview.confidence,
             reviewStatus: .needsReview,
             provenance: .manualCapture
         )
@@ -1799,6 +1873,128 @@ private struct MeasurementInProgressBadge: View {
     }
 }
 
+private enum MeasurementAxisClassification {
+    case vertical
+    case horizontal
+    case depth
+    case unclassified
+
+    var displayName: String {
+        switch self {
+        case .vertical: return "Vertical"
+        case .horizontal: return "Horizontal"
+        case .depth: return "Depth"
+        case .unclassified: return "Unclassified"
+        }
+    }
+}
+
+private struct MeasurementResultSummary {
+    let distanceText: String
+    let axisLabel: String
+    let qualityText: String
+    let qualityColor: Color
+}
+
+private struct MeasurementResultBadge: View {
+    let summary: MeasurementResultSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Last: \(summary.distanceText) · \(summary.axisLabel)")
+                .font(.caption.weight(.semibold))
+            Text(summary.qualityText)
+                .font(.caption2)
+                .foregroundStyle(summary.qualityColor)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct ProbeCaptureStatusBadge: View {
+    let diagnostics: CaptureProbeDiagnosticsV1
+    let pendingPoint: LiveCapturePointV1?
+
+    private var normalizedTrackingState: String {
+        diagnostics.trackingState.lowercased()
+    }
+
+    private var isTrackingLimited: Bool {
+        normalizedTrackingState.hasPrefix("limited") || normalizedTrackingState == "notavailable"
+    }
+
+    private var formattedPlaneAlignment: String {
+        switch diagnostics.planeAlignment.lowercased() {
+        case "vertical": return "Vertical"
+        case "horizontal": return "Horizontal"
+        case "any": return "Any"
+        case "none": return "None"
+        default: return diagnostics.planeAlignment
+        }
+    }
+
+    private var statusColor: Color {
+        if pendingPoint?.anchorConfidence == .screenOnly { return .orange }
+        if isTrackingLimited { return .orange }
+        if diagnostics.resultType == .failed { return .red }
+        return .green
+    }
+
+    private var statusText: String {
+        if pendingPoint?.anchorConfidence == .screenOnly {
+            return "Room-note-only hit"
+        }
+        if diagnostics.resultType == .failed {
+            return "No stable hit"
+        }
+        if isTrackingLimited {
+            return "Tracking limited"
+        }
+        return "Stable hit"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(statusText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(statusColor)
+            Text("Alignment: \(formattedPlaneAlignment)")
+                .font(.caption2)
+                .foregroundStyle(.white)
+            Text("Tracking: \(diagnostics.trackingState)")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private enum GhostPreviewClearanceState {
+    case clear(String)
+    case warning(String)
+    case conflict(String)
+
+    var message: String {
+        switch self {
+        case .clear(let message), .warning(let message), .conflict(let message):
+            return message
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .clear: return .green
+        case .warning: return .orange
+        case .conflict: return .red
+        }
+    }
+}
+
 /// Draws a dashed guide line from the start measurement point to the screen centre.
 private struct MeasurementGuideLineOverlay: View {
     let startNormalized: CGPointCodable
@@ -1830,11 +2026,20 @@ private struct MeasurementGuideLineOverlay: View {
 
 private struct GhostPlacementOverlay: View {
     let preview: GhostAppliancePreview
+    let clearanceState: GhostPreviewClearanceState
 
-    private var overlaySize: CGSize {
+    private var footprintSize: CGSize {
         let width = max(CGFloat(preview.dimensionsMm.width) / 10, 50)
         let height = max(CGFloat(preview.dimensionsMm.height) / 10, 60)
         return CGSize(width: min(width, 180), height: min(height, 220))
+    }
+
+    private var clearanceSize: CGSize {
+        let expandedWidthMm = preview.dimensionsMm.width + preview.clearanceOffsetsMm.left + preview.clearanceOffsetsMm.right
+        let expandedHeightMm = preview.dimensionsMm.height + preview.clearanceOffsetsMm.top + preview.clearanceOffsetsMm.bottom
+        let width = max(CGFloat(expandedWidthMm) / 10, footprintSize.width + 8)
+        let height = max(CGFloat(expandedHeightMm) / 10, footprintSize.height + 8)
+        return CGSize(width: min(width, 230), height: min(height, 260))
     }
 
     private var needsReview: Bool {
@@ -1844,10 +2049,16 @@ private struct GhostPlacementOverlay: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.cyan.opacity(0.22))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.cyan.opacity(0.9), lineWidth: 2))
-                    .frame(width: overlaySize.width, height: overlaySize.height)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(clearanceState.color.opacity(0.16))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(clearanceState.color.opacity(0.9), lineWidth: 2))
+                        .frame(width: clearanceSize.width, height: clearanceSize.height)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.cyan.opacity(0.22))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.cyan.opacity(0.9), lineWidth: 2))
+                        .frame(width: footprintSize.width, height: footprintSize.height)
+                }
                 Text("Preview: \(preview.displayName)")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.white)
@@ -1856,6 +2067,16 @@ private struct GhostPlacementOverlay: View {
                 Text("\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height) × \(preview.dimensionsMm.depth) mm")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.9))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Clearance envelope")
+                    Text("Left \(preview.clearanceOffsetsMm.left) millimetres · Right \(preview.clearanceOffsetsMm.right) millimetres")
+                    Text("Top \(preview.clearanceOffsetsMm.top) millimetres · Bottom \(preview.clearanceOffsetsMm.bottom) millimetres")
+                }
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.86))
+                Text(clearanceState.message)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(clearanceState.color)
                 if needsReview {
                     Text("Needs review")
                         .font(.caption2.weight(.bold))
@@ -1882,8 +2103,10 @@ private struct GhostPlacementOverlay: View {
 
 private struct GhostPreviewActionBar: View {
     let title: String
+    let selectedPlane: GhostPlacementPlaneV1
     let onConfirm: () -> Void
     let onAdjust: () -> Void
+    let onSelectPlane: (GhostPlacementPlaneV1) -> Void
     let onChangeAppliance: () -> Void
     let onCancel: () -> Void
 
@@ -1892,6 +2115,10 @@ private struct GhostPreviewActionBar: View {
             Text("Preview: \(title)")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
+            HStack(spacing: 8) {
+                planeChip(label: "Wall", plane: .wall)
+                planeChip(label: "Floor", plane: .floor)
+            }
             HStack(spacing: 8) {
                 Button("Confirm placement", action: onConfirm)
                     .buttonStyle(.borderedProminent)
@@ -1907,6 +2134,19 @@ private struct GhostPreviewActionBar: View {
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 12)
+    }
+
+    private func planeChip(label: String, plane: GhostPlacementPlaneV1) -> some View {
+        let isActive = selectedPlane == plane
+        return Button(label) {
+            onSelectPlane(plane)
+        }
+        .font(.caption2.weight(.semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(isActive ? Color.green.opacity(0.85) : Color.white.opacity(0.12), in: Capsule())
+        .foregroundStyle(isActive ? .black : .white)
+        .buttonStyle(.plain)
     }
 }
 
@@ -2424,6 +2664,7 @@ private struct GhostAppliancePreview {
     let templateId: String?
     let displayName: String
     let dimensionsMm: GhostApplianceDimensionsMmV1
+    let clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1
     let worldPosition: SIMD3<Double>
     let screenPoint: CGPointCodable
     let placementPlane: GhostPlacementPlaneV1
