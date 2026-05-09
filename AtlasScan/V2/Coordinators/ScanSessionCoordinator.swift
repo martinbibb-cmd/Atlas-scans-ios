@@ -43,6 +43,9 @@ public final class ScanSessionCoordinator: ObservableObject {
             // Caller-specified visitId — load if session file exists, otherwise create fresh.
             if let loaded = try? store.load(visitId: visitId) {
                 self.session = loaded
+                // Fall back to .choosingNextStep if the persisted state string is missing or
+                // unrecognised — the user was in the middle of a visit, so choosing next step
+                // is the safest recovery point (session is already loaded and rooms are intact).
                 let rawState = UserDefaults.standard.string(forKey: Self.activeLifecycleStateKey) ?? ""
                 self.lifecycleState = VisitCaptureLifecycleState(rawValue: rawState) ?? .choosingNextStep
                 self.isResumingExistingSession = true
@@ -58,6 +61,9 @@ public final class ScanSessionCoordinator: ObservableObject {
         {
             // Resume an existing session recorded in UserDefaults.
             self.session = loaded
+            // Fall back to .choosingNextStep if the persisted state string is missing or
+            // unrecognised — the user was in the middle of a visit, so choosing next step
+            // is the safest recovery point (session is already loaded and rooms are intact).
             let rawState = UserDefaults.standard.string(forKey: Self.activeLifecycleStateKey) ?? ""
             self.lifecycleState = VisitCaptureLifecycleState(rawValue: rawState) ?? .choosingNextStep
             self.isResumingExistingSession = true

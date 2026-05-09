@@ -193,7 +193,7 @@ struct V2RoomLoopView: View {
             if let room = capturedRoom {
                 V2PostScanRoomReviewView(
                     capturedRoom: room,
-                    suggestedName: "Room \(coordinator.session.rooms.count + 1)",
+                    suggestedName: nextRoomSuggestedName,
                     pendingPinCount: pendingPins.count,
                     photoCount: coordinator.session.photos.filter { $0.roomId == room.id }.count,
                     voiceNoteCount: coordinator.session.voiceNotes.filter { $0.roomId == room.id }.count,
@@ -294,8 +294,7 @@ struct V2RoomLoopView: View {
 
     private func saveRoom(name: String) {
         guard var room = capturedRoom else { return }
-        let fallback = "Room \(coordinator.session.rooms.count + 1)"
-        room.displayName = name.isEmpty ? fallback : name
+        room.displayName = name.isEmpty ? nextRoomSuggestedName : name
         room.pinnedObjects = pendingPins
         room.ghostAppliancePlacements = pendingGhostPlacements
         room.customApplianceDefinitions = pendingCustomApplianceDefinitions
@@ -369,6 +368,12 @@ struct V2RoomLoopView: View {
     private var currentReviewRoom: RoomCaptureV2? {
         guard let roomId = postCaptureReview?.roomId else { return nil }
         return coordinator.room(withId: roomId)
+    }
+
+    /// Default name for the room currently being scanned, based on how many rooms
+    /// are already saved. Users can rename it from the post-scan review screen.
+    private var nextRoomSuggestedName: String {
+        "Room \(coordinator.session.rooms.count + 1)"
     }
 
     private var pinCountForReviewRoom: Int {
