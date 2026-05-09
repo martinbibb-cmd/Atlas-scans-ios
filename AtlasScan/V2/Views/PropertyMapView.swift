@@ -150,16 +150,20 @@ private struct V2VisitSetupSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Visit / Job reference") {
+                Section {
                     TextField("e.g. JOB-2026-001", text: $reference)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
+                } header: {
+                    Text("Visit / Job reference")
                 } footer: {
                     Text("Required before capture begins.")
                 }
-                Section("Customer / postcode label (optional)") {
+                Section {
                     TextField("e.g. Smith / SW1A", text: $label)
                         .autocorrectionDisabled()
+                } header: {
+                    Text("Customer / postcode label (optional)")
                 }
             }
             .navigationTitle("Start Visit")
