@@ -96,13 +96,12 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             ) {
                 candidates.append(raycastCandidate)
             }
-            if let query = frame.raycastQuery(from: samplePoint, allowing: .estimatedPlane, alignment: .any) {
-                if let featurePointCandidate = featurePointCandidate(from: query, frame: frame) {
-                    candidates.append(featurePointCandidate)
-                }
-                if let roomMeshCandidate = roomMeshCandidate(from: query) {
-                    candidates.append(roomMeshCandidate)
-                }
+            let query = frame.raycastQuery(from: samplePoint, allowing: .estimatedPlane, alignment: .any)
+            if let featurePointCandidate = featurePointCandidate(from: query, frame: frame) {
+                candidates.append(featurePointCandidate)
+            }
+            if let roomMeshCandidate = roomMeshCandidate(from: query) {
+                candidates.append(roomMeshCandidate)
             }
         }
 
@@ -289,7 +288,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         )
 
         for (target, type, rank) in plans {
-            guard let query = frame.raycastQuery(from: point, allowing: target, alignment: .any) else { continue }
+            let query = frame.raycastQuery(from: point, allowing: target, alignment: .any)
             guard let result = captureView.captureSession.arSession.raycast(query).first else { continue }
             let hit = SIMD3<Float>(
                 result.worldTransform.columns.3.x,
