@@ -239,6 +239,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private let normalLengthEpsilon: Float = 1e-4
     private let parallelNormalThreshold: Float = 0.95
     private let horizontalAlignmentThreshold: Float = 0.75
+    private let diagonalOffsetMultiplier: CGFloat = 0.7071
 
     private struct ProbeHitCandidate {
         let worldTransform: simd_float4x4
@@ -257,10 +258,10 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             CGPoint(x: -reticleToleranceRadiusPixels, y: 0),
             CGPoint(x: 0, y: reticleToleranceRadiusPixels),
             CGPoint(x: 0, y: -reticleToleranceRadiusPixels),
-            CGPoint(x: reticleToleranceRadiusPixels * 0.7, y: reticleToleranceRadiusPixels * 0.7),
-            CGPoint(x: -reticleToleranceRadiusPixels * 0.7, y: reticleToleranceRadiusPixels * 0.7),
-            CGPoint(x: reticleToleranceRadiusPixels * 0.7, y: -reticleToleranceRadiusPixels * 0.7),
-            CGPoint(x: -reticleToleranceRadiusPixels * 0.7, y: -reticleToleranceRadiusPixels * 0.7),
+            CGPoint(x: reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
+            CGPoint(x: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
+            CGPoint(x: reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
+            CGPoint(x: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
         ]
         return offsets.map { offset in
             CGPoint(
@@ -324,8 +325,11 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             let maxTolerance = max(featurePointToleranceMeters, along * featurePointToleranceDistanceMultiplier)
             guard lateral <= maxTolerance else { continue }
             if let current = best {
-                if lateral < current.lateral || (
-                    abs(lateral - current.lateral) < featurePointLateralTieBreakThreshold && along < current.along
+                if shouldReplaceFeatureCandidate(
+                    newLateral: lateral,
+                    newAlong: along,
+                    currentLateral: current.lateral,
+                    currentAlong: current.along
                 ) {
                     best = (point, along, lateral)
                 }
@@ -443,14 +447,25 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         abs(normal.y) >= horizontalAlignmentThreshold ? .horizontal : .vertical
     }
 
+    private func shouldReplaceFeatureCandidate(
+        newLateral: Float,
+        newAlong: Float,
+        currentLateral: Float,
+        currentAlong: Float
+    ) -> Bool {
+        newLateral < currentLateral || (
+            abs(newLateral - currentLateral) < featurePointLateralTieBreakThreshold && newAlong < currentAlong
+        )
+    }
+
     /// Selects the best hit candidate by confidence rank first, then distance.
     private func bestCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
-        candidates.sorted { lhs, rhs in
+        candidates.min { lhs, rhs in
             if lhs.confidenceRank != rhs.confidenceRank {
                 return lhs.confidenceRank > rhs.confidenceRank
             }
             return lhs.distanceMeters < rhs.distanceMeters
-        }.first
+        }
     }
 
     private func planeAlignmentDescription(_ alignment: ARRaycastQuery.TargetAlignment) -> String {
