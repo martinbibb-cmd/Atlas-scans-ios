@@ -637,7 +637,7 @@ private struct LiveSpatialCaptureView: View {
     /// the other by this ratio (e.g. vertical vs horizontal).
     private let axisDominanceRatio = 1.2
     private let accurateMeasurementQualityMessage = "Accurate (2 anchored points)"
-    private let estimatedMeasurementQualityMessage = "Estimated (room-note anchor)"
+    private let estimatedMeasurementQualityMessage = "Estimated (room-note estimate)"
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -1086,7 +1086,7 @@ private struct LiveSpatialCaptureView: View {
                 anchorConfidence: confidence
             )
             if bothAnchored, measurement.distanceMeters < noisyMeasurementThresholdMeters {
-                measurementFeedback = "Measurement not saved - distance fell below the stability threshold. Step back slightly and retake."
+                measurementFeedback = "Measurement not saved - distance fell below the stability threshold. Adjust your position and retake."
                 showMeasurementFeedback = true
                 return
             }
@@ -2074,10 +2074,6 @@ private struct GhostPlacementOverlay: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.86))
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    "Clearance envelope. Left \(preview.clearanceOffsetsMm.left) millimetres, right \(preview.clearanceOffsetsMm.right) millimetres, top \(preview.clearanceOffsetsMm.top) millimetres, bottom \(preview.clearanceOffsetsMm.bottom) millimetres."
-                )
                 Text(clearanceState.message)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(clearanceState.color)
