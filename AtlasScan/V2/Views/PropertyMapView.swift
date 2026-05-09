@@ -12,6 +12,7 @@ struct PropertyMapView: View {
     @State private var showOutdoorFlue = false
     @State private var pendingRecall: UUID?
     @State private var showVisitSetup = false
+    @State private var showDiscardConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -44,8 +45,20 @@ struct PropertyMapView: View {
             .sheet(isPresented: $showOutdoorFlue) {
                 V2OutdoorFlueModeView(coordinator: coordinator)
             }
+            .confirmationDialog(
+                "Discard active visit?",
+                isPresented: $showDiscardConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Discard Visit", role: .destructive) {
+                    coordinator.discardActiveSession()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("All captured rooms, evidence, and visit data will be permanently deleted.")
+            }
             .onAppear {
-                if !hasVisitReference {
+                if !hasVisitReference && !coordinator.isResumingExistingSession {
                     showVisitSetup = true
                 }
             }
@@ -54,8 +67,49 @@ struct PropertyMapView: View {
 
     // MARK: - Sub-views
 
+    private var resumeBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Visit in progress", systemImage: "clock.arrow.circlepath")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+            if let reference = coordinator.session.visitReference?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !reference.isEmpty {
+                Text("Ref: \(reference)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            let roomCount = coordinator.session.rooms.count
+            if roomCount > 0 {
+                Text("\(roomCount) room\(roomCount == 1 ? "" : "s") saved")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 10) {
+                Button("Resume Scanning") {
+                    showRoomCapture = true
+                }
+                .buttonStyle(.borderedProminent)
+                .font(.caption.weight(.semibold))
+
+                Button("Discard Visit", role: .destructive) {
+                    showDiscardConfirmation = true
+                }
+                .buttonStyle(.bordered)
+                .font(.caption.weight(.semibold))
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
+    }
+
     private var emptyState: some View {
         VStack(spacing: 20) {
+            if coordinator.isResumingExistingSession {
+                resumeBanner
+            }
             Image(systemName: "house.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(.secondary)
