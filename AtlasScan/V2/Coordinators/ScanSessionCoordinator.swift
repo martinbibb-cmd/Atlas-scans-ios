@@ -16,6 +16,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     /// still feeling immediate during live capture interactions.
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
     private let minimumRotationRadians = 0.0001
+    private let minimumWallLengthForScoreM = 0.5
     private var pendingSaveTask: Task<Void, Never>?
     private var pendingRoomConnectionHint: NextRoomConnectionHint?
 
@@ -325,21 +326,22 @@ public final class ScanSessionCoordinator: ObservableObject {
     ) -> Double {
         let vector = wallVector(wall)
         let angle = atan2(vector.dz, vector.dx)
-        let angleDelta = abs(v2SmallestAngleDifference(angle, desiredAngle))
-        let lengthDelta = abs(wall.lengthM - targetLength)
-        return lengthDelta + angleDelta
+        let normalizedAngleDelta = abs(v2SmallestAngleDifference(angle, desiredAngle)) / .pi
+        let normalizedLengthDelta = abs(wall.lengthM - targetLength) / max(targetLength, minimumWallLengthForScoreM)
+        return normalizedLengthDelta + normalizedAngleDelta
     }
 
     private func rotated(_ room: RoomCaptureV2, by angle: Double) -> RoomCaptureV2 {
         guard abs(angle) > minimumRotationRadians else { return room }
         let centre = roomCentroid(room)
+        let angleDegrees = degreesFromRadians(angle)
         var rotatedRoom = room
         rotatedRoom.polygonVertices = room.polygonVertices.map {
             rotate(vertex: $0, around: centre, by: angle)
         }
         rotatedRoom.pinnedObjects = room.pinnedObjects.map { rotate(pin: $0, around: centre, by: angle) }
         rotatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map {
-            rotate(placement: $0, around: centre, by: angle)
+            rotate(placement: $0, around: centre, by: angle, angleDegrees: angleDegrees)
         }
         rotatedRoom.measurements = room.measurements.map { rotate(measurement: $0, around: centre, by: angle) }
         return rotatedRoom
@@ -398,7 +400,8 @@ public final class ScanSessionCoordinator: ObservableObject {
     private func rotate(
         placement: GhostAppliancePlacementV1,
         around centre: Vertex2D,
-        by angle: Double
+        by angle: Double,
+        angleDegrees: Double
     ) -> GhostAppliancePlacementV1 {
         let rotated = rotate(x: placement.worldPositionX, z: placement.worldPositionZ, around: centre, by: angle)
         return GhostAppliancePlacementV1(
@@ -416,7 +419,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             worldPositionX: rotated.x,
             worldPositionY: placement.worldPositionY,
             worldPositionZ: rotated.z,
-            rotationYaw: normalizedDegrees(placement.rotationYaw + degreesFromRadians(angle)),
+            rotationYaw: normalizedDegrees(placement.rotationYaw + angleDegrees),
             dimensionsMm: placement.dimensionsMm,
             clearanceOffsetsMm: placement.clearanceOffsetsMm,
             anchorConfidence: placement.anchorConfidence,

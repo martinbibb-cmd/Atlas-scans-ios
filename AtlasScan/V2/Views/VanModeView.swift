@@ -421,7 +421,7 @@ struct VanModeView: View {
         case .electricalPanel: return "Consumer unit wall"
         case .gasmeter: return "Meter wall"
         case .nearbyOpening: return "Door wall"
-        case .other: return "Equipment wall"
+        case .other: return "Other equipment wall"
         }
     }
 
