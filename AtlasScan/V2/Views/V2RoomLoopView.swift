@@ -2297,6 +2297,19 @@ private struct V2PinPickerSheet: View {
     @State private var manualFlueOrientation = ""
     @State private var manualNotes = ""
 
+    private var hasLockedLocation: Bool { capturePoint != nil }
+
+    init(
+        roomId: UUID,
+        capturePoint: LiveCapturePointV1?,
+        onSave: @escaping (SpatialPinV1) -> Void
+    ) {
+        self.roomId = roomId
+        self.capturePoint = capturePoint
+        self.onSave = onSave
+        _selectedLocationContext = State(initialValue: V2PinnedObjectBuilder.defaultLocationContext(for: capturePoint))
+    }
+
     private enum BoilerType: String, CaseIterable, Identifiable {
         case combi
         case system
@@ -2447,9 +2460,19 @@ private struct V2PinPickerSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Location context") {
-                    Picker("Location", selection: $selectedLocationContext) {
-                        ForEach(PinPlacementLocationContext.allCases, id: \.self) { context in
-                            Text(contextLabel(context)).tag(context)
+                    if hasLockedLocation {
+                        LabeledContent("Location") {
+                            Label(selectedLocationContext.displayName, systemImage: "lock.fill")
+                                .foregroundStyle(.primary)
+                        }
+                        Text("Locked to the tapped location used to open this menu.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("Location", selection: $selectedLocationContext) {
+                            ForEach(PinPlacementLocationContext.allCases, id: \.self) { context in
+                                Text(context.displayName).tag(context)
+                            }
                         }
                     }
                 }
@@ -2476,9 +2499,7 @@ private struct V2PinPickerSheet: View {
                     componentSelectionSection("Emitters", options: Self.emitterItems)
                 }
                 Section("Review") {
-                    Text(capturePoint?.anchorConfidence == .screenOnly
-                         ? "Room note only — not spatially anchored."
-                         : "Placement anchored to room with confidence.")
+                    Text(reviewSummary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2571,44 +2592,33 @@ private struct V2PinPickerSheet: View {
         }
     }
 
-    private func contextLabel(_ context: PinPlacementLocationContext) -> String {
-        switch context {
-        case .wall: return "Wall"
-        case .floor: return "Floor"
-        case .ceiling: return "Ceiling"
-        case .cupboard: return "Cupboard"
-        case .airingCupboard: return "Airing cupboard"
-        case .externalWall: return "External wall"
-        case .unknownNeedsReview: return "Unknown — needs review"
+    private var reviewSummary: String {
+        let roomSummary = "Linked to the current room."
+        let locationSummary = "Location: \(selectedLocationContext.displayName)."
+        if capturePoint?.anchorConfidence == .screenOnly {
+            return "\(roomSummary) \(locationSummary) Room note only — not spatially anchored."
         }
+        if hasLockedLocation {
+            return "\(roomSummary) \(locationSummary) Spatially locked to the tapped location."
+        }
+        return "\(roomSummary) \(locationSummary)"
     }
 
     private func savePinAndDismiss() {
-        let worldPosition = capturePoint?.worldPosition
-        let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence ?? .screenOnly
-        let reviewStatus: SpatialPinReviewStatus = .needsReview
         let option = selectedOption()
         let manualEntry = selectedManualEntry()
         let title = customLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? option.title
             : customLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pin = SpatialPinV1(
+        let pin = V2PinnedObjectBuilder.makePin(
             roomId: roomId,
+            capturePoint: capturePoint,
             locationContext: selectedLocationContext,
-            capturePointId: capturePoint?.id,
-            anchorId: capturePoint?.anchorId,
-            worldTransform: capturePoint?.worldTransform,
-            positionX: worldPosition?.x ?? 0,
-            positionY: worldPosition?.y ?? 0,
-            positionZ: worldPosition?.z ?? 0,
             objectType: option.objectType,
             label: title,
             objectCategory: selectedCategory,
             selectedTemplateId: option.templateId,
-            manualEntry: manualEntry,
-            anchorConfidence: confidence,
-            reviewStatus: reviewStatus,
-            provenance: .manualCapture
+            manualEntry: manualEntry
         )
         onSave(pin)
         dismiss()
@@ -2657,6 +2667,47 @@ private struct V2PinPickerSheet: View {
 
     private func intValue(_ text: String) -> Int? {
         Int(text.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+}
+
+enum V2PinnedObjectBuilder {
+    static func defaultLocationContext(for capturePoint: LiveCapturePointV1?) -> PinPlacementLocationContext {
+        PinPlacementLocationContext.derived(from: capturePoint?.surfaceSemantic)
+    }
+
+    static func makePin(
+        roomId: UUID,
+        capturePoint: LiveCapturePointV1?,
+        locationContext: PinPlacementLocationContext,
+        objectType: PinnedObjectType,
+        label: String,
+        objectCategory: PinObjectCategoryV1,
+        selectedTemplateId: String?,
+        manualEntry: SpatialPinManualEntryV1?
+    ) -> SpatialPinV1 {
+        let worldPosition = capturePoint?.worldPosition
+        let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence ?? .screenOnly
+        return SpatialPinV1(
+            roomId: roomId,
+            locationContext: locationContext,
+            capturePointId: capturePoint?.id,
+            anchorId: capturePoint?.anchorId,
+            worldTransform: capturePoint?.worldTransform,
+            positionX: worldPosition?.x ?? 0,
+            positionY: worldPosition?.y ?? 0,
+            positionZ: worldPosition?.z ?? 0,
+            screenPositionX: capturePoint?.screenPoint.x,
+            screenPositionY: capturePoint?.screenPoint.y,
+            objectType: objectType,
+            label: label,
+            objectCategory: objectCategory,
+            selectedTemplateId: selectedTemplateId,
+            manualEntry: manualEntry,
+            anchorConfidence: confidence,
+            reviewStatus: .needsReview,
+            provenance: .manualCapture,
+            surfaceSemantic: capturePoint?.surfaceSemantic
+        )
     }
 }
 

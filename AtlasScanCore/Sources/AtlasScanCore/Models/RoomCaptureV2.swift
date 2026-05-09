@@ -627,6 +627,39 @@ public enum PinPlacementLocationContext: String, Codable, CaseIterable, Sendable
     case unknownNeedsReview = "unknown_needs_review"
 }
 
+public extension PinPlacementLocationContext {
+    var displayName: String {
+        switch self {
+        case .wall: return "Wall"
+        case .floor: return "Floor"
+        case .ceiling: return "Ceiling"
+        case .cupboard: return "Cupboard"
+        case .airingCupboard: return "Airing cupboard"
+        case .externalWall: return "External wall"
+        case .unknownNeedsReview: return "Unknown — needs review"
+        }
+    }
+
+    static func derived(from surfaceSemantic: SurfaceSemanticV1?) -> PinPlacementLocationContext {
+        switch surfaceSemantic {
+        case .externalWall:
+            return .externalWall
+        case .internalWall, .partyWall:
+            return .wall
+        case .floor:
+            return .floor
+        case .ceiling:
+            return .ceiling
+        case .cupboardSide, .cupboardBase, .worktop:
+            return .cupboard
+        case .utilitySpace:
+            return .airingCupboard
+        case .loftSpace, .unknown, .none:
+            return .unknownNeedsReview
+        }
+    }
+}
+
 public enum PinObjectCategoryV1: String, Codable, CaseIterable, Sendable {
     case heatSource = "heat_source"
     case hotWaterStorage = "hot_water_storage"

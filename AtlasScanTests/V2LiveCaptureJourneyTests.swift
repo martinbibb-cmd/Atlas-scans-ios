@@ -590,3 +590,56 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         XCTAssertTrue(pin.hasResolvedWorldAnchor,
                       "Anchor-backed pins at origin must still be treated as resolved world anchors.")
     }
+
+    func test_defaultLocationContext_usesCapturePointSurfaceSemantic() {
+        let capturePoint = LiveCapturePointV1(
+            roomId: UUID(),
+            screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+            worldPosition: SIMD3<Double>(1.0, 0.0, 2.0),
+            anchorConfidence: .worldLocked,
+            hitNormal: SIMD3<Double>(0, 1, 0)
+        )
+
+        XCTAssertEqual(V2PinnedObjectBuilder.defaultLocationContext(for: capturePoint), .floor)
+    }
+
+    func test_makePin_carriesTappedLocationMetadata() {
+        let roomId = UUID()
+        let anchorId = UUID()
+        let capturePoint = LiveCapturePointV1(
+            roomId: roomId,
+            screenPoint: CGPointCodable(x: 0.25, y: 0.75),
+            worldPosition: SIMD3<Double>(1.5, 0.0, 2.5),
+            anchorConfidence: .worldLocked,
+            hitNormal: SIMD3<Double>(0, 0, -1),
+            anchorId: anchorId,
+            worldTransform: WorldTransformV1(elements: [1, 0, 0, 0,
+                                                        0, 1, 0, 0,
+                                                        0, 0, 1, 0,
+                                                        1.5, 0, 2.5, 1])
+        )
+
+        let pin = V2PinnedObjectBuilder.makePin(
+            roomId: roomId,
+            capturePoint: capturePoint,
+            locationContext: .externalWall,
+            objectType: .boiler,
+            label: "Kitchen Boiler",
+            objectCategory: .heatSource,
+            selectedTemplateId: "template-1",
+            manualEntry: nil
+        )
+
+        XCTAssertEqual(pin.roomId, roomId)
+        XCTAssertEqual(pin.capturePointId, capturePoint.id)
+        XCTAssertEqual(pin.locationContext, .externalWall)
+        XCTAssertEqual(pin.anchorId, anchorId)
+        XCTAssertEqual(pin.positionX, 1.5)
+        XCTAssertEqual(pin.positionY, 0.0)
+        XCTAssertEqual(pin.positionZ, 2.5)
+        XCTAssertEqual(pin.screenPositionX, 0.25)
+        XCTAssertEqual(pin.screenPositionY, 0.75)
+        XCTAssertEqual(pin.anchorConfidence, .worldLocked)
+        XCTAssertEqual(pin.surfaceSemantic, .externalWall)
+    }
+}

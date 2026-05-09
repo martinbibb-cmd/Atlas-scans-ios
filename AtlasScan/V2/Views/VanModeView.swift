@@ -533,7 +533,7 @@ struct VanModeView: View {
                 evidenceRow(
                     icon: iconName(for: pin.objectType),
                     title: pin.label ?? pin.objectType.rawValue.capitalized,
-                    subtitle: pin.anchorConfidence == .screenOnly ? "Room note only — not spatially anchored" : nil,
+                    subtitle: pinSubtitle(for: pin),
                     needsReview: pin.anchorConfidence == .screenOnly,
                     onDelete: {
                         coordinator.deleteEvidenceItem(RecentCaptureItemV1.from(pin: pin))
@@ -684,6 +684,9 @@ struct VanModeView: View {
                     Image(systemName: iconName(for: pin.objectType))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pin.label ?? pin.objectType.rawValue.capitalized).font(.subheadline)
+                        Text("Location: \(pin.locationContext.displayName)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         if pin.anchorConfidence == .screenOnly {
                             Text("Room note only — not spatially anchored")
                                 .font(.caption2)
@@ -870,6 +873,14 @@ struct VanModeView: View {
         case .worldLocked: return "Anchor confidence: world locked"
         case .screenOnly: return "Anchor confidence: room-note-only (not spatially anchored)"
         }
+    }
+
+    private func pinSubtitle(for pin: SpatialPinV1) -> String {
+        let location = "Location: \(pin.locationContext.displayName)"
+        if pin.anchorConfidence == .screenOnly {
+            return "\(location) · Room note only — not spatially anchored"
+        }
+        return location
     }
 
     private func setWallFabric(_ fabric: WallFabric, at index: Int) {
