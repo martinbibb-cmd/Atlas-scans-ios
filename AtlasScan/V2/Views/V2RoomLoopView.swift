@@ -633,7 +633,11 @@ private struct LiveSpatialCaptureView: View {
     private let normalizedScreenCenter = 0.5
     private let noisyMeasurementThresholdMeters = 0.03
     private let ghostSurfaceConflictThresholdMeters = 0.05
+    /// Classifies a measurement as axis-dominant when one component exceeds
+    /// the other by this ratio (e.g. vertical vs horizontal).
     private let axisDominanceRatio = 1.2
+    private let accurateMeasurementQualityText = "Accurate (2 anchored points)"
+    private let estimatedMeasurementQualityText = "Estimated (room-note anchor)"
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -1114,9 +1118,9 @@ private struct LiveSpatialCaptureView: View {
         let axis: MeasurementAxisClassification
         if measurement.distanceMeters < noisyMeasurementThresholdMeters {
             axis = .unclassified
-        } else if vertical > (horizontal * axisDominanceRatio) {
+        } else if vertical >= (horizontal * axisDominanceRatio) {
             axis = .vertical
-        } else if horizontal > (vertical * axisDominanceRatio) {
+        } else if horizontal >= (vertical * axisDominanceRatio) {
             axis = .horizontal
         } else {
             axis = .depth
@@ -1125,7 +1129,7 @@ private struct LiveSpatialCaptureView: View {
         return MeasurementResultSummary(
             distanceText: String(format: "%.2f m", measurement.distanceMeters),
             axisLabel: axis.displayName,
-            qualityText: isAccurate ? "Accurate (2 anchored points)" : "Estimated (room-note anchor)",
+            qualityText: isAccurate ? accurateMeasurementQualityText : estimatedMeasurementQualityText,
             qualityColor: isAccurate ? .green : .orange
         )
     }
@@ -2070,6 +2074,10 @@ private struct GhostPlacementOverlay: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.86))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "Clearance envelope. Left \(preview.clearanceOffsetsMm.left) millimetres, right \(preview.clearanceOffsetsMm.right) millimetres, top \(preview.clearanceOffsetsMm.top) millimetres, bottom \(preview.clearanceOffsetsMm.bottom) millimetres."
+                )
                 Text(clearanceState.message)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(clearanceState.color)
