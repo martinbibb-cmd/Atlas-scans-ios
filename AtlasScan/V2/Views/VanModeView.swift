@@ -193,7 +193,7 @@ struct VanModeView: View {
                     if displayedFabric == .partyWall {
                         return "Marked as party wall by user."
                     }
-                    return "Corrected from \(wallFabricLabel(inferred.fabric).lowercased())."
+                    return "Corrected from \(lowercasedWallFabricLabel(inferred.fabric))."
                 }
                 return inferred.reason
             }()
@@ -982,6 +982,10 @@ struct VanModeView: View {
         case .internalWall: return "Internal Wall"
         case .partyWall: return "Party Wall"
         }
+    }
+
+    private func lowercasedWallFabricLabel(_ fabric: WallFabric) -> String {
+        wallFabricLabel(fabric).lowercased()
     }
 
     private func wallFabricSymbol(_ fabric: WallFabric) -> String {
