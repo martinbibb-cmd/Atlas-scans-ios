@@ -814,7 +814,7 @@ private struct LiveSpatialCaptureView: View {
                 pendingCapturePoint = nil
             }
         } message: {
-            Text("No spatial hit detected after plane, feature-point, and room-geometry checks. You can save this point as room-note-only.")
+            Text("Unable to anchor at this location. You can save this as a room note instead.")
         }
         .sheet(isPresented: $showObjectPicker) {
             V2PinPickerSheet(

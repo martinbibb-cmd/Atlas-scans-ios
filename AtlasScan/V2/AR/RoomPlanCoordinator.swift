@@ -106,7 +106,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             }
         }
 
-        guard let best = bestCandidate(from: candidates) else {
+        guard let best = selectPreferredCandidate(from: candidates) else {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
@@ -239,7 +239,17 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private let normalLengthEpsilon: Float = 1e-4
     private let parallelNormalThreshold: Float = 0.95
     private let horizontalAlignmentThreshold: Float = 0.75
-    private let diagonalOffsetMultiplier: CGFloat = 0.7071
+    private let reticleSamplePattern: [CGPoint] = [
+        CGPoint(x: 0, y: 0),
+        CGPoint(x: 1, y: 0),
+        CGPoint(x: -1, y: 0),
+        CGPoint(x: 0, y: 1),
+        CGPoint(x: 0, y: -1),
+        CGPoint(x: 0.7071, y: 0.7071),
+        CGPoint(x: -0.7071, y: 0.7071),
+        CGPoint(x: 0.7071, y: -0.7071),
+        CGPoint(x: -0.7071, y: -0.7071),
+    ]
 
     private struct ProbeHitCandidate {
         let worldTransform: simd_float4x4
@@ -252,22 +262,10 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     /// Samples a small 9-point screen-space pattern around the reticle center
     /// (center, cardinal, diagonals) to avoid requiring a pixel-perfect hit.
     private func reticleSamplePoints(around center: CGPoint, in bounds: CGRect) -> [CGPoint] {
-        let diagonalOffset = reticleToleranceRadiusPixels * diagonalOffsetMultiplier
-        let offsets: [CGPoint] = [
-            CGPoint(x: 0, y: 0),
-            CGPoint(x: reticleToleranceRadiusPixels, y: 0),
-            CGPoint(x: -reticleToleranceRadiusPixels, y: 0),
-            CGPoint(x: 0, y: reticleToleranceRadiusPixels),
-            CGPoint(x: 0, y: -reticleToleranceRadiusPixels),
-            CGPoint(x: diagonalOffset, y: diagonalOffset),
-            CGPoint(x: -diagonalOffset, y: diagonalOffset),
-            CGPoint(x: diagonalOffset, y: -diagonalOffset),
-            CGPoint(x: -diagonalOffset, y: -diagonalOffset),
-        ]
-        return offsets.map { offset in
+        return reticleSamplePattern.map { offset in
             CGPoint(
-                x: min(max(center.x + offset.x, bounds.minX), bounds.maxX),
-                y: min(max(center.y + offset.y, bounds.minY), bounds.maxY)
+                x: min(max(center.x + (offset.x * reticleToleranceRadiusPixels), bounds.minX), bounds.maxX),
+                y: min(max(center.y + (offset.y * reticleToleranceRadiusPixels), bounds.minY), bounds.maxY)
             )
         }
     }
@@ -418,6 +416,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
 
         let directionThickness = localDirection[thicknessAxis]
         guard abs(directionThickness) > rayDirectionEpsilon else { return nil }
+        // Solve the ray/plane equation in local space to find distance t.
         let t = -localOrigin[thicknessAxis] / directionThickness
         guard t > 0 else { return nil }
 
@@ -491,8 +490,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
     }
 
-    /// Selects the best hit candidate by confidence rank first, then distance.
-    private func bestCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
+    /// Selects the preferred hit candidate by confidence rank first, then distance.
+    private func selectPreferredCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
         candidates.max { lhs, rhs in
             if lhs.confidenceRank != rhs.confidenceRank {
                 return lhs.confidenceRank < rhs.confidenceRank
