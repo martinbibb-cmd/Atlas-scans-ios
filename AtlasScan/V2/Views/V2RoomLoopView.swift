@@ -2299,6 +2299,8 @@ private struct V2PinPickerSheet: View {
 
     private var hasLockedLocation: Bool { capturePoint != nil }
 
+    /// Seeds the picker from the active capture point so tapped equipment stays
+    /// linked to the same surface context that opened the menu.
     init(
         roomId: UUID,
         capturePoint: LiveCapturePointV1?,
@@ -2670,6 +2672,8 @@ private struct V2PinPickerSheet: View {
     }
 }
 
+/// Centralizes V2 object-pin creation so tapped capture-point metadata and
+/// derived location context are persisted consistently.
 enum V2PinnedObjectBuilder {
     static func defaultLocationContext(for capturePoint: LiveCapturePointV1?) -> PinPlacementLocationContext {
         PinPlacementLocationContext.derived(from: capturePoint?.surfaceSemantic)
