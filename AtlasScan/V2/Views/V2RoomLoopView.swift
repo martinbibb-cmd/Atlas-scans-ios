@@ -92,6 +92,7 @@ struct V2RoomLoopView: View {
                     onPhotoAdded: { coordinator.addPhoto($0) },
                     onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
                     onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true },
+                    onFinishVisit: { showFinishVisit = true },
                     onEvidenceDeleted: { item in
                         switch item.evidenceType {
                         case .objectPin:
@@ -660,6 +661,9 @@ private struct LiveSpatialCaptureView: View {
     let onPhotoAdded: (PhotoEvidenceV1) -> Void
     let onVoiceNoteAdded: (VoiceNoteV1) -> Void
     let onCaptureEndedWithoutRoom: () -> Void
+    /// Called when the engineer taps "Finish Visit" from the capture action menu.
+    /// The parent should present V2FinishVisitView.
+    let onFinishVisit: () -> Void
     /// Called when the engineer deletes an item from the evidence strip.
     /// The parent should remove pending pins/ghosts from its own state and
     /// route photo / voice-note deletions to the session coordinator.
@@ -870,6 +874,15 @@ private struct LiveSpatialCaptureView: View {
                     onPreviewAppliance: {
                         showGhostAppliancePicker = true
                         showCapturePointMenu = false
+                    },
+                    onNextRoom: {
+                        shouldStopCapture = true
+                        showCapturePointMenu = false
+                    },
+                    onFinishVisit: {
+                        shouldStopCapture = true
+                        showCapturePointMenu = false
+                        onFinishVisit()
                     },
                     onDismiss: { showCapturePointMenu = false }
                 )
@@ -1691,6 +1704,8 @@ private struct CaptureActionBubbleMenu: View {
     let onMeasure: () -> Void
     let onNote: () -> Void
     let onPreviewAppliance: () -> Void
+    let onNextRoom: () -> Void
+    let onFinishVisit: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -1704,6 +1719,10 @@ private struct CaptureActionBubbleMenu: View {
                 bubbleAction(title: "Measure", systemImage: "ruler.fill", action: onMeasure)
                 bubbleAction(title: "Note", systemImage: "note.text", action: onNote)
                 bubbleAction(title: "Preview", systemImage: "cube.transparent.fill", action: onPreviewAppliance)
+            }
+            HStack(spacing: 8) {
+                bubbleAction(title: "Next Room", systemImage: "arrow.right.circle.fill", action: onNextRoom)
+                bubbleAction(title: "Finish Visit", systemImage: "flag.checkered", action: onFinishVisit)
             }
             Button("Close", action: onDismiss)
                 .font(.caption.weight(.semibold))
