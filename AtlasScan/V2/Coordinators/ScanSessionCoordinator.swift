@@ -415,7 +415,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             worldPositionX: rotated.x,
             worldPositionY: placement.worldPositionY,
             worldPositionZ: rotated.z,
-            rotationYaw: placement.rotationYaw + angle * 180 / .pi,
+            rotationYaw: placement.rotationYaw + radiansToDegrees(angle),
             dimensionsMm: placement.dimensionsMm,
             clearanceOffsetsMm: placement.clearanceOffsetsMm,
             anchorConfidence: placement.anchorConfidence,
@@ -514,7 +514,12 @@ internal func v2WallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
 }
 
 internal func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
+    // Wrap the raw delta into [-π, π] so angles near the 0/2π seam compare correctly.
     let raw = fmod(lhs - rhs + .pi, 2 * .pi)
     let wrapped = raw < 0 ? raw + 2 * .pi : raw
     return wrapped - .pi
+}
+
+internal func radiansToDegrees(_ radians: Double) -> Double {
+    radians * 180 / .pi
 }

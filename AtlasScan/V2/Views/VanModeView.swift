@@ -21,7 +21,8 @@ struct VanModeView: View {
     private let sharedWallAngleToleranceRadians = 0.35
     private let sharedWallLengthToleranceM = 0.8
     private let maxPinToWallDistanceM = 0.9
-    private let minimumSegmentLengthSquared = 0.0001
+    /// Rejects effectively zero-length walls before point-to-segment projection.
+    private let minimumValidSegmentLengthSquared = 0.0001
 
     private var currentRoom: RoomCaptureV2 {
         coordinator.room(withId: room.id) ?? room
@@ -466,7 +467,7 @@ struct VanModeView: View {
         let dx = segment.endVertex.x - segment.startVertex.x
         let dz = segment.endVertex.z - segment.startVertex.z
         let lengthSquared = dx * dx + dz * dz
-        guard lengthSquared > minimumSegmentLengthSquared else { return distanceBetween(point, segment.startVertex) }
+        guard lengthSquared > minimumValidSegmentLengthSquared else { return distanceBetween(point, segment.startVertex) }
         let t = max(0, min(1, ((point.x - segment.startVertex.x) * dx + (point.z - segment.startVertex.z) * dz) / lengthSquared))
         let projection = Vertex2D(
             x: segment.startVertex.x + t * dx,
