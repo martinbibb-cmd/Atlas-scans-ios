@@ -363,7 +363,7 @@ struct VanModeView: View {
         for segment: WallSegmentV1,
         excludingRoomId roomId: UUID
     ) -> SharedWallMatch? {
-        let midpoint = wallMidpoint(segment)
+        let midpoint = v2WallMidpoint(segment)
         let angle = wallAngle(segment)
         let length = segment.lengthM
 
@@ -372,7 +372,7 @@ struct VanModeView: View {
             .compactMap { otherRoom -> SharedWallMatch? in
                 let match = otherRoom.wallSegments
                     .map { candidate -> (score: Double, candidate: WallSegmentV1)? in
-                        let midpointDelta = distanceBetween(midpoint, wallMidpoint(candidate))
+                        let midpointDelta = distanceBetween(midpoint, v2WallMidpoint(candidate))
                         let angleDelta = wallAlignmentDifference(angle, wallAngle(candidate))
                         let lengthDelta = abs(length - candidate.lengthM)
                         guard
@@ -445,27 +445,14 @@ struct VanModeView: View {
         }
     }
 
-    private func wallMidpoint(_ segment: WallSegmentV1) -> Vertex2D {
-        Vertex2D(
-            x: (segment.startVertex.x + segment.endVertex.x) / 2,
-            z: (segment.startVertex.z + segment.endVertex.z) / 2
-        )
-    }
-
     private func wallAngle(_ segment: WallSegmentV1) -> Double {
         atan2(segment.endVertex.z - segment.startVertex.z, segment.endVertex.x - segment.startVertex.x)
     }
 
-    private func smallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
-        let raw = fmod(lhs - rhs + .pi, 2 * .pi)
-        let wrapped = raw < 0 ? raw + 2 * .pi : raw
-        return wrapped - .pi
-    }
-
     private func wallAlignmentDifference(_ lhs: Double, _ rhs: Double) -> Double {
         min(
-            abs(smallestAngleDifference(lhs, rhs)),
-            abs(smallestAngleDifference(lhs, rhs + .pi))
+            abs(v2SmallestAngleDifference(lhs, rhs)),
+            abs(v2SmallestAngleDifference(lhs, rhs + .pi))
         )
     }
 

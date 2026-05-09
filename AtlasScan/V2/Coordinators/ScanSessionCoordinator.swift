@@ -298,8 +298,8 @@ public final class ScanSessionCoordinator: ObservableObject {
 
         let rotatedRoom = rotated(room, by: rotation)
         let rotatedWall = rotatedRoom.wallSegments[candidateIndex]
-        let rotatedMidpoint = wallMidpoint(rotatedWall)
-        let sourceMidpoint = wallMidpoint(sourceWall)
+        let rotatedMidpoint = v2WallMidpoint(rotatedWall)
+        let sourceMidpoint = v2WallMidpoint(sourceWall)
         let dx = sourceMidpoint.x - rotatedMidpoint.x
         let dz = sourceMidpoint.z - rotatedMidpoint.z
         return translated(rotatedRoom, dx: dx, dz: dz)
@@ -324,7 +324,7 @@ public final class ScanSessionCoordinator: ObservableObject {
     ) -> Double {
         let vector = wallVector(wall)
         let angle = atan2(vector.dz, vector.dx)
-        let angleDelta = smallestAngleDifference(angle, desiredAngle)
+        let angleDelta = abs(v2SmallestAngleDifference(angle, desiredAngle))
         let lengthDelta = abs(wall.lengthM - targetLength)
         return lengthDelta + angleDelta
     }
@@ -454,19 +454,6 @@ public final class ScanSessionCoordinator: ObservableObject {
         (wall.endVertex.x - wall.startVertex.x, wall.endVertex.z - wall.startVertex.z)
     }
 
-    private func wallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
-        Vertex2D(
-            x: (wall.startVertex.x + wall.endVertex.x) / 2,
-            z: (wall.startVertex.z + wall.endVertex.z) / 2
-        )
-    }
-
-    private func smallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
-        let raw = fmod(lhs - rhs + .pi, 2 * .pi)
-        let wrapped = raw < 0 ? raw + 2 * .pi : raw
-        return abs(wrapped - .pi)
-    }
-
     private func combinedBounds(for rooms: [RoomCaptureV2]) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {
         rooms.reduce((Double.greatestFiniteMagnitude, -Double.greatestFiniteMagnitude, Double.greatestFiniteMagnitude, -Double.greatestFiniteMagnitude)) { partial, room in
             let roomBounds = bounds(for: room)
@@ -517,4 +504,17 @@ private struct NextRoomConnectionHint: Sendable {
     let sourceRoomId: UUID
     let sourceWallIndex: Int
     let kind: NextRoomConnectionKind
+}
+
+func v2WallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
+    Vertex2D(
+        x: (wall.startVertex.x + wall.endVertex.x) / 2,
+        z: (wall.startVertex.z + wall.endVertex.z) / 2
+    )
+}
+
+func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
+    let raw = fmod(lhs - rhs + .pi, 2 * .pi)
+    let wrapped = raw < 0 ? raw + 2 * .pi : raw
+    return wrapped - .pi
 }
