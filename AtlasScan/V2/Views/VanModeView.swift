@@ -14,6 +14,8 @@ struct VanModeView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var placementBeingRefined: GhostAppliancePlacementV1?
+    @State private var selectedWallIndex = 0
+    @State private var showNextRoomConnectionDialog = false
 
     private var currentRoom: RoomCaptureV2 {
         coordinator.room(withId: room.id) ?? room
@@ -69,6 +71,24 @@ struct VanModeView: View {
         .safeAreaInset(edge: .bottom) {
             reviewNavigationBar
         }
+        .confirmationDialog(
+            "How does the next room connect?",
+            isPresented: $showNextRoomConnectionDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Through selected doorway / opening") {
+                continueToNextRoom(using: .throughOpening)
+            }
+            Button("Adjacent to selected wall") {
+                continueToNextRoom(using: .adjacentWall)
+            }
+            Button("Separate / unlinked room") {
+                continueToNextRoom(using: .separate)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(nextRoomConnectionPrompt)
+        }
     }
 
     private var roomOverview: some View {
@@ -82,16 +102,20 @@ struct VanModeView: View {
             }
             Text("Floor Plan").font(.headline)
             if currentRoom.hasClosedFloorPolygon {
-                V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
-                    .fill(Color.accentColor.opacity(0.12))
-                    .overlay(
-                        V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
-                            .stroke(Color.accentColor, lineWidth: 2)
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 200)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                WallFabricRoomPlan(
+                    walls: reviewWalls,
+                    selectedWallIndex: selectedReviewWall?.index,
+                    pinMarkers: wallPlanPins
+                ) { selectedIndex in
+                    selectedWallIndex = selectedIndex
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 220)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                Text("Tap a wall to inspect or correct it. Atlas infers most walls automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Room outline incomplete", systemImage: "exclamationmark.triangle.fill")
@@ -138,6 +162,315 @@ struct VanModeView: View {
                     .foregroundStyle(.orange)
             }
         }
+    }
+
+    private var reviewWalls: [ReviewWallModel] {
+        currentRoom.wallSegments.enumerated().map { index, segment in
+            let inferred = inferredWallState(for: segment, at: index)
+            let manualFabric = manualWallFabric(at: index)
+            let displayedFabric = manualFabric ?? inferred.fabric
+            let confidence: ReviewWallConfidence = {
+                if let manualFabric, manualFabric != inferred.fabric || manualFabric == .partyWall {
+                    return .manualException
+                }
+                if inferred.isConfident {
+                    return .inferred
+                }
+                return .unconfirmed
+            }()
+            let reason: String = {
+                if confidence == .manualException {
+                    if displayedFabric == .partyWall {
+                        return "Marked as party wall by user."
+                    }
+                    return "Corrected from \(wallFabricLabel(inferred.fabric).lowercased())."
+                }
+                return inferred.reason
+            }()
+            return ReviewWallModel(
+                index: index,
+                segment: segment,
+                displayedFabric: displayedFabric,
+                inferredFabric: inferred.fabric,
+                confidence: confidence,
+                label: contextualWallLabel(for: segment, at: index, inferred: inferred),
+                reason: reason,
+                relatedRoomName: inferred.sharedRoomName
+            )
+        }
+    }
+
+    private var selectedReviewWall: ReviewWallModel? {
+        let walls = reviewWalls
+        guard !walls.isEmpty else { return nil }
+        let safeIndex = walls.indices.contains(selectedWallIndex) ? selectedWallIndex : 0
+        return walls[safeIndex]
+    }
+
+    private var wallPlanPins: [WallPlanPin] {
+        currentRoom.pinnedObjects.compactMap { pin in
+            guard pin.hasResolvedWorldAnchor else { return nil }
+            return WallPlanPin(
+                position: Vertex2D(x: pin.positionX, z: pin.positionZ),
+                symbolName: iconName(for: pin.objectType),
+                tint: .orange
+            )
+        }
+    }
+
+    private var nextRoomConnectionPrompt: String {
+        guard let wall = selectedReviewWall else {
+            return "Choose how the next room connects."
+        }
+        return "Use “\(wall.label)” as the connection context for the next room."
+    }
+
+    private var fabricSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Wall Fabric").font(.headline)
+            if let wall = selectedReviewWall {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(reviewWalls) { candidate in
+                            Button {
+                                selectedWallIndex = candidate.index
+                            } label: {
+                                WallSelectorChip(
+                                    title: candidate.shortLabel,
+                                    subtitle: candidate.displayedFabricBadgeTitle,
+                                    isSelected: candidate.index == wall.index
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(wall.label)
+                                .font(.headline)
+                            Text(String(format: "%.2f m wall run", wall.segment.lengthM))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: wallFabricSymbol(wall.displayedFabric))
+                            .foregroundStyle(color(for: wall.displayedFabric))
+                    }
+
+                    HStack(spacing: 8) {
+                        WallInferenceBadge(title: wall.displayedFabricBadgeTitle, tint: color(for: wall.displayedFabric))
+                        WallInferenceBadge(title: wall.confidence.badgeTitle, tint: wall.confidence.tint)
+                        if let relatedRoomName = wall.relatedRoomName {
+                            WallInferenceBadge(title: "Shared with \(relatedRoomName)", tint: .blue)
+                        }
+                    }
+
+                    Text(wall.reason)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        ForEach(WallFabric.allCases, id: \.self) { fabric in
+                            Button {
+                                setWallFabric(fabric, at: wall.index)
+                            } label: {
+                                Label(wallFabricLabel(fabric), systemImage: wallFabricSymbol(fabric))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(fabric == wall.displayedFabric ? color(for: fabric) : .gray)
+                        }
+                    }
+
+                    if wall.displayedFabric != wall.inferredFabric || wall.confidence == .manualException {
+                        Button("Use inferred \(wallFabricLabel(wall.inferredFabric))") {
+                            setWallFabric(wall.inferredFabric, at: wall.index)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding()
+                .background(Color(.tertiarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                Text("No wall segments captured")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func inferredWallState(for segment: WallSegmentV1, at index: Int) -> InferredWallState {
+        guard currentRoom.hasClosedFloorPolygon else {
+            return InferredWallState(
+                fabric: .externalWall,
+                reason: "Unconfirmed — needs review because the room outline is incomplete.",
+                sharedRoomName: nil,
+                isConfident: false
+            )
+        }
+
+        if let match = sharedWallMatch(for: segment, excludingRoomId: currentRoom.id) {
+            return InferredWallState(
+                fabric: .internalWall,
+                reason: "Shared with \(match.roomName).",
+                sharedRoomName: match.roomName,
+                isConfident: true
+            )
+        }
+
+        return InferredWallState(
+            fabric: .externalWall,
+            reason: "Outer boundary.",
+            sharedRoomName: nil,
+            isConfident: true
+        )
+    }
+
+    private func contextualWallLabel(
+        for segment: WallSegmentV1,
+        at index: Int,
+        inferred: InferredWallState
+    ) -> String {
+        if let sharedRoomName = inferred.sharedRoomName {
+            return "Shared with \(sharedRoomName)"
+        }
+        if manualWallFabric(at: index) == .partyWall {
+            return "Party wall"
+        }
+        if let nearbyPinLabel = nearestPinWallLabel(to: segment) {
+            return nearbyPinLabel
+        }
+        return inferred.fabric == .externalWall ? "External boundary wall" : "Internal wall"
+    }
+
+    private func sharedWallMatch(
+        for segment: WallSegmentV1,
+        excludingRoomId roomId: UUID
+    ) -> SharedWallMatch? {
+        let midpoint = wallMidpoint(segment)
+        let angle = wallAngle(segment)
+        let length = segment.lengthM
+
+        return coordinator.session.rooms
+            .filter { $0.id != roomId }
+            .compactMap { otherRoom -> SharedWallMatch? in
+                let match = otherRoom.wallSegments
+                    .map { candidate -> (score: Double, candidate: WallSegmentV1)? in
+                        let midpointDelta = distanceBetween(midpoint, wallMidpoint(candidate))
+                        let angleDelta = wallAlignmentDifference(angle, wallAngle(candidate))
+                        let lengthDelta = abs(length - candidate.lengthM)
+                        guard midpointDelta <= 0.45, angleDelta <= 0.35, lengthDelta <= 0.8 else { return nil }
+                        return (midpointDelta + lengthDelta + angleDelta, candidate)
+                    }
+                    .compactMap { $0 }
+                    .min(by: { $0.score < $1.score })
+                guard let match else { return nil }
+                return SharedWallMatch(roomName: otherRoom.displayName, score: match.score)
+            }
+            .min(by: { $0.score < $1.score })
+    }
+
+    private func nearestPinWallLabel(to segment: WallSegmentV1) -> String? {
+        let candidates = currentRoom.pinnedObjects.compactMap { pin -> (Double, String)? in
+            guard pin.hasResolvedWorldAnchor else { return nil }
+            let distance = distanceFromPoint(
+                Vertex2D(x: pin.positionX, z: pin.positionZ),
+                to: segment
+            )
+            guard distance <= 0.9 else { return nil }
+            return (distance, wallContextLabel(for: pin))
+        }
+        return candidates.min(by: { $0.0 < $1.0 })?.1
+    }
+
+    private func wallContextLabel(for pin: SpatialPinV1) -> String {
+        if let label = pin.label?.trimmingCharacters(in: .whitespacesAndNewlines), !label.isEmpty {
+            return "\(label) wall"
+        }
+        switch pin.objectType {
+        case .boiler, .heatPump: return "Boiler wall"
+        case .flueTerminal: return "Flue wall"
+        case .hotWaterCylinder: return "Cylinder wall"
+        case .electricalPanel: return "Consumer unit wall"
+        case .gasmeter: return "Meter wall"
+        case .nearbyOpening: return "Door wall"
+        case .other: return "Equipment wall"
+        }
+    }
+
+    private func manualWallFabric(at index: Int) -> WallFabric? {
+        currentRoom.fabricCapture?.segments[safe: index]?.fabric
+    }
+
+    private func color(for fabric: WallFabric) -> Color {
+        switch fabric {
+        case .externalWall: return .indigo
+        case .internalWall: return .green
+        case .partyWall: return .orange
+        }
+    }
+
+    private func continueToNextRoom(using kind: NextRoomConnectionKind) {
+        coordinator.prepareNextRoomConnection(
+            fromRoomId: currentRoom.id,
+            wallIndex: selectedReviewWall?.index,
+            kind: kind
+        )
+        if let onContinueScanning {
+            onContinueScanning()
+        } else {
+            dismiss()
+        }
+    }
+
+    private func wallMidpoint(_ segment: WallSegmentV1) -> Vertex2D {
+        Vertex2D(
+            x: (segment.startVertex.x + segment.endVertex.x) / 2,
+            z: (segment.startVertex.z + segment.endVertex.z) / 2
+        )
+    }
+
+    private func wallAngle(_ segment: WallSegmentV1) -> Double {
+        atan2(segment.endVertex.z - segment.startVertex.z, segment.endVertex.x - segment.startVertex.x)
+    }
+
+    private func smallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
+        let raw = fmod(lhs - rhs + .pi, 2 * .pi)
+        let wrapped = raw < 0 ? raw + 2 * .pi : raw
+        return wrapped - .pi
+    }
+
+    private func wallAlignmentDifference(_ lhs: Double, _ rhs: Double) -> Double {
+        min(
+            abs(smallestAngleDifference(lhs, rhs)),
+            abs(smallestAngleDifference(lhs, rhs + .pi))
+        )
+    }
+
+    private func distanceBetween(_ lhs: Vertex2D, _ rhs: Vertex2D) -> Double {
+        let dx = lhs.x - rhs.x
+        let dz = lhs.z - rhs.z
+        return sqrt(dx * dx + dz * dz)
+    }
+
+    private func distanceFromPoint(_ point: Vertex2D, to segment: WallSegmentV1) -> Double {
+        let dx = segment.endVertex.x - segment.startVertex.x
+        let dz = segment.endVertex.z - segment.startVertex.z
+        let lengthSquared = dx * dx + dz * dz
+        guard lengthSquared > 0.0001 else { return distanceBetween(point, segment.startVertex) }
+        let t = max(0, min(1, ((point.x - segment.startVertex.x) * dx + (point.z - segment.startVertex.z) * dz) / lengthSquared))
+        let projection = Vertex2D(
+            x: segment.startVertex.x + t * dx,
+            z: segment.startVertex.z + t * dz
+        )
+        return distanceBetween(point, projection)
     }
 
     // MARK: - Evidence by Capture Point
@@ -344,38 +677,6 @@ struct VanModeView: View {
         coordinator.session.voiceNotes.filter { $0.roomId == currentRoom.id }
     }
 
-    private var fabricSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Wall Fabric").font(.headline)
-            if currentRoom.wallSegments.isEmpty {
-                Text("No wall segments captured").foregroundStyle(.secondary).font(.subheadline)
-            } else {
-                ForEach(currentRoom.wallSegments.indices, id: \.self) { i in
-                    let seg = currentRoom.wallSegments[i]
-                    HStack {
-                        Text("Wall \(i + 1)").font(.subheadline)
-                        Spacer()
-                        Menu(wallFabricLabel(seg.fabric)) {
-                            ForEach(WallFabric.allCases, id: \.self) { fabric in
-                                Button {
-                                    setWallFabric(fabric, at: i)
-                                } label: {
-                                    Label(wallFabricLabel(fabric), systemImage: wallFabricSymbol(fabric))
-                                }
-                            }
-                        }
-                        .font(.caption)
-                    }
-                    .padding(.vertical, 4)
-                    if i < currentRoom.wallSegments.count - 1 { Divider() }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
     private var pinsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Pinned Objects (\(currentRoom.pinnedObjects.count))").font(.headline)
@@ -543,12 +844,8 @@ struct VanModeView: View {
 
     private var reviewNavigationBar: some View {
         HStack(spacing: 10) {
-            Button("Continue Scanning") {
-                if let onContinueScanning {
-                    onContinueScanning()
-                } else {
-                    dismiss()
-                }
+            Button("Continue to Next Room") {
+                showNextRoomConnectionDialog = true
             }
             .buttonStyle(.borderedProminent)
 
@@ -696,6 +993,227 @@ struct VanModeView: View {
     }
 }
 
+private struct ReviewWallModel: Identifiable {
+    let index: Int
+    let segment: WallSegmentV1
+    let displayedFabric: WallFabric
+    let inferredFabric: WallFabric
+    let confidence: ReviewWallConfidence
+    let label: String
+    let reason: String
+    let relatedRoomName: String?
+
+    var id: Int { index }
+
+    var shortLabel: String {
+        if let relatedRoomName {
+            return relatedRoomName
+        }
+        switch displayedFabric {
+        case .externalWall: return "External"
+        case .internalWall: return "Internal"
+        case .partyWall: return "Party"
+        }
+    }
+
+    var displayedFabricBadgeTitle: String {
+        switch displayedFabric {
+        case .externalWall: return "External"
+        case .internalWall: return "Internal"
+        case .partyWall: return "Party"
+        }
+    }
+}
+
+private struct InferredWallState {
+    let fabric: WallFabric
+    let reason: String
+    let sharedRoomName: String?
+    let isConfident: Bool
+}
+
+private struct SharedWallMatch {
+    let roomName: String
+    let score: Double
+}
+
+private enum ReviewWallConfidence: Equatable {
+    case inferred
+    case manualException
+    case unconfirmed
+
+    var badgeTitle: String {
+        switch self {
+        case .inferred: return "Inferred"
+        case .manualException: return "Exception"
+        case .unconfirmed: return "Unconfirmed"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .inferred: return .blue
+        case .manualException: return .orange
+        case .unconfirmed: return .gray
+        }
+    }
+}
+
+private struct WallPlanPin: Identifiable {
+    let id = UUID()
+    let position: Vertex2D
+    let symbolName: String
+    let tint: Color
+}
+
+private struct WallFabricRoomPlan: View {
+    let walls: [ReviewWallModel]
+    let selectedWallIndex: Int?
+    let pinMarkers: [WallPlanPin]
+    let onSelectWall: (Int) -> Void
+
+    init(
+        walls: [ReviewWallModel],
+        selectedWallIndex: Int?,
+        pinMarkers: [WallPlanPin],
+        onSelectWall: @escaping (Int) -> Void
+    ) {
+        self.walls = walls
+        self.selectedWallIndex = selectedWallIndex
+        self.pinMarkers = pinMarkers
+        self.onSelectWall = onSelectWall
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let metrics = WallPlanMetrics(walls: walls.map(\.segment), size: geometry.size)
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.accentColor.opacity(0.06))
+
+                ForEach(walls) { wall in
+                    let line = metrics.line(for: wall.segment)
+                    Path { path in
+                        path.move(to: line.start)
+                        path.addLine(to: line.end)
+                    }
+                    .stroke(
+                        wall.index == selectedWallIndex ? Color.accentColor : wall.confidence.tint.opacity(0.7),
+                        style: StrokeStyle(
+                            lineWidth: wall.index == selectedWallIndex ? 10 : 6,
+                            lineCap: .round
+                        )
+                    )
+                    .overlay {
+                        Path { path in
+                            path.move(to: line.start)
+                            path.addLine(to: line.end)
+                        }
+                        .stroke(.clear, style: StrokeStyle(lineWidth: 28, lineCap: .round))
+                        .contentShape(Rectangle())
+                        .onTapGesture { onSelectWall(wall.index) }
+                    }
+                }
+
+                ForEach(pinMarkers) { pin in
+                    let point = metrics.point(for: pin.position)
+                    Image(systemName: pin.symbolName)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(6)
+                        .background(pin.tint, in: Circle())
+                        .position(point)
+                }
+            }
+        }
+    }
+}
+
+private struct WallPlanMetrics {
+    let minX: Double
+    let minZ: Double
+    let scale: CGFloat
+    let offsetX: CGFloat
+    let offsetY: CGFloat
+    let contentHeight: CGFloat
+
+    init(walls: [WallSegmentV1], size: CGSize) {
+        let vertices = walls.flatMap { [$0.startVertex, $0.endVertex] }
+        let xs = vertices.map(\.x)
+        let zs = vertices.map(\.z)
+        let minX = xs.min() ?? 0
+        let maxX = xs.max() ?? 1
+        let minZ = zs.min() ?? 0
+        let maxZ = zs.max() ?? 1
+        let rangeX = max(maxX - minX, 0.001)
+        let rangeZ = max(maxZ - minZ, 0.001)
+        let inset: CGFloat = 24
+        let availableWidth = max(size.width - inset * 2, 1)
+        let availableHeight = max(size.height - inset * 2, 1)
+        let scale = min(availableWidth / CGFloat(rangeX), availableHeight / CGFloat(rangeZ))
+        let contentWidth = CGFloat(rangeX) * scale
+        let contentHeight = CGFloat(rangeZ) * scale
+
+        self.minX = minX
+        self.minZ = minZ
+        self.scale = scale
+        self.offsetX = inset + (availableWidth - contentWidth) / 2
+        self.offsetY = inset + (availableHeight - contentHeight) / 2
+        self.contentHeight = contentHeight
+    }
+
+    func point(for vertex: Vertex2D) -> CGPoint {
+        CGPoint(
+            x: offsetX + CGFloat(vertex.x - minX) * scale,
+            y: offsetY + contentHeight - CGFloat(vertex.z - minZ) * scale
+        )
+    }
+
+    func line(for segment: WallSegmentV1) -> (start: CGPoint, end: CGPoint) {
+        (point(for: segment.startVertex), point(for: segment.endVertex))
+    }
+}
+
+private struct WallSelectorChip: View {
+    let title: String
+    let subtitle: String
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+            Text(subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            isSelected ? Color.accentColor.opacity(0.15) : Color(.tertiarySystemBackground),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 1.5)
+        )
+    }
+}
+
+private struct WallInferenceBadge: View {
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.14), in: Capsule())
+            .foregroundStyle(tint)
+    }
+}
+
 // MARK: - CapturePointEvidenceGroup
 
 /// Groups all evidence for one capture point within a room, used by VanModeView.
@@ -731,6 +1249,13 @@ private extension GhostApplianceClearanceOffsetsMmV1 {
             .map { "\($0.0): \($0.1)mm" }
             .joined(separator: ", ")
         return "Clearance: \(summary)"
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
     }
 }
 
