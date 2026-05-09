@@ -503,8 +503,9 @@ private struct V2VisitReviewView: View {
 
             Section("Voice notes / transcripts") {
                 ForEach(voiceNotes) { note in
+                    let trimmedTranscript = note.processedTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(note.processedTranscript.isEmpty ? "Voice note (no transcript)" : note.processedTranscript)
+                        Text(trimmedTranscript.isEmpty ? "Voice note (no transcript)" : trimmedTranscript)
                             .font(.caption)
                             .lineLimit(3)
                             .truncationMode(.tail)
