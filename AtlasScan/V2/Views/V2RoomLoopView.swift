@@ -632,6 +632,7 @@ private struct LiveSpatialCaptureView: View {
     private let maxVisibleOffscreenPointers = 5
     private let normalizedScreenCenter = 0.5
     private let noisyMeasurementThresholdMeters = 0.03
+    private let ghostSurfaceConflictThresholdMeters = 0.05
     private let axisDominanceRatio = 1.2
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -1131,7 +1132,7 @@ private struct LiveSpatialCaptureView: View {
         if preview.confidence == .screenOnly || preview.placementPlane == .unknown {
             return .warning("Needs stable anchor")
         }
-        if let hitDistance = lastCaptureProbeDiagnostics?.hitDistanceM, hitDistance < 0.05 {
+        if let hitDistance = lastCaptureProbeDiagnostics?.hitDistanceM, hitDistance < ghostSurfaceConflictThresholdMeters {
             return .conflict("Too close to surface")
         }
         return .clear("Clearance envelope active")
@@ -1875,7 +1876,7 @@ private enum MeasurementAxisClassification {
         switch self {
         case .vertical: return "Vertical"
         case .horizontal: return "Horizontal"
-        case .depth: return "Depth"
+        case .depth: return "Depth/Diagonal"
         }
     }
 }
@@ -2040,7 +2041,7 @@ private struct GhostPlacementOverlay: View {
                 Text("\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height) × \(preview.dimensionsMm.depth) mm")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.9))
-                Text("Clearance envelope: \(preview.clearanceOffsetsMm.left)L/\(preview.clearanceOffsetsMm.right)R/\(preview.clearanceOffsetsMm.top)T/\(preview.clearanceOffsetsMm.bottom)B mm")
+                Text("Clearance envelope: Left \(preview.clearanceOffsetsMm.left) mm · Right \(preview.clearanceOffsetsMm.right) mm · Top \(preview.clearanceOffsetsMm.top) mm · Bottom \(preview.clearanceOffsetsMm.bottom) mm")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.86))
                 Text(clearanceState.message)
