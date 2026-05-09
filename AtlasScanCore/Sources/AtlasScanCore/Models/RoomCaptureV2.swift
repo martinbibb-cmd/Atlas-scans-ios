@@ -9,6 +9,10 @@
 
 import Foundation
 
+/// Serialized 4×4 world transform matrix for AR-anchored evidence.
+///
+/// `elements` is always normalized to exactly 16 values so older/newer payloads
+/// can decode safely while preserving a stable matrix shape.
 public struct WorldTransformV1: Codable, Equatable, Sendable {
     public let elements: [Double]
 

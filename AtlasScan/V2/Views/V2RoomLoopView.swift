@@ -455,7 +455,7 @@ private struct V2VisitReviewView: View {
                 ForEach(rooms) { room in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(room.displayName).font(.subheadline.weight(.semibold))
-                        Text("Pins \(room.pinnedObjects.count) · Photos \(photos.filter { $0.roomId == room.id }.count) · Voice \(voiceNotes.filter { $0.roomId == room.id }.count)")
+                        Text("Pins \(room.pinnedObjects.count) · Photos \(photoCountByRoomId[room.id, default: 0]) · Voice \(voiceNoteCountByRoomId[room.id, default: 0])")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -506,6 +506,8 @@ private struct V2VisitReviewView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(note.processedTranscript.isEmpty ? "Voice note (no transcript)" : note.processedTranscript)
                             .font(.caption)
+                            .lineLimit(3)
+                            .truncationMode(.tail)
                         Toggle("Include in customer report", isOn: binding(for: "voice-\(note.id.uuidString)"))
                             .font(.caption)
                     }
@@ -527,6 +529,14 @@ private struct V2VisitReviewView: View {
 
     private var allMeasurements: [SpatialMeasurementV1] {
         rooms.flatMap(\.measurements)
+    }
+
+    private var photoCountByRoomId: [UUID: Int] {
+        Dictionary(grouping: photos, by: \.roomId).mapValues(\.count)
+    }
+
+    private var voiceNoteCountByRoomId: [UUID: Int] {
+        Dictionary(grouping: voiceNotes, by: \.roomId).mapValues(\.count)
     }
 
     private var cleanedReference: String? {

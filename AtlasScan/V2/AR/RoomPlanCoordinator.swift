@@ -187,6 +187,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         frame: ARFrame,
         captureView: RoomCaptureView
     ) -> [ARRaycastResult] {
+        // Prefer confirmed plane geometry/infinite planes first so evidence
+        // locks to stable surfaces; fall back to estimated planes only when
+        // no confirmed plane hit is available.
         if let query = frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any) {
             let results = captureView.captureSession.arSession.raycast(query)
             if !results.isEmpty { return results }
