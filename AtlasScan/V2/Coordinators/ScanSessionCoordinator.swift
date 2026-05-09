@@ -15,7 +15,10 @@ public final class ScanSessionCoordinator: ObservableObject {
     /// 50ms debounce coalesces rapid evidence mutations into one write while
     /// still feeling immediate during live capture interactions.
     private let autoSaveDebounceNanoseconds: UInt64 = 50_000_000
+    private let minimumRotationRadians = 0.0001
+    private let minimumWallLengthForScoreM = 0.5
     private var pendingSaveTask: Task<Void, Never>?
+    private var pendingRoomConnectionHint: NextRoomConnectionHint?
 
     public init(
         visitId: UUID = UUID(),
@@ -155,6 +158,22 @@ public final class ScanSessionCoordinator: ObservableObject {
         session = recalled
     }
 
+    public func prepareNextRoomConnection(
+        fromRoomId: UUID,
+        wallIndex: Int?,
+        kind: NextRoomConnectionKind
+    ) {
+        guard kind != .separate, let wallIndex else {
+            pendingRoomConnectionHint = nil
+            return
+        }
+        pendingRoomConnectionHint = NextRoomConnectionHint(
+            sourceRoomId: fromRoomId,
+            sourceWallIndex: wallIndex,
+            kind: kind
+        )
+    }
+
     private func scheduleSave() {
         pendingSaveTask?.cancel()
         pendingSaveTask = Task { [autoSaveDebounceNanoseconds] in
@@ -170,6 +189,15 @@ public final class ScanSessionCoordinator: ObservableObject {
     private func resolvedPlacement(for room: RoomCaptureV2) -> RoomCaptureV2 {
         guard session.rooms.allSatisfy({ $0.id != room.id }) else { return room }
         guard !session.rooms.isEmpty else { return room }
+
+        if let hint = pendingRoomConnectionHint,
+           let sourceRoom = session.rooms.first(where: { $0.id == hint.sourceRoomId }),
+           let connectedPlacement = connectedPlacement(for: room, sourceRoom: sourceRoom, hint: hint) {
+            pendingRoomConnectionHint = nil
+            return connectedPlacement
+        }
+
+        pendingRoomConnectionHint = nil
 
         let roomBounds = bounds(for: room)
         let existingBounds = combinedBounds(for: session.rooms)
@@ -220,11 +248,218 @@ public final class ScanSessionCoordinator: ObservableObject {
         translatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map { placement in
             translated(placement, dx: dx, dz: dz)
         }
+        translatedRoom.measurements = room.measurements.map { translated($0, dx: dx, dz: dz) }
         return translatedRoom
     }
 
     private func translated(_ placement: GhostAppliancePlacementV1, dx: Double, dz: Double) -> GhostAppliancePlacementV1 {
         placement.translated(dx: dx, dz: dz)
+    }
+
+    private func translated(_ measurement: SpatialMeasurementV1, dx: Double, dz: Double) -> SpatialMeasurementV1 {
+        transformedMeasurement(
+            measurement,
+            start: SIMD3(
+                measurement.startWorldPosition.x + dx,
+                measurement.startWorldPosition.y,
+                measurement.startWorldPosition.z + dz
+            ),
+            end: SIMD3(
+                measurement.endWorldPosition.x + dx,
+                measurement.endWorldPosition.y,
+                measurement.endWorldPosition.z + dz
+            )
+        )
+    }
+
+    private func connectedPlacement(
+        for room: RoomCaptureV2,
+        sourceRoom: RoomCaptureV2,
+        hint: NextRoomConnectionHint
+    ) -> RoomCaptureV2? {
+        guard !room.wallSegments.isEmpty else { return nil }
+        let sourceWalls = sourceRoom.wallSegments
+        guard sourceWalls.indices.contains(hint.sourceWallIndex) else { return nil }
+        let sourceWall = sourceWalls[hint.sourceWallIndex]
+
+        let candidateIndex = bestMatchingWallIndex(in: room, for: sourceWall)
+        let candidateWall = room.wallSegments[candidateIndex]
+        let sourceVector = wallVector(sourceWall)
+        let candidateVector = wallVector(candidateWall)
+        let desiredAngle = atan2(-sourceVector.dz, -sourceVector.dx)
+        let candidateAngle = atan2(candidateVector.dz, candidateVector.dx)
+        let rotation = desiredAngle - candidateAngle
+
+        let rotatedRoom = rotated(room, by: rotation)
+        let rotatedWall = rotatedRoom.wallSegments[candidateIndex]
+        let rotatedMidpoint = v2WallMidpoint(rotatedWall)
+        let sourceMidpoint = v2WallMidpoint(sourceWall)
+        let dx = sourceMidpoint.x - rotatedMidpoint.x
+        let dz = sourceMidpoint.z - rotatedMidpoint.z
+        return translated(rotatedRoom, dx: dx, dz: dz)
+    }
+
+    private func bestMatchingWallIndex(in room: RoomCaptureV2, for sourceWall: WallSegmentV1) -> Int {
+        let sourceLength = sourceWall.lengthM
+        let sourceVector = wallVector(sourceWall)
+        let desiredAngle = atan2(-sourceVector.dz, -sourceVector.dx)
+
+        return room.wallSegments.enumerated().min { lhs, rhs in
+            let lhsScore = wallMatchScore(lhs.element, targetLength: sourceLength, desiredAngle: desiredAngle)
+            let rhsScore = wallMatchScore(rhs.element, targetLength: sourceLength, desiredAngle: desiredAngle)
+            return lhsScore < rhsScore
+        }?.offset ?? 0
+    }
+
+    private func wallMatchScore(
+        _ wall: WallSegmentV1,
+        targetLength: Double,
+        desiredAngle: Double
+    ) -> Double {
+        let vector = wallVector(wall)
+        let angle = atan2(vector.dz, vector.dx)
+        let normalizedAngleDelta = abs(v2SmallestAngleDifference(angle, desiredAngle)) / .pi
+        let normalizedLengthDelta = abs(wall.lengthM - targetLength) / max(targetLength, minimumWallLengthForScoreM)
+        return normalizedLengthDelta + normalizedAngleDelta
+    }
+
+    private func rotated(_ room: RoomCaptureV2, by angle: Double) -> RoomCaptureV2 {
+        guard abs(angle) > minimumRotationRadians else { return room }
+        let centre = roomCentroid(room)
+        let angleDegrees = degreesFromRadians(angle)
+        var rotatedRoom = room
+        rotatedRoom.polygonVertices = room.polygonVertices.map {
+            rotate(vertex: $0, around: centre, by: angle)
+        }
+        rotatedRoom.pinnedObjects = room.pinnedObjects.map { rotate(pin: $0, around: centre, by: angle) }
+        rotatedRoom.ghostAppliancePlacements = room.ghostAppliancePlacements.map {
+            rotate(placement: $0, around: centre, by: angle, angleDegrees: angleDegrees)
+        }
+        rotatedRoom.measurements = room.measurements.map { rotate(measurement: $0, around: centre, by: angle) }
+        return rotatedRoom
+    }
+
+    private func roomCentroid(_ room: RoomCaptureV2) -> Vertex2D {
+        guard !room.polygonVertices.isEmpty else { return Vertex2D(x: 0, z: 0) }
+        let sum = room.polygonVertices.reduce((x: 0.0, z: 0.0)) { partial, vertex in
+            (partial.x + vertex.x, partial.z + vertex.z)
+        }
+        let count = Double(room.polygonVertices.count)
+        return Vertex2D(x: sum.x / count, z: sum.z / count)
+    }
+
+    private func rotate(vertex: Vertex2D, around centre: Vertex2D, by angle: Double) -> Vertex2D {
+        let dx = vertex.x - centre.x
+        let dz = vertex.z - centre.z
+        let cosAngle = cos(angle)
+        let sinAngle = sin(angle)
+        return Vertex2D(
+            x: centre.x + (dx * cosAngle) - (dz * sinAngle),
+            z: centre.z + (dx * sinAngle) + (dz * cosAngle)
+        )
+    }
+
+    private func rotate(pin: SpatialPinV1, around centre: Vertex2D, by angle: Double) -> SpatialPinV1 {
+        let rotated = rotate(x: pin.positionX, z: pin.positionZ, around: centre, by: angle)
+        return SpatialPinV1(
+            id: pin.id,
+            roomId: pin.roomId,
+            visitId: pin.visitId,
+            externalAreaId: pin.externalAreaId,
+            locationContext: pin.locationContext,
+            capturePointId: pin.capturePointId,
+            anchorId: pin.anchorId,
+            worldTransform: pin.worldTransform,
+            positionX: rotated.x,
+            positionY: pin.positionY,
+            positionZ: rotated.z,
+            screenPositionX: pin.screenPositionX,
+            screenPositionY: pin.screenPositionY,
+            objectType: pin.objectType,
+            label: pin.label,
+            objectCategory: pin.objectCategory,
+            selectedTemplateId: pin.selectedTemplateId,
+            manualEntry: pin.manualEntry,
+            anchorConfidence: pin.anchorConfidence,
+            reviewStatus: pin.reviewStatus,
+            provenance: pin.provenance,
+            hardwareSpecId: pin.hardwareSpecId,
+            modelId: pin.modelId,
+            surfaceSemantic: pin.surfaceSemantic
+        )
+    }
+
+    private func rotate(
+        placement: GhostAppliancePlacementV1,
+        around centre: Vertex2D,
+        by angle: Double,
+        angleDegrees: Double
+    ) -> GhostAppliancePlacementV1 {
+        let rotated = rotate(x: placement.worldPositionX, z: placement.worldPositionZ, around: centre, by: angle)
+        return GhostAppliancePlacementV1(
+            id: placement.id,
+            roomId: placement.roomId,
+            capturePointId: placement.capturePointId,
+            applianceModelId: placement.applianceModelId,
+            customApplianceDefinitionId: placement.customApplianceDefinitionId,
+            screenPoint: placement.screenPoint,
+            placementPlane: placement.placementPlane,
+            surfaceSemantic: placement.surfaceSemantic,
+            planeNormalX: placement.planeNormalX,
+            planeNormalY: placement.planeNormalY,
+            planeNormalZ: placement.planeNormalZ,
+            worldPositionX: rotated.x,
+            worldPositionY: placement.worldPositionY,
+            worldPositionZ: rotated.z,
+            rotationYaw: normalizedDegrees(placement.rotationYaw + angleDegrees),
+            dimensionsMm: placement.dimensionsMm,
+            clearanceOffsetsMm: placement.clearanceOffsetsMm,
+            anchorConfidence: placement.anchorConfidence,
+            createdAt: placement.createdAt,
+            notes: placement.notes
+        )
+    }
+
+    private func rotate(
+        measurement: SpatialMeasurementV1,
+        around centre: Vertex2D,
+        by angle: Double
+    ) -> SpatialMeasurementV1 {
+        let start = rotate(x: measurement.startWorldPosition.x, z: measurement.startWorldPosition.z, around: centre, by: angle)
+        let end = rotate(x: measurement.endWorldPosition.x, z: measurement.endWorldPosition.z, around: centre, by: angle)
+        return transformedMeasurement(
+            measurement,
+            start: SIMD3(start.x, measurement.startWorldPosition.y, start.z),
+            end: SIMD3(end.x, measurement.endWorldPosition.y, end.z)
+        )
+    }
+
+    private func rotate(x: Double, z: Double, around centre: Vertex2D, by angle: Double) -> Vertex2D {
+        rotate(vertex: Vertex2D(x: x, z: z), around: centre, by: angle)
+    }
+
+    private func transformedMeasurement(
+        _ measurement: SpatialMeasurementV1,
+        start: SIMD3<Double>,
+        end: SIMD3<Double>
+    ) -> SpatialMeasurementV1 {
+        SpatialMeasurementV1(
+            id: measurement.id,
+            roomId: measurement.roomId,
+            startCapturePointId: measurement.startCapturePointId,
+            endCapturePointId: measurement.endCapturePointId,
+            startWorldPosition: start,
+            endWorldPosition: end,
+            startSurfaceSemantic: measurement.startSurfaceSemantic,
+            endSurfaceSemantic: measurement.endSurfaceSemantic,
+            anchorConfidence: measurement.anchorConfidence,
+            createdAt: measurement.createdAt,
+            notes: measurement.notes
+        )
+    }
+
+    private func wallVector(_ wall: WallSegmentV1) -> (dx: Double, dz: Double) {
+        (wall.endVertex.x - wall.startVertex.x, wall.endVertex.z - wall.startVertex.z)
     }
 
     private func combinedBounds(for rooms: [RoomCaptureV2]) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {
@@ -265,4 +500,40 @@ public final class ScanSessionCoordinator: ObservableObject {
             )
         )
     }
+}
+
+public enum NextRoomConnectionKind: String, Sendable {
+    case throughOpening
+    case adjacentWall
+    case separate
+}
+
+private struct NextRoomConnectionHint: Sendable {
+    let sourceRoomId: UUID
+    let sourceWallIndex: Int
+    let kind: NextRoomConnectionKind
+}
+
+internal func v2WallMidpoint(_ wall: WallSegmentV1) -> Vertex2D {
+    Vertex2D(
+        x: (wall.startVertex.x + wall.endVertex.x) / 2,
+        z: (wall.startVertex.z + wall.endVertex.z) / 2
+    )
+}
+
+internal func v2SmallestAngleDifference(_ lhs: Double, _ rhs: Double) -> Double {
+    // Wrap the raw delta into [-π, π] so angles near the 0/2π seam compare correctly.
+    let raw = fmod(lhs - rhs + .pi, 2 * .pi)
+    let wrapped = raw < 0 ? raw + 2 * .pi : raw
+    return wrapped - .pi
+}
+
+internal func degreesFromRadians(_ radians: Double) -> Double {
+    radians * 180 / .pi
+}
+
+internal func normalizedDegrees(_ degrees: Double) -> Double {
+    let fullCircleDegrees = 360.0
+    let wrapped = degrees.truncatingRemainder(dividingBy: fullCircleDegrees)
+    return wrapped < 0 ? wrapped + fullCircleDegrees : wrapped
 }
