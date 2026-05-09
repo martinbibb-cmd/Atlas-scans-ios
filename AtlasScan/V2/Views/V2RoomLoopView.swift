@@ -618,6 +618,7 @@ private struct LiveSpatialCaptureView: View {
     @State private var measurementFeedback = ""
     @State private var showCapturePointMenu = false
     @State private var showRoomNoteOnlyPrompt = false
+    @State private var lastCaptureProbeDiagnostics: CaptureProbeDiagnosticsV1?
     @State private var showMeasurementFeedback = false
     @State private var showObjectPicker = false
     @State private var showGhostAppliancePicker = false
@@ -702,6 +703,11 @@ private struct LiveSpatialCaptureView: View {
                             if !pendingMeasurementsLocal.isEmpty {
                                 MeasurementsCountBadge(count: pendingMeasurementsLocal.count)
                             }
+                            #if DEBUG
+                            if let lastCaptureProbeDiagnostics {
+                                CaptureProbeDiagnosticsBadge(diagnostics: lastCaptureProbeDiagnostics)
+                            }
+                            #endif
                         }
                         .zIndex(hudOverlayLayer)
                     }
@@ -808,7 +814,7 @@ private struct LiveSpatialCaptureView: View {
                 pendingCapturePoint = nil
             }
         } message: {
-            Text("No world anchor was found at the reticle. You can save this point explicitly as room-note-only.")
+            Text("No spatial hit detected after plane, feature-point, and room-geometry checks. You can save this point as room-note-only.")
         }
         .sheet(isPresented: $showObjectPicker) {
             V2PinPickerSheet(
@@ -896,8 +902,16 @@ private struct LiveSpatialCaptureView: View {
             anchorConfidence: .screenOnly,
             hitNormal: nil,
             anchorId: nil,
-            worldTransform: nil
+            worldTransform: nil,
+            debugDiagnostics: CaptureProbeDiagnosticsV1(
+                raycastAttempted: false,
+                resultType: .failed,
+                hitDistanceM: nil,
+                planeAlignment: "none",
+                trackingState: "unavailable"
+            )
         )
+        lastCaptureProbeDiagnostics = probe.debugDiagnostics
         let point = LiveCapturePointV1(
             roomId: prospectiveRoomId,
             screenPoint: probe.screenPoint,
@@ -1777,6 +1791,32 @@ private struct CapturePointStatusBadge: View {
     }
 }
 
+#if DEBUG
+private struct CaptureProbeDiagnosticsBadge: View {
+    let diagnostics: CaptureProbeDiagnosticsV1
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("Raycast: \(diagnostics.raycastAttempted ? "yes" : "no")")
+            Text("Type: \(diagnostics.resultType.rawValue)")
+            Text("Distance: \(distanceText)")
+            Text("Alignment: \(diagnostics.planeAlignment)")
+            Text("Tracking: \(diagnostics.trackingState)")
+        }
+        .font(.caption2.monospaced())
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var distanceText: String {
+        guard let distance = diagnostics.hitDistanceM else { return "n/a" }
+        return String(format: "%.2fm", distance)
+    }
+}
+#endif
+
 struct LiveCapturePointProbeResultV1 {
     let screenPoint: CGPointCodable
     let worldPosition: SIMD3<Double>?
@@ -1784,6 +1824,24 @@ struct LiveCapturePointProbeResultV1 {
     let hitNormal: SIMD3<Double>?
     let anchorId: UUID?
     let worldTransform: WorldTransformV1?
+    let debugDiagnostics: CaptureProbeDiagnosticsV1?
+}
+
+enum CaptureProbeResultTypeV1: String {
+    case existingPlaneGeometry
+    case existingPlaneInfinite
+    case estimatedPlane
+    case featurePoint
+    case roomMesh
+    case failed
+}
+
+struct CaptureProbeDiagnosticsV1 {
+    let raycastAttempted: Bool
+    let resultType: CaptureProbeResultTypeV1
+    let hitDistanceM: Double?
+    let planeAlignment: String
+    let trackingState: String
 }
 
 struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
