@@ -63,6 +63,7 @@ struct PropertyMapView: View {
                 }
             }
         }
+        .v2DebugLifecycleOverlay()
     }
 
     // MARK: - Sub-views

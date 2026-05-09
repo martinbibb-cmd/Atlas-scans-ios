@@ -15,6 +15,9 @@ public final class ScanSessionCoordinator: ObservableObject {
     /// True when the coordinator loaded an existing session from disk on launch
     /// (i.e. the user has a visit in progress that can be resumed).
     @Published public var isResumingExistingSession = false
+    /// Timestamp of the most recent successful session save to disk.
+    /// `nil` until the first save completes after launch.
+    @Published public var lastSaveDate: Date?
 
     private let store: AtomicSessionStore
     /// 50ms debounce coalesces rapid evidence mutations into one write while
@@ -224,6 +227,7 @@ public final class ScanSessionCoordinator: ObservableObject {
         }
         do {
             try store.save(session)
+            lastSaveDate = Date()
         } catch {
             saveError = error
         }
