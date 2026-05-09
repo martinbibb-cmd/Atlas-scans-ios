@@ -799,7 +799,7 @@ private struct LiveSpatialCaptureView: View {
                         showObservationNote = true
                         showCapturePointMenu = false
                     },
-                    onGhostAppliance: {
+                    onPreviewAppliance: {
                         showGhostAppliancePicker = true
                         showCapturePointMenu = false
                     },
@@ -1049,7 +1049,7 @@ private struct LiveSpatialCaptureView: View {
         guard let preview = ghostPreview else { return }
 
         let manualEntry: SpatialPinManualEntryV1? = {
-            guard preview.templateId == nil || preview.customDefinitionId != nil else { return nil }
+            guard shouldPopulateManualEntry(for: preview) else { return nil }
             return SpatialPinManualEntryV1(
                 manufacturer: trimmedPreviewValue(preview.manufacturer),
                 model: trimmedPreviewValue(preview.modelName),
@@ -1104,10 +1104,15 @@ private struct LiveSpatialCaptureView: View {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        if trimmed.lowercased().contains("unknown") {
+        let normalized = trimmed.lowercased()
+        if GhostPreviewStrings.unknownMarkers.contains(normalized) {
             return nil
         }
         return trimmed
+    }
+
+    private func shouldPopulateManualEntry(for preview: GhostAppliancePreview) -> Bool {
+        preview.templateId == nil || preview.customDefinitionId != nil
     }
 
     private func resolvedPlacementPlane(
@@ -1616,7 +1621,7 @@ private struct CaptureActionBubbleMenu: View {
     let onVoiceNote: () -> Void
     let onMeasure: () -> Void
     let onNote: () -> Void
-    let onGhostAppliance: () -> Void
+    let onPreviewAppliance: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -1629,7 +1634,7 @@ private struct CaptureActionBubbleMenu: View {
             HStack(spacing: 8) {
                 bubbleAction(title: "Measure", systemImage: "ruler.fill", action: onMeasure)
                 bubbleAction(title: "Note", systemImage: "note.text", action: onNote)
-                bubbleAction(title: "Preview", systemImage: "cube.transparent.fill", action: onGhostAppliance)
+                bubbleAction(title: "Preview", systemImage: "cube.transparent.fill", action: onPreviewAppliance)
             }
             Button("Close", action: onDismiss)
                 .font(.caption.weight(.semibold))
@@ -1769,12 +1774,16 @@ private struct GhostPlacementOverlay: View {
             }
             .padding(8)
             .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
-            .position(
-                x: preview.screenPoint.x * geometry.size.width,
-                y: preview.screenPoint.y * geometry.size.height
-            )
+            .position(screenPosition(in: geometry.size))
         }
         .allowsHitTesting(false)
+    }
+
+    private func screenPosition(in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: preview.screenPoint.x * size.width,
+            y: preview.screenPoint.y * size.height
+        )
     }
 }
 
@@ -2337,8 +2346,28 @@ private struct GhostAppliancePreview {
     let applianceRole: String?
     let customDefinitionId: String?
     let note: String?
+    /// Reserved for future pin-linking once preview-confirm synchronization ships.
     let sourcePinId: UUID? = nil
+    /// Preview state is always unconfirmed until converted to a real pin.
     let isConfirmed = false
+}
+
+private enum GhostPreviewStrings {
+    static let unknown = "unknown"
+    static let manufacturerUnknown = "Manufacturer unknown"
+    static let modelUnknown = "Model unknown"
+    static let modelUnknownLower = "model unknown"
+    static let unknownPreviewModelPrefix = "unknown-preview"
+    static let unknownManufacturerSentinel = "__unknown_manufacturer__"
+    static let unknownModelTemplateNote = "Template dimensions supplied for unknown model."
+    static let roleCombi = "combi"
+    static let roleSystem = "system"
+    static let roleRegularHeatOnly = "regular_heat_only"
+    static let unknownMarkers: Set<String> = [
+        "unknown",
+        "manufacturer unknown",
+        "model unknown"
+    ]
 }
 
 private struct GhostApplianceCandidate: Identifiable {
@@ -2358,12 +2387,12 @@ private struct GhostApplianceCandidate: Identifiable {
     var id: String { modelId }
 
     var displayTitle: String {
-        if modelName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "model unknown" {
+        if modelName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == GhostPreviewStrings.modelUnknownLower {
             if applianceType.lowercased().contains("boiler") {
                 switch boilerRole {
-                case "regular_heat_only": return "Regular / heat-only boiler"
-                case "combi": return "Combi boiler"
-                case "system": return "System boiler"
+                case GhostPreviewStrings.roleRegularHeatOnly: return "Regular / heat-only boiler"
+                case GhostPreviewStrings.roleCombi: return "Combi boiler"
+                case GhostPreviewStrings.roleSystem: return "System boiler"
                 default: return "Boiler"
                 }
             }
@@ -2385,7 +2414,7 @@ private struct V2GhostAppliancePickerSheet: View {
     @State private var showCustomCreator = false
     @State private var selectedCategory: ApplianceCategory = .boiler
     @State private var selectedBoilerRole: BoilerRole = .unknown
-    @State private var selectedManufacturer = "Manufacturer unknown"
+    @State private var selectedManufacturer = GhostPreviewStrings.unknownManufacturerSentinel
     @State private var selectedModelId: String?
     @State private var useTemplateDimensions = true
     @State private var widthMm = "700"
@@ -2521,11 +2550,11 @@ private struct V2GhostAppliancePickerSheet: View {
     private var manufacturerOptions: [String] {
         let known = Set(categoryCandidates.map(\.brand))
         let sortedKnown = known.sorted()
-        return ["Manufacturer unknown"] + sortedKnown
+        return [GhostPreviewStrings.unknownManufacturerSentinel] + sortedKnown
     }
 
     private var modelOptions: [GhostApplianceCandidate] {
-        guard selectedManufacturer != "Manufacturer unknown" else { return [] }
+        guard selectedManufacturer != GhostPreviewStrings.unknownManufacturerSentinel else { return [] }
         return categoryCandidates.filter { $0.brand == selectedManufacturer }
     }
 
@@ -2602,18 +2631,18 @@ private struct V2GhostAppliancePickerSheet: View {
                 Section("3. Manufacturer") {
                     Picker("Manufacturer", selection: $selectedManufacturer) {
                         ForEach(manufacturerOptions, id: \.self) { manufacturer in
-                            Text(manufacturer).tag(manufacturer)
+                            Text(manufacturerDisplayName(manufacturer)).tag(manufacturer)
                         }
                     }
                 }
 
                 Section("4. Model / range") {
                     if modelOptions.isEmpty {
-                        Text("Model unknown")
+                        Text(GhostPreviewStrings.modelUnknown)
                             .foregroundStyle(.secondary)
                     } else {
                         Picker("Model", selection: $selectedModelId) {
-                            Text("Model unknown").tag(Optional<String>.none)
+                            Text(GhostPreviewStrings.modelUnknown).tag(Optional<String>.none)
                             ForEach(modelOptions) { candidate in
                                 Text(candidate.modelName).tag(Optional(candidate.modelId))
                             }
@@ -2625,10 +2654,13 @@ private struct V2GhostAppliancePickerSheet: View {
                     Toggle("Use template dimensions", isOn: $useTemplateDimensions)
                     TextField("Width (mm)", text: $widthMm)
                         .keyboardType(.numberPad)
+                        .disabled(useTemplateDimensions)
                     TextField("Height (mm)", text: $heightMm)
                         .keyboardType(.numberPad)
+                        .disabled(useTemplateDimensions)
                     TextField("Depth (mm)", text: $depthMm)
                         .keyboardType(.numberPad)
+                        .disabled(useTemplateDimensions)
                 }
 
                 Section("Selection summary") {
@@ -2649,7 +2681,7 @@ private struct V2GhostAppliancePickerSheet: View {
             }
             .onAppear(perform: syncDimensionsFromTemplate)
             .onChange(of: selectedCategory) { _, _ in
-                selectedManufacturer = "Manufacturer unknown"
+                selectedManufacturer = GhostPreviewStrings.unknownManufacturerSentinel
                 selectedModelId = nil
                 syncDimensionsFromTemplate()
             }
@@ -2709,9 +2741,12 @@ private struct V2GhostAppliancePickerSheet: View {
         selectedCategory = normalizedCategory(candidate.applianceType)
         selectedManufacturer = candidate.brand
         selectedModelId = candidate.modelId
-        if candidate.boilerRole == "combi" { selectedBoilerRole = .combi }
-        if candidate.boilerRole == "system" { selectedBoilerRole = .system }
-        if candidate.boilerRole == "regular_heat_only" { selectedBoilerRole = .regularHeatOnly }
+        switch candidate.boilerRole {
+        case GhostPreviewStrings.roleCombi: selectedBoilerRole = .combi
+        case GhostPreviewStrings.roleSystem: selectedBoilerRole = .system
+        case GhostPreviewStrings.roleRegularHeatOnly: selectedBoilerRole = .regularHeatOnly
+        default: selectedBoilerRole = .unknown
+        }
         syncDimensionsFromTemplate()
     }
 
@@ -2726,10 +2761,10 @@ private struct V2GhostAppliancePickerSheet: View {
             depth: intValue(depthMm, fallback: selectedDimensionsMm.depth)
         )
         return GhostApplianceCandidate(
-            modelId: "manual-\(UUID().uuidString.lowercased())",
+            modelId: "\(GhostPreviewStrings.unknownPreviewModelPrefix)-\(UUID().uuidString)",
             templateId: nil,
-            brand: "Manufacturer unknown",
-            modelName: "Model unknown",
+            brand: GhostPreviewStrings.manufacturerUnknown,
+            modelName: GhostPreviewStrings.modelUnknown,
             applianceType: selectedCategory.rawValue,
             boilerRole: selectedCategory == .boiler ? selectedBoilerRole.rawValue : nil,
             objectCategory: objectCategory(for: selectedCategory.rawValue),
@@ -2737,7 +2772,7 @@ private struct V2GhostAppliancePickerSheet: View {
             dimensionsMm: dims,
             clearanceOffsetsMm: fallbackTemplateCandidate?.clearanceOffsetsMm ?? .init(),
             customDefinitionId: nil,
-            note: "Template: generic \(dims.width) × \(dims.height) × \(dims.depth) mm"
+            note: GhostPreviewStrings.unknownModelTemplateNote
         )
     }
 
@@ -2757,11 +2792,11 @@ private struct V2GhostAppliancePickerSheet: View {
     }
 
     private var summaryLine2: String {
-        selectedManufacturer
+        manufacturerDisplayName(selectedManufacturer)
     }
 
     private var summaryLine3: String {
-        selectedModelCandidate?.modelName ?? "Model unknown"
+        selectedModelCandidate?.modelName ?? GhostPreviewStrings.modelUnknown
     }
 
     private var summaryTemplateLine: String {
@@ -2777,6 +2812,12 @@ private struct V2GhostAppliancePickerSheet: View {
         if lower.contains("pump") { return .pump }
         if lower.contains("gas") && lower.contains("meter") { return .gasMeter }
         return .other
+    }
+
+    private func manufacturerDisplayName(_ rawValue: String) -> String {
+        rawValue == GhostPreviewStrings.unknownManufacturerSentinel
+            ? GhostPreviewStrings.manufacturerUnknown
+            : rawValue
     }
 
     private func intValue(_ text: String, fallback: Int) -> Int {
@@ -2816,9 +2857,9 @@ private struct V2GhostAppliancePickerSheet: View {
 
     private func boilerRole(for definition: ApplianceDefinitionV1) -> String? {
         let family = definition.family.lowercased()
-        if family.contains("combi") { return "combi" }
-        if family.contains("system") { return "system" }
-        if family.contains("regular") { return "regular_heat_only" }
+        if family.contains("combi") { return GhostPreviewStrings.roleCombi }
+        if family.contains("system") { return GhostPreviewStrings.roleSystem }
+        if family.contains("regular") { return GhostPreviewStrings.roleRegularHeatOnly }
         return nil
     }
 }
