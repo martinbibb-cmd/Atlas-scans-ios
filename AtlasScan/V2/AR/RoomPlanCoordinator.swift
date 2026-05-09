@@ -248,6 +248,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         let confidenceRank: Int
     }
 
+    /// Samples a small 9-point screen-space pattern around the reticle center
+    /// (center, cardinal, diagonals) to avoid requiring a pixel-perfect hit.
     private func reticleSamplePoints(around center: CGPoint, in bounds: CGRect) -> [CGPoint] {
         let offsets: [CGPoint] = [
             CGPoint(x: 0, y: 0),
@@ -268,6 +270,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         }
     }
 
+    /// Layered ARKit raycast strategy: prefer confirmed plane geometry, then
+    /// infinite planes, and finally estimated planes as lowest confidence.
     private func raycastCandidate(
         from point: CGPoint,
         frame: ARFrame,
@@ -303,6 +307,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         return nil
     }
 
+    /// Finds a feature-point-backed hit by projecting the query ray through raw
+    /// AR feature points, applying lateral tolerance, then tie-breaking by
+    /// nearest lateral distance and then depth along ray.
     private func featurePointCandidate(from query: ARRaycastQuery, frame: ARFrame) -> ProbeHitCandidate? {
         guard let points = frame.rawFeaturePoints?.points, !points.isEmpty else { return nil }
         let origin = query.origin
@@ -339,6 +346,8 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         )
     }
 
+    /// Fallback that intersects the reticle ray with latest RoomPlan-rendered
+    /// wall/floor surfaces so visible room geometry can be used for anchoring.
     private func roomMeshCandidate(from query: ARRaycastQuery) -> ProbeHitCandidate? {
         guard let room = latestCapturedRoom else { return nil }
         let surfaces = room.walls + room.floors
@@ -367,6 +376,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         )
     }
 
+    /// Intersects the ray in surface-local space using the smallest-dimension
+    /// axis as thickness/plane normal, then checks in-plane extents with a
+    /// tolerance expansion to be robust near edges.
     private func intersectRay(
         origin: SIMD3<Float>,
         direction: SIMD3<Float>,
@@ -407,6 +419,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         return (worldPoint, worldNormal, distance)
     }
 
+    /// Builds a stable world transform from hit position + surface normal by
+    /// constructing an orthonormal basis with an alternate up vector fallback
+    /// when the normal is nearly parallel to world-up.
     private func worldTransform(position: SIMD3<Float>, normal: SIMD3<Float>) -> simd_float4x4 {
         let safeNormal = simd_length(normal) > normalLengthEpsilon ? simd_normalize(normal) : SIMD3<Float>(0, 1, 0)
         var up = SIMD3<Float>(0, 1, 0)
@@ -428,6 +443,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         abs(normal.y) >= horizontalAlignmentThreshold ? .horizontal : .vertical
     }
 
+    /// Selects the best hit candidate by confidence rank first, then distance.
     private func bestCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
         candidates.sorted { lhs, rhs in
             if lhs.confidenceRank != rhs.confidenceRank {
