@@ -390,18 +390,31 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         with surface: CapturedRoom.Surface
     ) -> (point: SIMD3<Float>, normal: SIMD3<Float>, distance: Float)? {
         let worldToLocal = simd_inverse(surface.transform)
-        let localOrigin4 = worldToLocal * SIMD4<Float>(origin.x, origin.y, origin.z, 1)
-        let localDirection4 = worldToLocal * SIMD4<Float>(direction.x, direction.y, direction.z, 0)
-        let localOrigin = SIMD3<Float>(localOrigin4.x, localOrigin4.y, localOrigin4.z)
-        let localDirection = SIMD3<Float>(localDirection4.x, localDirection4.y, localDirection4.z)
+        let localOrigin = transformPoint(origin, with: worldToLocal)
+        let localDirection = transformDirection(direction, with: worldToLocal)
 
-        let dimensions = [surface.dimensions.x, surface.dimensions.y, surface.dimensions.z]
-        guard let thicknessAxis = dimensions.enumerated().min(by: { $0.element < $1.element })?.offset else {
-            return nil
+        let thicknessAxis = thicknessAxis(for: surface)
+        let axisA: Int
+        let axisB: Int
+        let halfA: Float
+        let halfB: Float
+        switch thicknessAxis {
+        case 0:
+            axisA = 1
+            axisB = 2
+            halfA = surface.dimensions.y / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.z / 2 + roomSurfaceToleranceMeters
+        case 1:
+            axisA = 0
+            axisB = 2
+            halfA = surface.dimensions.x / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.z / 2 + roomSurfaceToleranceMeters
+        default:
+            axisA = 0
+            axisB = 1
+            halfA = surface.dimensions.x / 2 + roomSurfaceToleranceMeters
+            halfB = surface.dimensions.y / 2 + roomSurfaceToleranceMeters
         }
-        let axes = [0, 1, 2].filter { $0 != thicknessAxis }
-        let axisA = axes[0]
-        let axisB = axes[1]
 
         let directionThickness = localDirection[thicknessAxis]
         guard abs(directionThickness) > rayDirectionEpsilon else { return nil }
@@ -409,17 +422,13 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         guard t > 0 else { return nil }
 
         let localHit = localOrigin + localDirection * t
-        let halfA = dimensions[axisA] / 2 + roomSurfaceToleranceMeters
-        let halfB = dimensions[axisB] / 2 + roomSurfaceToleranceMeters
         guard abs(localHit[axisA]) <= halfA, abs(localHit[axisB]) <= halfB else { return nil }
 
         var localNormal = SIMD3<Float>(0, 0, 0)
         localNormal[thicknessAxis] = directionThickness > 0 ? -1 : 1
 
-        let worldHit4 = surface.transform * SIMD4<Float>(localHit.x, localHit.y, localHit.z, 1)
-        let worldNormal4 = surface.transform * SIMD4<Float>(localNormal.x, localNormal.y, localNormal.z, 0)
-        let worldPoint = SIMD3<Float>(worldHit4.x, worldHit4.y, worldHit4.z)
-        let worldNormal = simd_normalize(SIMD3<Float>(worldNormal4.x, worldNormal4.y, worldNormal4.z))
+        let worldPoint = transformPoint(localHit, with: surface.transform)
+        let worldNormal = simd_normalize(transformDirection(localNormal, with: surface.transform))
         let distance = simd_distance(origin, worldPoint)
         return (worldPoint, worldNormal, distance)
     }
@@ -454,9 +463,32 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         currentLateral: Float,
         currentAlong: Float
     ) -> Bool {
-        newLateral < currentLateral || (
-            abs(newLateral - currentLateral) < featurePointLateralTieBreakThreshold && newAlong < currentAlong
-        )
+        if newLateral < currentLateral {
+            return true
+        }
+        if abs(newLateral - currentLateral) >= featurePointLateralTieBreakThreshold {
+            return false
+        }
+        return newAlong < currentAlong
+    }
+
+    private func thicknessAxis(for surface: CapturedRoom.Surface) -> Int {
+        let x = surface.dimensions.x
+        let y = surface.dimensions.y
+        let z = surface.dimensions.z
+        if x <= y && x <= z { return 0 }
+        if y <= x && y <= z { return 1 }
+        return 2
+    }
+
+    private func transformPoint(_ point: SIMD3<Float>, with matrix: simd_float4x4) -> SIMD3<Float> {
+        let transformed = matrix * SIMD4<Float>(point.x, point.y, point.z, 1)
+        return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
+    }
+
+    private func transformDirection(_ direction: SIMD3<Float>, with matrix: simd_float4x4) -> SIMD3<Float> {
+        let transformed = matrix * SIMD4<Float>(direction.x, direction.y, direction.z, 0)
+        return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
     }
 
     /// Selects the best hit candidate by confidence rank first, then distance.
