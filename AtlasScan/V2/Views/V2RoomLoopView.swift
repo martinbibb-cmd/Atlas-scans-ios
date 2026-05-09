@@ -636,8 +636,8 @@ private struct LiveSpatialCaptureView: View {
     /// Classifies a measurement as axis-dominant when one component exceeds
     /// the other by this ratio (e.g. vertical vs horizontal).
     private let axisDominanceRatio = 1.2
-    private let accurateMeasurementQualityText = "Accurate (2 anchored points)"
-    private let estimatedMeasurementQualityText = "Estimated (room-note anchor)"
+    private let accurateMeasurementQualityMessage = "Accurate (2 anchored points)"
+    private let estimatedMeasurementQualityMessage = "Estimated (room-note anchor)"
     private static let pointerDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -1086,7 +1086,7 @@ private struct LiveSpatialCaptureView: View {
                 anchorConfidence: confidence
             )
             if bothAnchored, measurement.distanceMeters < noisyMeasurementThresholdMeters {
-                measurementFeedback = "Measurement not saved — distance fell below the stability threshold. Step back slightly and retake."
+                measurementFeedback = "Measurement not saved - distance fell below the stability threshold. Step back slightly and retake."
                 showMeasurementFeedback = true
                 return
             }
@@ -1100,9 +1100,9 @@ private struct LiveSpatialCaptureView: View {
                     ? " · \(vSign)\(String(format: "%.2f m", abs(measurement.verticalOffsetMeters)))"
                     : ""
                 let axis = measurementSummary(for: measurement).axisLabel
-                measurementFeedback = String(format: "Measured %.2f m%@ · %@ aligned", measurement.distanceMeters, vText, axis)
+                measurementFeedback = String(format: "Measured %.2f m%@ · %@ alignment", measurement.distanceMeters, vText, axis)
             } else {
-                measurementFeedback = "Measurement saved as room-note estimate — capture two anchored points for accurate measurement."
+                measurementFeedback = "Measurement saved as room-note estimate - capture two anchored points for accurate measurement."
             }
             showMeasurementFeedback = true
             return
@@ -1129,7 +1129,7 @@ private struct LiveSpatialCaptureView: View {
         return MeasurementResultSummary(
             distanceText: String(format: "%.2f m", measurement.distanceMeters),
             axisLabel: axis.displayName,
-            qualityText: isAccurate ? accurateMeasurementQualityText : estimatedMeasurementQualityText,
+            qualityText: isAccurate ? accurateMeasurementQualityMessage : estimatedMeasurementQualityMessage,
             qualityColor: isAccurate ? .green : .orange
         )
     }
@@ -2069,8 +2069,8 @@ private struct GhostPlacementOverlay: View {
                     .foregroundStyle(.white.opacity(0.9))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Clearance envelope")
-                    Text("Left \(preview.clearanceOffsetsMm.left) mm · Right \(preview.clearanceOffsetsMm.right) mm")
-                    Text("Top \(preview.clearanceOffsetsMm.top) mm · Bottom \(preview.clearanceOffsetsMm.bottom) mm")
+                    Text("Left \(preview.clearanceOffsetsMm.left) millimetres · Right \(preview.clearanceOffsetsMm.right) millimetres")
+                    Text("Top \(preview.clearanceOffsetsMm.top) millimetres · Bottom \(preview.clearanceOffsetsMm.bottom) millimetres")
                 }
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.86))
