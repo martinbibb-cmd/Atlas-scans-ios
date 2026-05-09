@@ -66,6 +66,7 @@ struct V2RoomLoopView: View {
     @State private var renameRoomName = ""
     @State private var showRenamePrompt = false
     @State private var showRoomReview = false
+    @State private var showVisitReview = false
 
     var body: some View {
         Group {
@@ -76,9 +77,12 @@ struct V2RoomLoopView: View {
                     photos: coordinator.session.photos,
                     voiceNotes: coordinator.session.voiceNotes,
                     visitId: coordinator.session.visitId,
+                    visitReference: coordinator.session.visitReference,
+                    visitLabel: coordinator.session.visitLabel,
                     prospectiveRoomId: prospectiveRoomId,
                     refreshToken: captureViewRefreshToken,
                     onExit: { dismiss() },
+                    onReview: { showVisitReview = true },
                     onPinAdded: { pin in pendingPins.append(pin) },
                     onGhostPlacementAdded: { placement in pendingGhostPlacements.append(placement) },
                     customApplianceDefinitions: allCustomApplianceDefinitions,
@@ -232,6 +236,18 @@ struct V2RoomLoopView: View {
                 }
             } else {
                 EmptyView()
+            }
+        }
+        .sheet(isPresented: $showVisitReview) {
+            NavigationStack {
+                V2VisitReviewView(
+                    rooms: coordinator.session.rooms,
+                    photos: coordinator.session.photos,
+                    voiceNotes: coordinator.session.voiceNotes,
+                    transcripts: coordinator.session.transcripts,
+                    visitReference: coordinator.session.visitReference,
+                    visitLabel: coordinator.session.visitLabel
+                )
             }
         }
     }
@@ -406,6 +422,131 @@ private enum V2PostCaptureRoomStatus {
     }
 }
 
+private struct V2VisitReviewView: View {
+    let rooms: [RoomCaptureV2]
+    let photos: [PhotoEvidenceV1]
+    let voiceNotes: [VoiceNoteV1]
+    let transcripts: [ProcessedTranscriptV1]
+    let visitReference: String?
+    let visitLabel: String?
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var includeInCustomerReport: [String: Bool] = [:]
+
+    var body: some View {
+        List {
+            Section("Visit") {
+                LabeledContent("Reference", value: cleanedReference ?? "—")
+                if let cleanedLabel {
+                    LabeledContent("Label", value: cleanedLabel)
+                }
+            }
+
+            Section("Summary") {
+                LabeledContent("Rooms", value: "\(rooms.count)")
+                LabeledContent("Photos", value: "\(photos.count)")
+                LabeledContent("Voice notes", value: "\(voiceNotes.count)")
+                LabeledContent("Transcripts", value: "\(transcripts.count)")
+                LabeledContent("Object pins", value: "\(allPins.count)")
+                LabeledContent("Measurements", value: "\(allMeasurements.count)")
+            }
+
+            Section("Rooms") {
+                ForEach(rooms) { room in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(room.displayName).font(.subheadline.weight(.semibold))
+                        Text("Pins \(room.pinnedObjects.count) · Photos \(photos.filter { $0.roomId == room.id }.count) · Voice \(voiceNotes.filter { $0.roomId == room.id }.count)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("Object pins") {
+                ForEach(allPins) { pin in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(pin.label ?? pin.objectType.rawValue.capitalized)
+                            .font(.subheadline.weight(.semibold))
+                        Text("Anchor: \(pin.anchorConfidence.rawValue) · Review: \(pin.reviewStatus.rawValue)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Toggle("Include in customer report", isOn: binding(for: "pin-\(pin.id.uuidString)"))
+                            .font(.caption)
+                    }
+                }
+            }
+
+            Section("Measurements") {
+                ForEach(allMeasurements) { measurement in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(format: "%.2f m", measurement.distanceMeters))
+                            .font(.subheadline.weight(.semibold))
+                        Text("Anchor: \(measurement.anchorConfidence.rawValue) · Review: \(measurement.needsReview ? "needs_review" : "confirmed")")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Toggle("Include in customer report", isOn: binding(for: "measurement-\(measurement.id.uuidString)"))
+                            .font(.caption)
+                    }
+                }
+            }
+
+            Section("Photos") {
+                ForEach(photos) { photo in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(photo.relativeFilePath)
+                            .font(.caption.weight(.semibold))
+                        Toggle("Include in customer report", isOn: binding(for: "photo-\(photo.id.uuidString)"))
+                            .font(.caption)
+                    }
+                }
+            }
+
+            Section("Voice notes / transcripts") {
+                ForEach(voiceNotes) { note in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(note.processedTranscript.isEmpty ? "Voice note (no transcript)" : note.processedTranscript)
+                            .font(.caption)
+                        Toggle("Include in customer report", isOn: binding(for: "voice-\(note.id.uuidString)"))
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Visit Review")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") { dismiss() }
+            }
+        }
+    }
+
+    private var allPins: [SpatialPinV1] {
+        rooms.flatMap(\.pinnedObjects)
+    }
+
+    private var allMeasurements: [SpatialMeasurementV1] {
+        rooms.flatMap(\.measurements)
+    }
+
+    private var cleanedReference: String? {
+        let trimmed = visitReference?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var cleanedLabel: String? {
+        let trimmed = visitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func binding(for key: String) -> Binding<Bool> {
+        Binding(
+            get: { includeInCustomerReport[key] ?? true },
+            set: { includeInCustomerReport[key] = $0 }
+        )
+    }
+}
+
 // MARK: - LiveSpatialCaptureView
 
 private struct LiveSpatialCaptureView: View {
@@ -431,10 +572,13 @@ private struct LiveSpatialCaptureView: View {
     let photos: [PhotoEvidenceV1]
     let voiceNotes: [VoiceNoteV1]
     let visitId: UUID
+    let visitReference: String?
+    let visitLabel: String?
     let prospectiveRoomId: UUID
     let refreshToken: UUID
     /// Called when the user dismisses the scan without saving (e.g. back gesture).
     let onExit: () -> Void
+    let onReview: () -> Void
     let onPinAdded: (SpatialPinV1) -> Void
     let onGhostPlacementAdded: (GhostAppliancePlacementV1) -> Void
     let customApplianceDefinitions: [CustomApplianceDefinitionV1]
@@ -455,11 +599,13 @@ private struct LiveSpatialCaptureView: View {
     @State private var pendingMeasurementsLocal: [SpatialMeasurementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
     @State private var worldPointProjector: ((SIMD3<Double>) -> CGPointCodable?)?
+    @State private var anchorTransformResolver: ((UUID) -> WorldTransformV1?)?
     @State private var capturePointsById: [UUID: LiveCapturePointV1] = [:]
     @State private var pendingCapturePoint: LiveCapturePointV1?
     @State private var measurementStartPoint: LiveCapturePointV1?
     @State private var measurementFeedback = ""
     @State private var showCapturePointMenu = false
+    @State private var showRoomNoteOnlyPrompt = false
     @State private var showMeasurementFeedback = false
     @State private var showObjectPicker = false
     @State private var showGhostAppliancePicker = false
@@ -496,6 +642,11 @@ private struct LiveSpatialCaptureView: View {
                         DispatchQueue.main.async {
                             worldPointProjector = projector
                         }
+                    },
+                    onAnchorTransformResolverReady: { resolver in
+                        DispatchQueue.main.async {
+                            anchorTransformResolver = resolver
+                        }
                     }
                 )
                 .id(refreshToken)
@@ -503,20 +654,29 @@ private struct LiveSpatialCaptureView: View {
 
                 VStack(spacing: 16) {
                     HStack(alignment: .top) {
-                        MiniMapHUD(
-                            rooms: rooms,
-                            livePolygonVertices: liveMapVertices,
-                            activeRoomId: prospectiveRoomId,
-                            pins: pendingPinsLocal,
-                            ghostPlacements: pendingGhostPlacementsLocal
-                        )
+                        VStack(alignment: .leading, spacing: 8) {
+                            VisitCaptureHeaderBadge(
+                                visitReference: visitReference,
+                                visitLabel: visitLabel
+                            )
+                            MiniMapHUD(
+                                rooms: rooms,
+                                livePolygonVertices: liveMapVertices,
+                                activeRoomId: prospectiveRoomId,
+                                pins: pendingPinsLocal,
+                                ghostPlacements: pendingGhostPlacementsLocal
+                            )
+                        }
                         .zIndex(hudOverlayLayer)
 
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 8) {
                             if let pendingCapturePoint {
-                                CapturePointStatusBadge(point: pendingCapturePoint)
+                                CapturePointStatusBadge(
+                                    point: pendingCapturePoint,
+                                    isAnchorLost: isAnchorLost(for: pendingCapturePoint)
+                                )
                             }
                             if measurementStartPoint != nil {
                                 MeasurementInProgressBadge()
@@ -549,8 +709,8 @@ private struct LiveSpatialCaptureView: View {
 
                     BottomActionDock(
                         onCapturePoint: captureCenterPoint,
-                        onRoom: { shouldStopCapture = true },
-                        onReview: onExit,
+                        onMore: { shouldStopCapture = true },
+                        onReview: onReview,
                         onFinish: onExit
                     )
                     .zIndex(hudOverlayLayer)
@@ -594,20 +754,49 @@ private struct LiveSpatialCaptureView: View {
                 }
             }
         }
-        .confirmationDialog(
-            "Capture Point Actions",
-            isPresented: $showCapturePointMenu,
-            titleVisibility: .visible
-        ) {
-            Button("Tag object") { showObjectPicker = true }
-            Button("Possible appliance found — needs review") { showGhostAppliancePicker = true }
-            Button("Take photo") { showPhotoPicker = true }
-            Button("Add voice note") { showVoiceRecorder = true }
-            Button("Measure space") { measureUsingPendingPoint() }
-            Button("Add note") { showObservationNote = true }
-            Button("Cancel", role: .cancel) {}
+        .overlay(alignment: .bottom) {
+            if showCapturePointMenu, pendingCapturePoint != nil {
+                CaptureActionBubbleMenu(
+                    onTagObject: {
+                        showObjectPicker = true
+                        showCapturePointMenu = false
+                    },
+                    onPhoto: {
+                        showPhotoPicker = true
+                        showCapturePointMenu = false
+                    },
+                    onVoiceNote: {
+                        showVoiceRecorder = true
+                        showCapturePointMenu = false
+                    },
+                    onMeasure: {
+                        measureUsingPendingPoint()
+                        showCapturePointMenu = false
+                    },
+                    onNote: {
+                        showObservationNote = true
+                        showCapturePointMenu = false
+                    },
+                    onGhostAppliance: {
+                        showGhostAppliancePicker = true
+                        showCapturePointMenu = false
+                    },
+                    onDismiss: { showCapturePointMenu = false }
+                )
+                .padding(.bottom, 104)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.26, dampingFraction: 0.82), value: showCapturePointMenu)
+        .alert("No spatial hit detected", isPresented: $showRoomNoteOnlyPrompt) {
+            Button("Save as room note only") {
+                showCapturePointMenu = true
+            }
+            Button("Cancel", role: .cancel) {
+                pendingCapturePoint = nil
+            }
         } message: {
-            Text(capturePointMessage)
+            Text("No world anchor was found at the reticle. You can save this point explicitly as room-note-only.")
         }
         .sheet(isPresented: $showObjectPicker) {
             V2PinPickerSheet(
@@ -688,34 +877,42 @@ private struct LiveSpatialCaptureView: View {
 
     // MARK: - Photo save
 
-    private var capturePointMessage: String {
-        guard let point = pendingCapturePoint else {
-            return "No capture point selected."
-        }
-        if point.anchorConfidence == .screenOnly {
-            return "Room note only — not spatially anchored."
-        }
-        return "Point anchored and ready."
-    }
-
     private func captureCenterPoint() {
         let probe = capturePointProbe?() ?? LiveCapturePointProbeResultV1(
             screenPoint: CGPointCodable(x: 0.5, y: 0.5),
             worldPosition: nil,
             anchorConfidence: .screenOnly,
-            hitNormal: nil
+            hitNormal: nil,
+            anchorId: nil,
+            worldTransform: nil
         )
-        pendingCapturePoint = LiveCapturePointV1(
+        let point = LiveCapturePointV1(
             roomId: prospectiveRoomId,
             screenPoint: probe.screenPoint,
             worldPosition: probe.worldPosition,
             anchorConfidence: probe.anchorConfidence,
-            hitNormal: probe.hitNormal
+            hitNormal: probe.hitNormal,
+            anchorId: probe.anchorId,
+            worldTransform: probe.worldTransform
         )
-        if let pendingCapturePoint {
-            capturePointsById[pendingCapturePoint.id] = pendingCapturePoint
+        pendingCapturePoint = point
+        capturePointsById[point.id] = point
+        showCapturePointMenu = false
+        if point.anchorConfidence == .screenOnly {
+            showRoomNoteOnlyPrompt = true
+        } else {
+            showCapturePointMenu = true
         }
-        showCapturePointMenu = true
+    }
+
+    private func isAnchorLost(for point: LiveCapturePointV1) -> Bool {
+        guard
+            point.anchorConfidence != .screenOnly,
+            let anchorId = point.anchorId
+        else {
+            return false
+        }
+        return anchorTransformResolver?(anchorId) == nil
     }
 
     private func measureUsingPendingPoint() {
@@ -1147,10 +1344,9 @@ private struct LiveSpatialCaptureView: View {
         fallback: CGPointCodable?,
         anchorConfidence: SpatialPinAnchorConfidence
     ) -> CGPointCodable? {
-        if anchorConfidence != .screenOnly,
-           let worldPosition,
-           let projected = worldPointProjector?(worldPosition) {
-            return projected
+        if anchorConfidence != .screenOnly {
+            guard let worldPosition else { return nil }
+            return worldPointProjector?(worldPosition)
         }
         return fallback
     }
@@ -1277,19 +1473,18 @@ private struct BottomActionDock: View {
     fileprivate static let finishButtonMinWidth: CGFloat = 90
 
     let onCapturePoint: () -> Void
-    let onRoom: () -> Void
+    let onMore: () -> Void
     let onReview: () -> Void
     let onFinish: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
             dockButton(symbol: "scope", title: "Capture Point", action: onCapturePoint)
-            dockButton(symbol: "square.and.pencil", title: "Room", action: onRoom)
             dockButton(symbol: "map", title: "Review", action: onReview)
             Button(action: onFinish) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Finish")
+                    Text("Finish Capture")
                         .lineLimit(1)
                 }
                 .font(.subheadline.weight(.semibold))
@@ -1298,6 +1493,14 @@ private struct BottomActionDock: View {
                 .padding(.vertical, 10)
                 .frame(minWidth: BottomActionDock.finishButtonMinWidth)
                 .background(.green.opacity(0.92), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            Button(action: onMore) {
+                Image(systemName: "ellipsis")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
             }
             .buttonStyle(.plain)
         }
@@ -1317,6 +1520,86 @@ private struct BottomActionDock: View {
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct VisitCaptureHeaderBadge: View {
+    let visitReference: String?
+    let visitLabel: String?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Label(displayReference, systemImage: "number")
+                .font(.caption.weight(.semibold))
+            if let label = cleanedLabel {
+                Text(label)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var displayReference: String {
+        let trimmed = visitReference?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? "Visit reference required" : trimmed
+    }
+
+    private var cleanedLabel: String? {
+        let trimmed = visitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct CaptureActionBubbleMenu: View {
+    let onTagObject: () -> Void
+    let onPhoto: () -> Void
+    let onVoiceNote: () -> Void
+    let onMeasure: () -> Void
+    let onNote: () -> Void
+    let onGhostAppliance: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                bubbleAction(title: "Tag object", systemImage: "mappin.and.ellipse", action: onTagObject)
+                bubbleAction(title: "Photo", systemImage: "camera.fill", action: onPhoto)
+                bubbleAction(title: "Voice note", systemImage: "mic.fill", action: onVoiceNote)
+            }
+            HStack(spacing: 8) {
+                bubbleAction(title: "Measure", systemImage: "ruler.fill", action: onMeasure)
+                bubbleAction(title: "Note", systemImage: "note.text", action: onNote)
+                bubbleAction(title: "Ghost", systemImage: "cube.transparent.fill", action: onGhostAppliance)
+            }
+            Button("Close", action: onDismiss)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.95))
+        }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
+    }
+
+    private func bubbleAction(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .padding(.horizontal, 6)
+            .background(.ultraThinMaterial, in: Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -1457,6 +1740,7 @@ private struct GhostPlacementOverlay: View {
 
 private struct CapturePointStatusBadge: View {
     let point: LiveCapturePointV1
+    let isAnchorLost: Bool
 
     var body: some View {
         Label(statusText, systemImage: "scope")
@@ -1468,9 +1752,16 @@ private struct CapturePointStatusBadge: View {
     }
 
     private var statusText: String {
-        point.anchorConfidence == .screenOnly
-            ? "Room note only — not spatially anchored"
-            : "Point captured"
+        if isAnchorLost {
+            return "Anchor lost"
+        }
+        if point.anchorConfidence == .screenOnly {
+            return "Room note only"
+        }
+        if point.anchorConfidence == .worldLocked {
+            return "World anchored"
+        }
+        return "Needs review"
     }
 }
 
@@ -1479,6 +1770,8 @@ struct LiveCapturePointProbeResultV1 {
     let worldPosition: SIMD3<Double>?
     let anchorConfidence: SpatialPinAnchorConfidence
     let hitNormal: SIMD3<Double>?
+    let anchorId: UUID?
+    let worldTransform: WorldTransformV1?
 }
 
 struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
@@ -1489,6 +1782,9 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
     let worldPosition: SIMD3<Double>?
     let anchorConfidence: SpatialPinAnchorConfidence
     let hitNormal: SIMD3<Double>?
+    let anchorId: UUID?
+    let worldTransform: WorldTransformV1?
+    let reviewStatus: SpatialPinReviewStatus
     /// Surface semantic at the hit point, derived from the hit normal at
     /// capture time.  Nil when no world-space anchor was available.
     let surfaceSemantic: SurfaceSemanticV1?
@@ -1500,7 +1796,9 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         screenPoint: CGPointCodable,
         worldPosition: SIMD3<Double>?,
         anchorConfidence: SpatialPinAnchorConfidence,
-        hitNormal: SIMD3<Double>? = nil
+        hitNormal: SIMD3<Double>? = nil,
+        anchorId: UUID? = nil,
+        worldTransform: WorldTransformV1? = nil
     ) {
         self.id = id
         self.roomId = roomId
@@ -1509,6 +1807,9 @@ struct LiveCapturePointV1: Identifiable, Codable, Equatable, Sendable {
         self.worldPosition = worldPosition
         self.anchorConfidence = anchorConfidence
         self.hitNormal = hitNormal
+        self.anchorId = anchorId
+        self.worldTransform = worldTransform
+        self.reviewStatus = anchorConfidence == .screenOnly ? .needsReview : .confirmed
         self.surfaceSemantic = worldPosition != nil
             ? SurfaceSemanticV1.derived(fromHitNormal: hitNormal)
             : nil
@@ -1615,14 +1916,14 @@ private struct V2PinPickerSheet: View {
 
     private static let boilerPlaceholderOption = EquipmentOption(
         id: "boiler_manual_unknown",
-        title: "Boiler placeholder — needs identification",
+        title: "Boiler (manual details required)",
         objectType: .boiler,
         templateId: nil
     )
 
     private static let cylinderPlaceholderOption = EquipmentOption(
         id: "cylinder_manual_unknown",
-        title: "Cylinder placeholder — needs identification",
+        title: "Cylinder (manual details required)",
         objectType: .hotWaterCylinder,
         templateId: nil
     )
@@ -1829,7 +2130,7 @@ private struct V2PinPickerSheet: View {
     private func savePinAndDismiss() {
         let worldPosition = capturePoint?.worldPosition
         let confidence: SpatialPinAnchorConfidence = capturePoint?.anchorConfidence ?? .screenOnly
-        let reviewStatus: SpatialPinReviewStatus = confidence == .screenOnly ? .needsReview : .confirmed
+        let reviewStatus: SpatialPinReviewStatus = .needsReview
         let option = selectedOption()
         let manualEntry = selectedManualEntry()
         let title = customLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -1839,6 +2140,8 @@ private struct V2PinPickerSheet: View {
             roomId: roomId,
             locationContext: selectedLocationContext,
             capturePointId: capturePoint?.id,
+            anchorId: capturePoint?.anchorId,
+            worldTransform: capturePoint?.worldTransform,
             positionX: worldPosition?.x ?? 0,
             positionY: worldPosition?.y ?? 0,
             positionZ: worldPosition?.z ?? 0,

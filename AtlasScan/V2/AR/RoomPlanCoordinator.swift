@@ -48,7 +48,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 screenPoint: CGPointCodable(x: 0.5, y: 0.5),
                 worldPosition: nil,
                 anchorConfidence: .screenOnly,
-                hitNormal: nil
+                hitNormal: nil,
+                anchorId: nil,
+                worldTransform: nil
             )
         }
 
@@ -64,21 +66,25 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
                 anchorConfidence: .screenOnly,
-                hitNormal: nil
+                hitNormal: nil,
+                anchorId: nil,
+                worldTransform: nil
             )
         }
-        let query = frame.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any)
-
-        let results = captureView.captureSession.arSession.raycast(query)
+        let results = raycastResults(from: center, frame: frame, captureView: captureView)
         guard let result = results.first else {
             return LiveCapturePointProbeResultV1(
                 screenPoint: normalizedPoint,
                 worldPosition: nil,
                 anchorConfidence: .screenOnly,
-                hitNormal: nil
+                hitNormal: nil,
+                anchorId: nil,
+                worldTransform: nil
             )
         }
 
+        let anchor = ARAnchor(transform: result.worldTransform)
+        captureView.captureSession.arSession.add(anchor: anchor)
         let position = result.worldTransform.columns.3
         let forward = result.worldTransform.columns.2
         let normal = SIMD3(
@@ -86,22 +92,26 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
             Double(-forward.y),
             Double(-forward.z)
         )
-        let confidence: SpatialPinAnchorConfidence
-        switch result.target {
-        case .estimatedPlane:
-            confidence = .raycastEstimated
-        case .existingPlaneGeometry, .existingPlaneInfinite:
-            confidence = .high
-        @unknown default:
-            confidence = .raycastEstimated
-        }
+        let confidence: SpatialPinAnchorConfidence = .worldLocked
 
         return LiveCapturePointProbeResultV1(
             screenPoint: normalizedPoint,
             worldPosition: SIMD3(Double(position.x), Double(position.y), Double(position.z)),
             anchorConfidence: confidence,
-            hitNormal: normal
+            hitNormal: normal,
+            anchorId: anchor.identifier,
+            worldTransform: worldTransform(from: result.worldTransform)
         )
+    }
+
+    func worldTransform(for anchorId: UUID) -> WorldTransformV1? {
+        guard
+            let frame = captureView?.captureSession.arSession.currentFrame,
+            let anchor = frame.anchors.first(where: { $0.identifier == anchorId })
+        else {
+            return nil
+        }
+        return worldTransform(from: anchor.transform)
     }
 
     func projectNormalizedScreenPoint(for worldPosition: SIMD3<Double>) -> CGPointCodable? {
@@ -171,6 +181,36 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     private let polygonToleranceFraction: Float = 0.10
     private let polygonToleranceMax: Float = 0.25
     private let minimumAreaM2 = 0.05
+
+    private func raycastResults(
+        from point: CGPoint,
+        frame: ARFrame,
+        captureView: RoomCaptureView
+    ) -> [ARRaycastResult] {
+        if let query = frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any) {
+            let results = captureView.captureSession.arSession.raycast(query)
+            if !results.isEmpty { return results }
+        }
+        if let query = frame.raycastQuery(from: point, allowing: .existingPlaneInfinite, alignment: .any) {
+            let results = captureView.captureSession.arSession.raycast(query)
+            if !results.isEmpty { return results }
+        }
+        if let query = frame.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any) {
+            return captureView.captureSession.arSession.raycast(query)
+        }
+        return []
+    }
+
+    private func worldTransform(from matrix: simd_float4x4) -> WorldTransformV1 {
+        WorldTransformV1(
+            elements: [
+                Double(matrix.columns.0.x), Double(matrix.columns.0.y), Double(matrix.columns.0.z), Double(matrix.columns.0.w),
+                Double(matrix.columns.1.x), Double(matrix.columns.1.y), Double(matrix.columns.1.z), Double(matrix.columns.1.w),
+                Double(matrix.columns.2.x), Double(matrix.columns.2.y), Double(matrix.columns.2.z), Double(matrix.columns.2.w),
+                Double(matrix.columns.3.x), Double(matrix.columns.3.y), Double(matrix.columns.3.z), Double(matrix.columns.3.w)
+            ]
+        )
+    }
 
     private func bridgeToV2(_ room: CapturedRoom) -> RoomCaptureV2 {
         let vertices = polygonVertices(from: room)

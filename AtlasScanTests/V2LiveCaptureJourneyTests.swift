@@ -49,19 +49,26 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
             roomId: prospectiveRoomId,
             screenPoint: CGPointCodable(x: 0.5, y: 0.5),
             worldPosition: SIMD3<Double>(1.5, 0.0, 2.5),
-            anchorConfidence: .raycastEstimated,
-            hitNormal: SIMD3<Double>(0, 0, -1)
+            anchorConfidence: .worldLocked,
+            hitNormal: SIMD3<Double>(0, 0, -1),
+            anchorId: UUID(),
+            worldTransform: WorldTransformV1(elements: [1, 0, 0, 0,
+                                                        0, 1, 0, 0,
+                                                        0, 0, 1, 0,
+                                                        1.5, 0, 2.5, 1])
         )
 
         // 4. Attach a pin, photo, and voice note — all referencing the same capture point.
         let pin = SpatialPinV1(
             roomId: prospectiveRoomId,
             capturePointId: capturePoint.id,
+            anchorId: capturePoint.anchorId,
+            worldTransform: capturePoint.worldTransform,
             positionX: 1.5,
             positionY: 0.0,
             positionZ: 2.5,
             objectType: .boiler,
-            anchorConfidence: .raycastEstimated
+            anchorConfidence: .worldLocked
         )
 
         let photo = PhotoEvidenceV1(
@@ -144,6 +151,10 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
                        "Voice note capturePointId must match the capture point used.")
         XCTAssertEqual(roomPins.first?.capturePointId, capturePoint.id,
                        "Pin capturePointId must match the capture point used.")
+        XCTAssertEqual(roomPins.first?.anchorId, capturePoint.anchorId,
+                       "Pin anchorId must be preserved for anchored evidence.")
+        XCTAssertEqual(roomPins.first?.worldTransform, capturePoint.worldTransform,
+                       "Pin world transform must be preserved for anchored evidence.")
         XCTAssertEqual(roomGhosts.first?.capturePointId, capturePoint.id,
                        "Ghost placement capturePointId must match the capture point used.")
         XCTAssertEqual(roomTranscripts.first?.capturePointId, capturePoint.id,
@@ -564,4 +575,18 @@ final class V2LiveCaptureJourneyTests: XCTestCase {
         XCTAssertTrue(room.measurements.isEmpty,
                       "Room decoded from old data must default to empty measurements array.")
         XCTAssertEqual(room.displayName, "Old Room")
+    }
+
+    func test_spatialPin_hasResolvedWorldAnchor_whenAnchorIdPresentAtOrigin() {
+        let pin = SpatialPinV1(
+            roomId: UUID(),
+            anchorId: UUID(),
+            positionX: 0,
+            positionY: 0,
+            positionZ: 0,
+            objectType: .boiler,
+            anchorConfidence: .worldLocked
+        )
+        XCTAssertTrue(pin.hasResolvedWorldAnchor,
+                      "Anchor-backed pins at origin must still be treated as resolved world anchors.")
     }

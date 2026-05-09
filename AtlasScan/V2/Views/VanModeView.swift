@@ -31,6 +31,16 @@ struct VanModeView: View {
         coordinator.session.transcripts.filter { $0.roomId == currentRoom.id }.count
     }
 
+    private var visitHeaderText: String? {
+        let reference = coordinator.session.visitReference?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !reference.isEmpty else { return nil }
+        let label = coordinator.session.visitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if label.isEmpty {
+            return "Visit \(reference)"
+        }
+        return "Visit \(reference) · \(label)"
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -63,6 +73,13 @@ struct VanModeView: View {
 
     private var roomOverview: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if let visitHeaderText {
+                Label(visitHeaderText, systemImage: "number")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(.tertiarySystemBackground), in: Capsule())
+            }
             Text("Floor Plan").font(.headline)
             if currentRoom.hasClosedFloorPolygon {
                 V2CustomRoomShapeRenderer(vertices: currentRoom.polygonVertices)
