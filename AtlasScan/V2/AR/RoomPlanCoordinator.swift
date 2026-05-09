@@ -252,16 +252,17 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     /// Samples a small 9-point screen-space pattern around the reticle center
     /// (center, cardinal, diagonals) to avoid requiring a pixel-perfect hit.
     private func reticleSamplePoints(around center: CGPoint, in bounds: CGRect) -> [CGPoint] {
+        let diagonalOffset = reticleToleranceRadiusPixels * diagonalOffsetMultiplier
         let offsets: [CGPoint] = [
             CGPoint(x: 0, y: 0),
             CGPoint(x: reticleToleranceRadiusPixels, y: 0),
             CGPoint(x: -reticleToleranceRadiusPixels, y: 0),
             CGPoint(x: 0, y: reticleToleranceRadiusPixels),
             CGPoint(x: 0, y: -reticleToleranceRadiusPixels),
-            CGPoint(x: reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
-            CGPoint(x: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
-            CGPoint(x: reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
-            CGPoint(x: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier, y: -reticleToleranceRadiusPixels * diagonalOffsetMultiplier),
+            CGPoint(x: diagonalOffset, y: diagonalOffset),
+            CGPoint(x: -diagonalOffset, y: diagonalOffset),
+            CGPoint(x: diagonalOffset, y: -diagonalOffset),
+            CGPoint(x: -diagonalOffset, y: -diagonalOffset),
         ]
         return offsets.map { offset in
             CGPoint(
@@ -460,11 +461,11 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
 
     /// Selects the best hit candidate by confidence rank first, then distance.
     private func bestCandidate(from candidates: [ProbeHitCandidate]) -> ProbeHitCandidate? {
-        candidates.min { lhs, rhs in
+        candidates.max { lhs, rhs in
             if lhs.confidenceRank != rhs.confidenceRank {
-                return lhs.confidenceRank > rhs.confidenceRank
+                return lhs.confidenceRank < rhs.confidenceRank
             }
-            return lhs.distanceMeters < rhs.distanceMeters
+            return lhs.distanceMeters > rhs.distanceMeters
         }
     }
 
