@@ -1082,7 +1082,7 @@ private struct LiveSpatialCaptureView: View {
                 anchorConfidence: confidence
             )
             if bothAnchored, measurement.distanceMeters < noisyMeasurementThresholdMeters {
-                measurementFeedback = "Measurement not saved — captured distance was too short/noisy. Step back and retake."
+                measurementFeedback = "Measurement not saved — distance fell below the stability threshold. Step back slightly and retake."
                 showMeasurementFeedback = true
                 return
             }
@@ -1112,7 +1112,9 @@ private struct LiveSpatialCaptureView: View {
         let horizontal = measurement.horizontalDistanceMeters
         let vertical = abs(measurement.verticalOffsetMeters)
         let axis: MeasurementAxisClassification
-        if vertical > (horizontal * axisDominanceRatio) {
+        if measurement.distanceMeters < noisyMeasurementThresholdMeters {
+            axis = .depth
+        } else if vertical > (horizontal * axisDominanceRatio) {
             axis = .vertical
         } else if horizontal > (vertical * axisDominanceRatio) {
             axis = .horizontal
@@ -1876,7 +1878,7 @@ private enum MeasurementAxisClassification {
         switch self {
         case .vertical: return "Vertical"
         case .horizontal: return "Horizontal"
-        case .depth: return "Depth/Diagonal"
+        case .depth: return "Depth"
         }
     }
 }
@@ -2041,9 +2043,13 @@ private struct GhostPlacementOverlay: View {
                 Text("\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height) × \(preview.dimensionsMm.depth) mm")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.9))
-                Text("Clearance envelope: Left \(preview.clearanceOffsetsMm.left) mm · Right \(preview.clearanceOffsetsMm.right) mm · Top \(preview.clearanceOffsetsMm.top) mm · Bottom \(preview.clearanceOffsetsMm.bottom) mm")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.86))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Clearance envelope")
+                    Text("Left \(preview.clearanceOffsetsMm.left) mm · Right \(preview.clearanceOffsetsMm.right) mm")
+                    Text("Top \(preview.clearanceOffsetsMm.top) mm · Bottom \(preview.clearanceOffsetsMm.bottom) mm")
+                }
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.86))
                 Text(clearanceState.message)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(clearanceState.color)
