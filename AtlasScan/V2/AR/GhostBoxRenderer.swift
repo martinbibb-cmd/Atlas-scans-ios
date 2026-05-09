@@ -21,6 +21,12 @@ final class GhostBoxRenderer: NSObject {
     /// Minimum hit distance to discard self-intersection artefacts.
     private let minHitDistM: Float = 0.02
 
+    /// Fallback half-extents (metres) used when mesh bounds are unavailable.
+    /// Based on the regulatory-minimum clearance envelope for a generic boiler.
+    private let defaultHalfWidthM: Float  = 0.30   // 600 mm total
+    private let defaultHalfHeightM: Float = 0.40   // 800 mm total
+    private let defaultHalfDepthM: Float  = 0.25   // 500 mm total
+
     func buildScene(pins: [SpatialPinV1], registry: HardwareRegistryV1) {
         guard let arView else { return }
         rootAnchor?.removeFromParent()
@@ -75,7 +81,9 @@ final class GhostBoxRenderer: NSObject {
         guard !meshAnchors.isEmpty else { return }
 
         let centre = entity.position(relativeTo: nil)
-        let extents = entity.model?.mesh.bounds.extents ?? SIMD3<Float>(0.6, 0.8, 0.5)
+        // Use the actual mesh bounds; fall back to regulatory-minimum half-extents.
+        let extents = entity.model?.mesh.bounds.extents
+            ?? SIMD3<Float>(defaultHalfWidthM * 2, defaultHalfHeightM * 2, defaultHalfDepthM * 2)
         let halfW = extents.x / 2
         let halfH = extents.y / 2
         let halfD = extents.z / 2

@@ -876,12 +876,10 @@ private struct LiveSpatialCaptureView: View {
                         showCapturePointMenu = false
                     },
                     onNextRoom: {
-                        shouldStopCapture = true
-                        showCapturePointMenu = false
+                        stopCaptureAndCloseMenu()
                     },
                     onFinishVisit: {
-                        shouldStopCapture = true
-                        showCapturePointMenu = false
+                        stopCaptureAndCloseMenu()
                         onFinishVisit()
                     },
                     onDismiss: { showCapturePointMenu = false }
@@ -980,6 +978,13 @@ private struct LiveSpatialCaptureView: View {
     }
 
     // MARK: - Photo save
+
+    /// Stops the active capture and closes the action menu.
+    /// Used by the "Next Room" and "Finish Visit" quick actions.
+    private func stopCaptureAndCloseMenu() {
+        shouldStopCapture = true
+        showCapturePointMenu = false
+    }
 
     private func captureCenterPoint() {
         let probe = capturePointProbe?() ?? LiveCapturePointProbeResultV1(
