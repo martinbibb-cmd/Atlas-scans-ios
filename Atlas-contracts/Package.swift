@@ -19,6 +19,6 @@ let package = Package(
         .library(name: "AtlasContracts", targets: ["AtlasContracts"]),
     ],
     targets: [
-        .target(name: "AtlasContracts"),
+        .target(name: "AtlasContracts", path: "Sources/AtlasContracts"),
     ]
 )

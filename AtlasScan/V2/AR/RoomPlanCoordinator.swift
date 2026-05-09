@@ -190,18 +190,19 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         // Prefer confirmed plane geometry/infinite planes first so evidence
         // locks to stable surfaces; fall back to estimated planes only when
         // no confirmed plane hit is available.
-        if let query = frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any) {
-            let results = captureView.captureSession.arSession.raycast(query)
-            if !results.isEmpty { return results }
-        }
-        if let query = frame.raycastQuery(from: point, allowing: .existingPlaneInfinite, alignment: .any) {
-            let results = captureView.captureSession.arSession.raycast(query)
-            if !results.isEmpty { return results }
-        }
-        if let query = frame.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any) {
-            return captureView.captureSession.arSession.raycast(query)
-        }
-        return []
+        let existingPlaneGeometryResults = captureView.captureSession.arSession.raycast(
+            frame.raycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any)
+        )
+        if !existingPlaneGeometryResults.isEmpty { return existingPlaneGeometryResults }
+
+        let existingPlaneInfiniteResults = captureView.captureSession.arSession.raycast(
+            frame.raycastQuery(from: point, allowing: .existingPlaneInfinite, alignment: .any)
+        )
+        if !existingPlaneInfiniteResults.isEmpty { return existingPlaneInfiniteResults }
+
+        return captureView.captureSession.arSession.raycast(
+            frame.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .any)
+        )
     }
 
     private func worldTransform(from matrix: simd_float4x4) -> WorldTransformV1 {
