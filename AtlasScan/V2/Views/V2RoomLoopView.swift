@@ -2297,7 +2297,7 @@ private struct V2PinPickerSheet: View {
     @State private var manualFlueOrientation = ""
     @State private var manualNotes = ""
 
-    private var isLocationDerivedFromCapturePoint: Bool { capturePoint != nil }
+    private var hasCapturePoint: Bool { capturePoint != nil }
 
     /// Seeds the picker from the active capture point so tapped equipment stays
     /// linked to the same surface context that opened the menu.
@@ -2462,7 +2462,7 @@ private struct V2PinPickerSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Location context") {
-                    if isLocationDerivedFromCapturePoint {
+                    if hasCapturePoint {
                         LabeledContent("Location") {
                             Label(selectedLocationContext.displayName, systemImage: "lock.fill")
                                 .foregroundStyle(.primary)
@@ -2601,7 +2601,7 @@ private struct V2PinPickerSheet: View {
         if capturePoint?.anchorConfidence == .screenOnly {
             return "\(baseSummary) Room note only — not spatially anchored."
         }
-        if isLocationDerivedFromCapturePoint {
+        if hasCapturePoint {
             return "\(baseSummary) Spatially locked to the tapped location."
         }
         return baseSummary

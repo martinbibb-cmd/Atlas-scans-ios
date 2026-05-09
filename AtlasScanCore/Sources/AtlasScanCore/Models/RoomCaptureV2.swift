@@ -606,6 +606,12 @@ public enum SpatialPinAnchorConfidence: String, Codable, CaseIterable, Sendable 
     case screenOnly = "screen_only"
 }
 
+public extension SpatialPinAnchorConfidence {
+    var roomNoteOnlySummary: String? {
+        self == .screenOnly ? "Room note only — not spatially anchored" : nil
+    }
+}
+
 public enum PinnedObjectType: String, Codable, CaseIterable, Sendable {
     case boiler
     case heatPump

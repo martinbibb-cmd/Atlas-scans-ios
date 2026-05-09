@@ -687,8 +687,8 @@ struct VanModeView: View {
                         Text(pin.locationContext.summaryLabel)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        if pin.anchorConfidence == .screenOnly {
-                            Text("Room note only — not spatially anchored")
+                        if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
+                            Text(roomNoteOnly)
                                 .font(.caption2)
                                 .foregroundStyle(.orange)
                         } else if pin.hasResolvedWorldAnchor {
@@ -877,8 +877,8 @@ struct VanModeView: View {
 
     private func pinSubtitle(for pin: SpatialPinV1) -> String {
         let location = pin.locationContext.summaryLabel
-        if pin.anchorConfidence == .screenOnly {
-            return "\(location) · Room note only — not spatially anchored"
+        if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
+            return "\(location) · \(roomNoteOnly)"
         }
         return location
     }

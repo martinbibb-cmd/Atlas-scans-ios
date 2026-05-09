@@ -43,8 +43,7 @@ struct RecentCaptureItemV1: Identifiable, Equatable {
     static func from(pin: SpatialPinV1) -> RecentCaptureItemV1 {
         let subtitle: String? = {
             let locationLabel = pin.locationContext.displayName
-            let roomNoteOnly = "Room note only — not spatially anchored"
-            if pin.anchorConfidence == .screenOnly {
+            if let roomNoteOnly = pin.anchorConfidence.roomNoteOnlySummary {
                 return "\(locationLabel) · \(roomNoteOnly)"
             }
             return pin.locationContext.summaryLabel
