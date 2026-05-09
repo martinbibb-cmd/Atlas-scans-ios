@@ -302,6 +302,68 @@ final class CaptureSessionStoreTests: XCTestCase {
     }
 }
 
+final class ScanSessionCoordinatorRoomConnectionReviewTests: XCTestCase {
+    @MainActor
+    func test_prepareNextRoomConnection_throughOpening_setsSharedWallCandidateStatusOnSuccess() {
+        let coordinator = ScanSessionCoordinator(visitId: UUID(), store: AtomicSessionStore())
+        let sourceRoom = rectangleRoom(name: "Kitchen", originX: 0, originZ: 0, width: 4, depth: 3)
+        coordinator.addRoom(sourceRoom)
+
+        coordinator.prepareNextRoomConnection(
+            fromRoomId: sourceRoom.id,
+            wallIndex: 0,
+            kind: .throughOpening
+        )
+
+        let nextRoom = rectangleRoom(name: "Hall", originX: 7, originZ: 0, width: 4, depth: 3)
+        coordinator.addRoom(nextRoom)
+
+        let savedNext = coordinator.session.rooms.first(where: { $0.id == nextRoom.id })
+        XCTAssertEqual(savedNext?.incomingConnectionReview?.status, .sharedWallCandidate)
+        XCTAssertEqual(savedNext?.incomingConnectionReview?.note, "Shared wall candidate found")
+    }
+
+    @MainActor
+    func test_prepareNextRoomConnection_alignmentFailure_marksNeedsReviewAndKeepsRoom() {
+        let coordinator = ScanSessionCoordinator(visitId: UUID(), store: AtomicSessionStore())
+        let sourceRoom = rectangleRoom(name: "Kitchen", originX: 0, originZ: 0, width: 4, depth: 3)
+        coordinator.addRoom(sourceRoom)
+
+        coordinator.prepareNextRoomConnection(
+            fromRoomId: sourceRoom.id,
+            wallIndex: 0,
+            kind: .adjacentWall
+        )
+
+        // Degenerate room with no wall segments forces alignment failure.
+        let failedRoom = RoomCaptureV2(displayName: "Unresolved Room")
+        coordinator.addRoom(failedRoom)
+
+        XCTAssertEqual(coordinator.session.rooms.count, 2, "Room must be kept even when alignment fails.")
+        let saved = coordinator.session.rooms.first(where: { $0.id == failedRoom.id })
+        XCTAssertEqual(saved?.incomingConnectionReview?.status, .needsReview)
+        XCTAssertEqual(saved?.incomingConnectionReview?.note, "No shared wall match yet")
+    }
+
+    private func rectangleRoom(
+        name: String,
+        originX: Double,
+        originZ: Double,
+        width: Double,
+        depth: Double
+    ) -> RoomCaptureV2 {
+        RoomCaptureV2(
+            displayName: name,
+            polygonVertices: [
+                Vertex2D(x: originX, z: originZ),
+                Vertex2D(x: originX + width, z: originZ),
+                Vertex2D(x: originX + width, z: originZ + depth),
+                Vertex2D(x: originX, z: originZ + depth)
+            ]
+        )
+    }
+}
+
 final class ScanSessionCoordinatorEvidenceLifecycleTests: XCTestCase {
     private let store = AtomicSessionStore()
 
