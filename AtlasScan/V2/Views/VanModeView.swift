@@ -1116,6 +1116,9 @@ private struct WallPlanPin: Identifiable {
 }
 
 private struct WallFabricRoomPlan: View {
+    private let needsReviewDashPattern: [CGFloat] = [6, 5]
+    private let internalWallDashPattern: [CGFloat] = [10, 4]
+    private let partyWallDashPattern: [CGFloat] = [3, 4]
     let walls: [ReviewWallModel]
     let selectedWallIndex: Int?
     let pinMarkers: [WallPlanPin]
@@ -1206,15 +1209,15 @@ private struct WallFabricRoomPlan: View {
     private func wallStrokeStyle(for wall: ReviewWallModel, isSelected: Bool) -> StrokeStyle {
         let width: CGFloat = isSelected ? 10 : 6
         if wall.confidence == .needsReview {
-            return StrokeStyle(lineWidth: width, lineCap: .round, dash: [6, 5])
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: needsReviewDashPattern)
         }
         switch wall.displayedFabric {
         case .externalWall:
             return StrokeStyle(lineWidth: width, lineCap: .round)
         case .internalWall:
-            return StrokeStyle(lineWidth: width, lineCap: .round, dash: [10, 4])
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: internalWallDashPattern)
         case .partyWall:
-            return StrokeStyle(lineWidth: width, lineCap: .round, dash: [3, 4])
+            return StrokeStyle(lineWidth: width, lineCap: .round, dash: partyWallDashPattern)
         }
     }
 }
