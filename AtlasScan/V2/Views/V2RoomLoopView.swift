@@ -1113,7 +1113,7 @@ private struct LiveSpatialCaptureView: View {
         let vertical = abs(measurement.verticalOffsetMeters)
         let axis: MeasurementAxisClassification
         if measurement.distanceMeters < noisyMeasurementThresholdMeters {
-            axis = .depth
+            axis = .unclassified
         } else if vertical > (horizontal * axisDominanceRatio) {
             axis = .vertical
         } else if horizontal > (vertical * axisDominanceRatio) {
@@ -1873,12 +1873,14 @@ private enum MeasurementAxisClassification {
     case vertical
     case horizontal
     case depth
+    case unclassified
 
     var displayName: String {
         switch self {
         case .vertical: return "Vertical"
         case .horizontal: return "Horizontal"
         case .depth: return "Depth"
+        case .unclassified: return "Unclassified"
         }
     }
 }
@@ -1912,9 +1914,27 @@ private struct ProbeCaptureStatusBadge: View {
     let diagnostics: CaptureProbeDiagnosticsV1
     let pendingPoint: LiveCapturePointV1?
 
+    private var normalizedTrackingState: String {
+        diagnostics.trackingState.lowercased()
+    }
+
+    private var isTrackingLimited: Bool {
+        normalizedTrackingState.hasPrefix("limited") || normalizedTrackingState == "notavailable"
+    }
+
+    private var formattedPlaneAlignment: String {
+        switch diagnostics.planeAlignment.lowercased() {
+        case "vertical": return "Vertical"
+        case "horizontal": return "Horizontal"
+        case "any": return "Any"
+        case "none": return "None"
+        default: return diagnostics.planeAlignment
+        }
+    }
+
     private var statusColor: Color {
         if pendingPoint?.anchorConfidence == .screenOnly { return .orange }
-        if diagnostics.trackingState.hasPrefix("limited") || diagnostics.trackingState == "notAvailable" { return .orange }
+        if isTrackingLimited { return .orange }
         if diagnostics.resultType == .failed { return .red }
         return .green
     }
@@ -1926,7 +1946,7 @@ private struct ProbeCaptureStatusBadge: View {
         if diagnostics.resultType == .failed {
             return "No stable hit"
         }
-        if diagnostics.trackingState.hasPrefix("limited") {
+        if isTrackingLimited {
             return "Tracking limited"
         }
         return "Stable hit"
@@ -1937,7 +1957,7 @@ private struct ProbeCaptureStatusBadge: View {
             Text(statusText)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(statusColor)
-            Text("Alignment: \(diagnostics.planeAlignment.capitalized)")
+            Text("Alignment: \(formattedPlaneAlignment)")
                 .font(.caption2)
                 .foregroundStyle(.white)
             Text("Tracking: \(diagnostics.trackingState)")
