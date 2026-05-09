@@ -652,19 +652,21 @@ public extension PinPlacementLocationContext {
 
     static func derived(from surfaceSemantic: SurfaceSemanticV1?) -> PinPlacementLocationContext {
         switch surfaceSemantic {
-        case .externalWall:
+        case .some(.externalWall):
             return .externalWall
-        case .internalWall, .partyWall:
+        case .some(.internalWall), .some(.partyWall):
             return .wall
-        case .floor:
+        case .some(.floor):
             return .floor
-        case .ceiling:
+        case .some(.ceiling):
             return .ceiling
-        case .cupboardSide, .cupboardBase, .worktop:
+        case .some(.cupboardSide), .some(.cupboardBase), .some(.worktop):
             return .cupboard
-        case .utilitySpace:
+        case .some(.utilitySpace):
             return .airingCupboard
-        case .loftSpace, .unknown, .none:
+        case .some(.loftSpace), .some(.unknown), .none:
+            return .unknownNeedsReview
+        @unknown default:
             return .unknownNeedsReview
         }
     }
