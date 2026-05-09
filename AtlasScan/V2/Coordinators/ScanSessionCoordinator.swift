@@ -257,26 +257,18 @@ public final class ScanSessionCoordinator: ObservableObject {
     }
 
     private func translated(_ measurement: SpatialMeasurementV1, dx: Double, dz: Double) -> SpatialMeasurementV1 {
-        SpatialMeasurementV1(
-            id: measurement.id,
-            roomId: measurement.roomId,
-            startCapturePointId: measurement.startCapturePointId,
-            endCapturePointId: measurement.endCapturePointId,
-            startWorldPosition: SIMD3(
+        transformedMeasurement(
+            measurement,
+            start: SIMD3(
                 measurement.startWorldPosition.x + dx,
                 measurement.startWorldPosition.y,
                 measurement.startWorldPosition.z + dz
             ),
-            endWorldPosition: SIMD3(
+            end: SIMD3(
                 measurement.endWorldPosition.x + dx,
                 measurement.endWorldPosition.y,
                 measurement.endWorldPosition.z + dz
-            ),
-            startSurfaceSemantic: measurement.startSurfaceSemantic,
-            endSurfaceSemantic: measurement.endSurfaceSemantic,
-            anchorConfidence: measurement.anchorConfidence,
-            createdAt: measurement.createdAt,
-            notes: measurement.notes
+            )
         )
     }
 
@@ -435,23 +427,35 @@ public final class ScanSessionCoordinator: ObservableObject {
     ) -> SpatialMeasurementV1 {
         let start = rotate(x: measurement.startWorldPosition.x, z: measurement.startWorldPosition.z, around: centre, by: angle)
         let end = rotate(x: measurement.endWorldPosition.x, z: measurement.endWorldPosition.z, around: centre, by: angle)
-        return SpatialMeasurementV1(
+        return transformedMeasurement(
+            measurement,
+            start: SIMD3(start.x, measurement.startWorldPosition.y, start.z),
+            end: SIMD3(end.x, measurement.endWorldPosition.y, end.z)
+        )
+    }
+
+    private func rotate(x: Double, z: Double, around centre: Vertex2D, by angle: Double) -> Vertex2D {
+        rotate(vertex: Vertex2D(x: x, z: z), around: centre, by: angle)
+    }
+
+    private func transformedMeasurement(
+        _ measurement: SpatialMeasurementV1,
+        start: SIMD3<Double>,
+        end: SIMD3<Double>
+    ) -> SpatialMeasurementV1 {
+        SpatialMeasurementV1(
             id: measurement.id,
             roomId: measurement.roomId,
             startCapturePointId: measurement.startCapturePointId,
             endCapturePointId: measurement.endCapturePointId,
-            startWorldPosition: SIMD3(start.x, measurement.startWorldPosition.y, start.z),
-            endWorldPosition: SIMD3(end.x, measurement.endWorldPosition.y, end.z),
+            startWorldPosition: start,
+            endWorldPosition: end,
             startSurfaceSemantic: measurement.startSurfaceSemantic,
             endSurfaceSemantic: measurement.endSurfaceSemantic,
             anchorConfidence: measurement.anchorConfidence,
             createdAt: measurement.createdAt,
             notes: measurement.notes
         )
-    }
-
-    private func rotate(x: Double, z: Double, around centre: Vertex2D, by angle: Double) -> Vertex2D {
-        rotate(vertex: Vertex2D(x: x, z: z), around: centre, by: angle)
     }
 
     private func wallVector(_ wall: WallSegmentV1) -> (dx: Double, dz: Double) {
