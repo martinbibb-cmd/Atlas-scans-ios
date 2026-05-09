@@ -9,6 +9,24 @@
 
 import Foundation
 
+/// Serialized 4×4 world transform matrix for AR-anchored evidence.
+///
+/// `elements` is always normalized to exactly 16 values so older/newer payloads
+/// can decode safely while preserving a stable matrix shape.
+public struct WorldTransformV1: Codable, Equatable, Sendable {
+    public let elements: [Double]
+
+    public init(elements: [Double]) {
+        if elements.count == 16 {
+            self.elements = elements
+        } else if elements.count < 16 {
+            self.elements = elements + Array(repeating: 0, count: 16 - elements.count)
+        } else {
+            self.elements = Array(elements.prefix(16))
+        }
+    }
+}
+
 // MARK: - Room capture
 
 public struct RoomCaptureV2: Codable, Identifiable, Sendable {
@@ -400,6 +418,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public var externalAreaId: UUID?
     public var locationContext: PinPlacementLocationContext
     public var capturePointId: UUID?
+    public var anchorId: UUID?
+    public var worldTransform: WorldTransformV1?
 
     /// 3-D world-space position (Y-up, metric metres).
     public let positionX: Double
@@ -443,7 +463,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         case .screenOnly:
             return false
         case .raycastEstimated, .worldLocked, .high, .medium, .low, .estimated:
-            return hasNonZeroWorldPosition
+            return anchorId != nil || worldTransform != nil || hasNonZeroWorldPosition
         }
     }
 
@@ -454,6 +474,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         externalAreaId: UUID? = nil,
         locationContext: PinPlacementLocationContext = .unknownNeedsReview,
         capturePointId: UUID? = nil,
+        anchorId: UUID? = nil,
+        worldTransform: WorldTransformV1? = nil,
         positionX: Double,
         positionY: Double,
         positionZ: Double,
@@ -477,6 +499,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         self.externalAreaId = externalAreaId
         self.locationContext = locationContext
         self.capturePointId = capturePointId
+        self.anchorId = anchorId
+        self.worldTransform = worldTransform
         self.positionX = positionX
         self.positionY = positionY
         self.positionZ = positionZ
@@ -497,6 +521,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, roomId, visitId, externalAreaId, locationContext, capturePointId
+        case anchorId, worldTransform
         case positionX, positionY, positionZ, screenPositionX, screenPositionY
         case objectType, label, objectCategory, selectedTemplateId, manualEntry
         case anchorConfidence, reviewStatus, provenance
@@ -511,6 +536,8 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         externalAreaId = try container.decodeIfPresent(UUID.self, forKey: .externalAreaId)
         locationContext = try container.decodeIfPresent(PinPlacementLocationContext.self, forKey: .locationContext) ?? .unknownNeedsReview
         capturePointId = try container.decodeIfPresent(UUID.self, forKey: .capturePointId)
+        anchorId = try container.decodeIfPresent(UUID.self, forKey: .anchorId)
+        worldTransform = try container.decodeIfPresent(WorldTransformV1.self, forKey: .worldTransform)
         positionX = try container.decodeIfPresent(Double.self, forKey: .positionX) ?? 0
         positionY = try container.decodeIfPresent(Double.self, forKey: .positionY) ?? 0
         positionZ = try container.decodeIfPresent(Double.self, forKey: .positionZ) ?? 0

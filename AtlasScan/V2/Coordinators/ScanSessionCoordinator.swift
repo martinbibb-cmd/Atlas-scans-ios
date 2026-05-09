@@ -197,6 +197,8 @@ public final class ScanSessionCoordinator: ObservableObject {
                 externalAreaId: pin.externalAreaId,
                 locationContext: pin.locationContext,
                 capturePointId: pin.capturePointId,
+                anchorId: pin.anchorId,
+                worldTransform: pin.worldTransform,
                 positionX: pin.positionX + dx,
                 positionY: pin.positionY,
                 positionZ: pin.positionZ + dz,

@@ -28,6 +28,8 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     var onCapturePointProbeReady: (((() -> LiveCapturePointProbeResultV1)?) -> Void)?
     /// Exposes frame-based world-to-screen projection for live spatial overlays.
     var onWorldPointProjectionReady: ((((SIMD3<Double>) -> CGPointCodable?)?) -> Void)?
+    /// Exposes anchor-id based world-transform resolution for live status updates.
+    var onAnchorTransformResolverReady: ((((UUID) -> WorldTransformV1?)?) -> Void)?
 
     func makeCoordinator() -> RoomPlanCoordinator {
         RoomPlanCoordinator(capturedRoom: $capturedRoom)
@@ -45,6 +47,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         onCapturePointProbeReady?({ context.coordinator.capturePointAtViewCenter() })
         onWorldPointProjectionReady?({ world in
             context.coordinator.projectNormalizedScreenPoint(for: world)
+        })
+        onAnchorTransformResolverReady?({ anchorId in
+            context.coordinator.worldTransform(for: anchorId)
         })
         context.coordinator.startSession()
         return vc
