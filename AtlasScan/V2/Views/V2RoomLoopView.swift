@@ -707,6 +707,8 @@ private struct LiveSpatialCaptureView: View {
     @State private var recentCaptures: [RecentCaptureItemV1] = []
     /// The item currently shown in the detail sheet (tapped from the strip).
     @State private var selectedRecentItem: RecentCaptureItemV1?
+    /// The live ARSession shared from RoomPlan; used to drive the 3-D ghost overlay.
+    @State private var arSession: ARSession?
 
     var body: some View {
         GeometryReader { geometry in
@@ -734,10 +736,30 @@ private struct LiveSpatialCaptureView: View {
                         DispatchQueue.main.async {
                             anchorTransformResolver = resolver
                         }
+                    },
+                    onARSessionReady: { session in
+                        DispatchQueue.main.async {
+                            arSession = session
+                        }
                     }
                 )
                 .id(refreshToken)
                 .ignoresSafeArea()
+
+                // 3-D ghost appliance overlay — transparent ARSCNView sharing the
+                // RoomPlan session so the ghost appears in the same world coordinate
+                // frame as the live room mesh.
+                if let arSession {
+                    V2GhostAROverlayView(
+                        arSession: arSession,
+                        spec: ghostPreview.map { ghostRenderSpec(from: $0) },
+                        dragPlane: selectedGhostPlacementPlane,
+                        onGhostDragged: { rawPosition, normal in
+                            moveGhostPreview(rawHitPosition: rawPosition, planeNormal: normal)
+                        }
+                    )
+                    .ignoresSafeArea()
+                }
 
                 VStack(spacing: 16) {
                     HStack(alignment: .top) {
@@ -788,6 +810,17 @@ private struct LiveSpatialCaptureView: View {
                             #if DEBUG
                             if let lastCaptureProbeDiagnostics {
                                 CaptureProbeDiagnosticsBadge(diagnostics: lastCaptureProbeDiagnostics)
+                            }
+                            if let ghostPreview {
+                                let mmPerMeter: Float = 1_000
+                                V2GhostARDebugBadge(
+                                    isTransformValid: ghostPreview.confidence != .screenOnly
+                                        && ghostPreview.placementPlane != .unknown,
+                                    widthM: Float(ghostPreview.dimensionsMm.width) / mmPerMeter,
+                                    heightM: Float(ghostPreview.dimensionsMm.height) / mmPerMeter,
+                                    depthM: Float(ghostPreview.dimensionsMm.depth) / mmPerMeter,
+                                    rendererActive: arSession != nil
+                                )
                             }
                             #endif
                         }
@@ -1142,6 +1175,88 @@ private struct LiveSpatialCaptureView: View {
             return .conflict("Too close to surface")
         }
         return .clear("Clearance envelope active")
+    }
+
+    /// Converts a GhostAppliancePreview into the lightweight V2GhostRenderSpec
+    /// consumed by V2GhostAROverlayView for world-space 3-D rendering.
+    private func ghostRenderSpec(from preview: GhostAppliancePreview) -> V2GhostRenderSpec {
+        let mm = preview.dimensionsMm
+        let cl = preview.clearanceOffsetsMm
+        let mmPerMeter: Float = 1_000
+        return V2GhostRenderSpec(
+            worldPositionX: preview.worldPosition.x,
+            worldPositionY: preview.worldPosition.y,
+            worldPositionZ: preview.worldPosition.z,
+            planeNormalX: preview.planeNormal.x,
+            planeNormalY: preview.planeNormal.y,
+            planeNormalZ: preview.planeNormal.z,
+            placementPlane: preview.placementPlane,
+            widthM: Float(mm.width) / mmPerMeter,
+            heightM: Float(mm.height) / mmPerMeter,
+            depthM: Float(mm.depth) / mmPerMeter,
+            clearanceLeftM: Float(cl.left) / mmPerMeter,
+            clearanceRightM: Float(cl.right) / mmPerMeter,
+            clearanceTopM: Float(cl.top) / mmPerMeter,
+            clearanceBottomM: Float(cl.bottom) / mmPerMeter,
+            clearanceFrontM: Float(cl.front) / mmPerMeter,
+            clearanceBackM: Float(cl.back) / mmPerMeter
+        )
+    }
+
+    /// Updates the ghost preview position after a drag gesture hits an AR surface.
+    ///
+    /// `rawHitPosition` is the surface contact point returned by ARKit.
+    /// This helper applies the same half-depth (wall) or half-height (floor) offset
+    /// as `stageGhostPreview` so the appliance body sits flush against the surface.
+    private func moveGhostPreview(rawHitPosition: SIMD3<Double>, planeNormal: SIMD3<Double>) {
+        guard let preview = ghostPreview else { return }
+        // Double precision matches the SIMD3<Double> world position type.
+        let mmPerMeter = 1_000.0
+        var world = rawHitPosition
+
+        switch preview.placementPlane {
+        case .wall:
+            // Push the center of the box outward from the wall by half its depth.
+            //
+            // The Y component is zeroed before normalizing to project the surface
+            // normal onto the horizontal XZ plane, keeping the appliance body
+            // perfectly vertical regardless of any tilt in the detected wall plane.
+            // simd_length guard inside normalizedVector returns the fallback when the
+            // projected XZ vector is near-zero (e.g. dragging over a horizontal surface).
+            let outward = normalizedVector(
+                SIMD3<Double>(planeNormal.x, 0, planeNormal.z),
+                fallback: SIMD3<Double>(0, 0, -1)
+            )
+            world += outward * (Double(preview.dimensionsMm.depth) / mmPerMeter / 2)
+        case .floor:
+            // Lift the center of the box up by half its height above the floor.
+            world.y += Double(preview.dimensionsMm.height) / mmPerMeter / 2
+        case .ceiling, .worktop, .unknown:
+            break
+        }
+
+        let updatedScreenPoint = worldPointProjector?(world) ?? preview.screenPoint
+        ghostPreview = GhostAppliancePreview(
+            templateId: preview.templateId,
+            displayName: preview.displayName,
+            dimensionsMm: preview.dimensionsMm,
+            clearanceOffsetsMm: preview.clearanceOffsetsMm,
+            worldPosition: world,
+            screenPoint: updatedScreenPoint,
+            placementPlane: preview.placementPlane,
+            planeNormal: planeNormal,
+            confidence: preview.confidence,
+            capturePointId: preview.capturePointId,
+            anchorId: preview.anchorId,
+            worldTransform: preview.worldTransform,
+            objectCategory: preview.objectCategory,
+            objectType: preview.objectType,
+            manufacturer: preview.manufacturer,
+            modelName: preview.modelName,
+            applianceRole: preview.applianceRole,
+            customDefinitionId: preview.customDefinitionId,
+            note: preview.note
+        )
     }
 
     private func lowerAnchorConfidence(
@@ -2199,6 +2314,29 @@ private struct CaptureProbeDiagnosticsBadge: View {
     private var distanceText: String {
         guard let distance = diagnostics.hitDistanceM else { return "n/a" }
         return String(format: "%.2fm", distance)
+    }
+}
+
+private struct V2GhostARDebugBadge: View {
+    let isTransformValid: Bool
+    let widthM: Float
+    let heightM: Float
+    let depthM: Float
+    let rendererActive: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("👻 Ghost AR debug")
+                .font(.caption2.weight(.semibold).monospaced())
+            Text("Transform: \(isTransformValid ? "✅ valid" : "⚠️ screenOnly")")
+            Text(String(format: "Dims: %.3f×%.3f×%.3f m", widthM, heightM, depthM))
+            Text("Renderer: \(rendererActive ? "✅ active" : "❌ inactive")")
+        }
+        .font(.caption2.monospaced())
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 #endif
