@@ -809,12 +809,13 @@ private struct LiveSpatialCaptureView: View {
                                 CaptureProbeDiagnosticsBadge(diagnostics: lastCaptureProbeDiagnostics)
                             }
                             if let ghostPreview {
+                                let mmPerMeter: Float = 1_000
                                 V2GhostARDebugBadge(
                                     isTransformValid: ghostPreview.confidence != .screenOnly
                                         && ghostPreview.placementPlane != .unknown,
-                                    widthM: Float(ghostPreview.dimensionsMm.width) / 1_000,
-                                    heightM: Float(ghostPreview.dimensionsMm.height) / 1_000,
-                                    depthM: Float(ghostPreview.dimensionsMm.depth) / 1_000,
+                                    widthM: Float(ghostPreview.dimensionsMm.width) / mmPerMeter,
+                                    heightM: Float(ghostPreview.dimensionsMm.height) / mmPerMeter,
+                                    depthM: Float(ghostPreview.dimensionsMm.depth) / mmPerMeter,
                                     rendererActive: arSession != nil
                                 )
                             }
@@ -1178,6 +1179,7 @@ private struct LiveSpatialCaptureView: View {
     private func ghostRenderSpec(from preview: GhostAppliancePreview) -> V2GhostRenderSpec {
         let mm = preview.dimensionsMm
         let cl = preview.clearanceOffsetsMm
+        let mmPerMeter: Float = 1_000
         return V2GhostRenderSpec(
             worldPositionX: preview.worldPosition.x,
             worldPositionY: preview.worldPosition.y,
@@ -1186,15 +1188,15 @@ private struct LiveSpatialCaptureView: View {
             planeNormalY: preview.planeNormal.y,
             planeNormalZ: preview.planeNormal.z,
             placementPlane: preview.placementPlane,
-            widthM:  Float(mm.width)  / 1_000,
-            heightM: Float(mm.height) / 1_000,
-            depthM:  Float(mm.depth)  / 1_000,
-            clearanceLeftM:   Float(cl.left)   / 1_000,
-            clearanceRightM:  Float(cl.right)  / 1_000,
-            clearanceTopM:    Float(cl.top)    / 1_000,
-            clearanceBottomM: Float(cl.bottom) / 1_000,
-            clearanceFrontM:  Float(cl.front)  / 1_000,
-            clearanceBackM:   Float(cl.back)   / 1_000
+            widthM:  Float(mm.width)  / mmPerMeter,
+            heightM: Float(mm.height) / mmPerMeter,
+            depthM:  Float(mm.depth)  / mmPerMeter,
+            clearanceLeftM:   Float(cl.left)   / mmPerMeter,
+            clearanceRightM:  Float(cl.right)  / mmPerMeter,
+            clearanceTopM:    Float(cl.top)    / mmPerMeter,
+            clearanceBottomM: Float(cl.bottom) / mmPerMeter,
+            clearanceFrontM:  Float(cl.front)  / mmPerMeter,
+            clearanceBackM:   Float(cl.back)   / mmPerMeter
         )
     }
 

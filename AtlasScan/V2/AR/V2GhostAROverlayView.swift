@@ -7,7 +7,7 @@
 ///
 /// Coordinate convention: ARKit right-handed Y-up, units in metres.
 ///
-/// Wall placement orient­ation:
+/// Wall placement orientation:
 ///   • Local +Z  = outward from wall (face direction / plane normal)
 ///   • Local +Y  = world up
 ///   • Local ±X  = wall tangent
@@ -240,10 +240,11 @@ final class V2GhostARCoordinator: NSObject {
 
     private func wireMaterial(color: UIColor) -> SCNMaterial {
         let mat = SCNMaterial()
-        mat.diffuse.contents = color
+        // Use alpha on the diffuse colour rather than the deprecated `transparency`
+        // property to ensure consistent rendering across SceneKit versions.
+        mat.diffuse.contents = color.withAlphaComponent(0.80)
         mat.isDoubleSided = true
         mat.fillMode = .lines
-        mat.transparency = 0.20
         return mat
     }
 
