@@ -752,10 +752,13 @@ private struct LiveSpatialCaptureView: View {
                 if let arSession {
                     V2GhostAROverlayView(
                         arSession: arSession,
-                        spec: ghostPreview.map { ghostRenderSpec(from: $0) }
+                        spec: ghostPreview.map { ghostRenderSpec(from: $0) },
+                        dragPlane: selectedGhostPlacementPlane,
+                        onGhostDragged: { rawPosition, normal in
+                            moveGhostPreview(rawHitPosition: rawPosition, planeNormal: normal)
+                        }
                     )
                     .ignoresSafeArea()
-                    .allowsHitTesting(false)
                 }
 
                 VStack(spacing: 16) {
@@ -1197,6 +1200,55 @@ private struct LiveSpatialCaptureView: View {
             clearanceBottomM: Float(cl.bottom) / mmPerMeter,
             clearanceFrontM:  Float(cl.front)  / mmPerMeter,
             clearanceBackM:   Float(cl.back)   / mmPerMeter
+        )
+    }
+
+    /// Updates the ghost preview position after a drag gesture hits an AR surface.
+    ///
+    /// `rawHitPosition` is the surface contact point returned by ARKit.
+    /// This helper applies the same half-depth (wall) or half-height (floor) offset
+    /// as `stageGhostPreview` so the appliance body sits flush against the surface.
+    private func moveGhostPreview(rawHitPosition: SIMD3<Double>, planeNormal: SIMD3<Double>) {
+        guard let preview = ghostPreview else { return }
+        let mmPerMeter = 1_000.0
+        var world = rawHitPosition
+
+        switch preview.placementPlane {
+        case .wall:
+            // Push the centre of the box outward from the wall by half its depth.
+            let outward = normalizedVector(
+                SIMD3<Double>(planeNormal.x, 0, planeNormal.z),
+                fallback: SIMD3<Double>(0, 0, -1)
+            )
+            world += outward * (Double(preview.dimensionsMm.depth) / mmPerMeter / 2)
+        case .floor:
+            // Lift the centre of the box up by half its height above the floor.
+            world.y += Double(preview.dimensionsMm.height) / mmPerMeter / 2
+        case .ceiling, .worktop, .unknown:
+            break
+        }
+
+        let updatedScreenPoint = worldPointProjector?(world) ?? preview.screenPoint
+        ghostPreview = GhostAppliancePreview(
+            templateId: preview.templateId,
+            displayName: preview.displayName,
+            dimensionsMm: preview.dimensionsMm,
+            clearanceOffsetsMm: preview.clearanceOffsetsMm,
+            worldPosition: world,
+            screenPoint: updatedScreenPoint,
+            placementPlane: preview.placementPlane,
+            planeNormal: planeNormal,
+            confidence: preview.confidence,
+            capturePointId: preview.capturePointId,
+            anchorId: preview.anchorId,
+            worldTransform: preview.worldTransform,
+            objectCategory: preview.objectCategory,
+            objectType: preview.objectType,
+            manufacturer: preview.manufacturer,
+            modelName: preview.modelName,
+            applianceRole: preview.applianceRole,
+            customDefinitionId: preview.customDefinitionId,
+            note: preview.note
         )
     }
 

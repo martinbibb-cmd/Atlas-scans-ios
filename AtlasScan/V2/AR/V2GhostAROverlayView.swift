@@ -62,6 +62,15 @@ struct V2GhostAROverlayView: UIViewRepresentable {
     /// Setting to nil removes any existing nodes from the scene.
     let spec: V2GhostRenderSpec?
 
+    /// Plane type used to constrain drag raycasts: wall → vertical, floor → horizontal.
+    var dragPlane: GhostPlacementPlaneV1 = .wall
+
+    /// Called on the main thread each time the user drags, with the raw
+    /// AR-surface hit position and outward surface normal (both in metres).
+    /// The caller is responsible for applying the appliance half-depth/height
+    /// offset before updating the ghostPreview world position.
+    var onGhostDragged: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
 
@@ -86,15 +95,31 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         lightNode.position = SCNVector3(0, 3, 0)
         view.scene.rootNode.addChildNode(lightNode)
 
-        // Ghost touches must pass through to RoomPlan below.
-        view.isUserInteractionEnabled = false
+        // Interaction enabled only while a ghost is active so that all other
+        // touches pass through to the RoomPlan session underneath.
+        view.isUserInteractionEnabled = spec != nil
+
+        // Pan gesture drives drag-to-move; the coordinator raycasts at the
+        // touch location and fires onGhostDragged on every frame.
+        let pan = UIPanGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(V2GhostARCoordinator.handlePan(_:))
+        )
+        view.addGestureRecognizer(pan)
 
         context.coordinator.sceneView = view
+        context.coordinator.dragPlane = dragPlane
+        context.coordinator.onGhostDragged = onGhostDragged
         context.coordinator.update(spec: spec)
         return view
     }
 
     func updateUIView(_ uiView: ARSCNView, context: Context) {
+        // Sync interaction state and drag settings before updating nodes so
+        // that a newly placed ghost immediately accepts drag input.
+        uiView.isUserInteractionEnabled = spec != nil
+        context.coordinator.dragPlane = dragPlane
+        context.coordinator.onGhostDragged = onGhostDragged
         context.coordinator.update(spec: spec)
     }
 
@@ -110,13 +135,17 @@ final class V2GhostARCoordinator: NSObject {
     weak var sceneView: ARSCNView?
     private var containerNode: SCNNode?
 
+    /// Current placement plane, used to select raycast target alignment during drag.
+    var dragPlane: GhostPlacementPlaneV1 = .wall
+    /// Called on every pan gesture frame with (rawHitPosition, planeNormal).
+    var onGhostDragged: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+
     // MARK: - Update
 
     func update(spec: V2GhostRenderSpec?) {
-        containerNode?.removeFromParentNode()
-        containerNode = nil
-
         guard let spec else {
+            containerNode?.removeFromParentNode()
+            containerNode = nil
             #if DEBUG
             print("[V2GhostAR] ghostTransform valid=— renderer=idle nodes=0")
             #endif
@@ -124,6 +153,20 @@ final class V2GhostARCoordinator: NSObject {
         }
 
         guard let sceneView else { return }
+
+        // If nodes already exist, reposition without rebuilding geometry.
+        // This keeps drag updates smooth by skipping node allocation overhead.
+        if let container = containerNode {
+            container.position = SCNVector3(
+                Float(spec.worldPositionX),
+                Float(spec.worldPositionY),
+                Float(spec.worldPositionZ)
+            )
+            container.orientation = worldOrientation(for: spec)
+            return
+        }
+
+        // First placement: build nodes from scratch.
         let node = makeGhostContainerNode(spec: spec)
         sceneView.scene.rootNode.addChildNode(node)
         containerNode = node
@@ -139,6 +182,57 @@ final class V2GhostARCoordinator: NSObject {
                 + " renderer=active nodes=\(nodeCount)"
         )
         #endif
+    }
+
+    // MARK: - Drag gesture
+
+    /// Raycasts at the pan location, preferring the plane alignment that matches
+    /// `dragPlane` (vertical for wall, horizontal for floor/worktop/ceiling),
+    /// then falls back to any alignment if no aligned surface is found.
+    @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+        guard gesture.state == .began || gesture.state == .changed,
+              let sceneView else { return }
+
+        let location = gesture.location(in: sceneView)
+        let preferredAlignment: ARRaycastQuery.TargetAlignment = dragPlane == .floor
+            ? .horizontal
+            : .vertical
+
+        let targets: [ARRaycastQuery.Target] = [
+            .existingPlaneGeometry,
+            .existingPlaneInfinite,
+            .estimatedPlane,
+        ]
+
+        // Preferred-alignment pass.
+        for target in targets {
+            if let query = sceneView.raycastQuery(from: location, allowing: target, alignment: preferredAlignment),
+               let result = sceneView.session.raycast(query).first {
+                fireCallback(from: result)
+                return
+            }
+        }
+
+        // Fallback: any alignment so the ghost tracks even in sparse scenes.
+        for target in targets {
+            if let query = sceneView.raycastQuery(from: location, allowing: target, alignment: .any),
+               let result = sceneView.session.raycast(query).first {
+                fireCallback(from: result)
+                return
+            }
+        }
+    }
+
+    private func fireCallback(from result: ARRaycastResult) {
+        let col3 = result.worldTransform.columns.3
+        let forward = result.worldTransform.columns.2
+        let position = SIMD3<Double>(Double(col3.x), Double(col3.y), Double(col3.z))
+        // ARKit forward (columns.2) points away from the surface into the room;
+        // negate it to get the outward wall/floor normal used by moveGhostPreview.
+        let normal = SIMD3<Double>(Double(-forward.x), Double(-forward.y), Double(-forward.z))
+        DispatchQueue.main.async { [weak self] in
+            self?.onGhostDragged?(position, normal)
+        }
     }
 
     // MARK: - Node construction
