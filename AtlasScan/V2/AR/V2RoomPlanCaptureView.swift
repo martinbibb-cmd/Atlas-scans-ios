@@ -30,6 +30,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     var onWorldPointProjectionReady: ((((SIMD3<Double>) -> CGPointCodable?)?) -> Void)?
     /// Exposes anchor-id based world-transform resolution for live status updates.
     var onAnchorTransformResolverReady: ((((UUID) -> WorldTransformV1?)?) -> Void)?
+    /// Called once with the live ARSession so callers can share it for 3-D overlays
+    /// (e.g. the ghost appliance AR overlay) without starting a second session.
+    var onARSessionReady: ((ARSession) -> Void)?
 
     func makeCoordinator() -> RoomPlanCoordinator {
         RoomPlanCoordinator(capturedRoom: $capturedRoom)
@@ -51,6 +54,8 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         onAnchorTransformResolverReady?({ anchorId in
             context.coordinator.worldTransform(for: anchorId)
         })
+        // Expose the live ARSession so callers can share it for transparent 3-D overlays.
+        onARSessionReady?(captureView.captureSession.arSession)
         context.coordinator.startSession()
         return vc
     }

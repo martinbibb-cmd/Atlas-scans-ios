@@ -157,6 +157,7 @@
 		AAV20002 /* ScanSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30002 /* ScanSessionCoordinator.swift */; };
 		AAV20003 /* GhostBoxARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30003 /* GhostBoxARView.swift */; };
 		AAV20004 /* GhostBoxRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30004 /* GhostBoxRenderer.swift */; };
+		AAV20018 /* V2GhostAROverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30018 /* V2GhostAROverlayView.swift */; };
 		AAV20005 /* MiniMapHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30005 /* MiniMapHUD.swift */; };
 		AAV20006 /* V2RoomPlanCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30006 /* V2RoomPlanCaptureView.swift */; };
 		AAV20007 /* RoomPlanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30007 /* RoomPlanCoordinator.swift */; };
@@ -343,6 +344,7 @@
 		AAV30002 /* ScanSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionCoordinator.swift; sourceTree = "<group>"; };
 		AAV30003 /* GhostBoxARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxARView.swift; sourceTree = "<group>"; };
 		AAV30004 /* GhostBoxRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBoxRenderer.swift; sourceTree = "<group>"; };
+		AAV30018 /* V2GhostAROverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2GhostAROverlayView.swift; sourceTree = "<group>"; };
 		AAV30005 /* MiniMapHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMapHUD.swift; sourceTree = "<group>"; };
 		AAV30006 /* V2RoomPlanCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2RoomPlanCaptureView.swift; sourceTree = "<group>"; };
 		AAV30007 /* RoomPlanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanCoordinator.swift; sourceTree = "<group>"; };
@@ -796,6 +798,7 @@
 			children = (
 				AAV30003 /* GhostBoxARView.swift */,
 				AAV30004 /* GhostBoxRenderer.swift */,
+				AAV30018 /* V2GhostAROverlayView.swift */,
 				AAV30005 /* MiniMapHUD.swift */,
 				AAV30006 /* V2RoomPlanCaptureView.swift */,
 				AAV30007 /* RoomPlanCoordinator.swift */,
@@ -1131,6 +1134,7 @@
 				AAV20002 /* ScanSessionCoordinator.swift in Sources */,
 				AAV20003 /* GhostBoxARView.swift in Sources */,
 				AAV20004 /* GhostBoxRenderer.swift in Sources */,
+				AAV20018 /* V2GhostAROverlayView.swift in Sources */,
 				AAV20005 /* MiniMapHUD.swift in Sources */,
 				AAV20006 /* V2RoomPlanCaptureView.swift in Sources */,
 				AAV20007 /* RoomPlanCoordinator.swift in Sources */,

@@ -707,6 +707,8 @@ private struct LiveSpatialCaptureView: View {
     @State private var recentCaptures: [RecentCaptureItemV1] = []
     /// The item currently shown in the detail sheet (tapped from the strip).
     @State private var selectedRecentItem: RecentCaptureItemV1?
+    /// The live ARSession shared from RoomPlan; used to drive the 3-D ghost overlay.
+    @State private var arSession: ARSession?
 
     var body: some View {
         GeometryReader { geometry in
@@ -734,10 +736,27 @@ private struct LiveSpatialCaptureView: View {
                         DispatchQueue.main.async {
                             anchorTransformResolver = resolver
                         }
+                    },
+                    onARSessionReady: { session in
+                        DispatchQueue.main.async {
+                            arSession = session
+                        }
                     }
                 )
                 .id(refreshToken)
                 .ignoresSafeArea()
+
+                // 3-D ghost appliance overlay — transparent ARSCNView sharing the
+                // RoomPlan session so the ghost appears in the same world coordinate
+                // frame as the live room mesh.
+                if let arSession {
+                    V2GhostAROverlayView(
+                        arSession: arSession,
+                        spec: ghostPreview.map { ghostRenderSpec(from: $0) }
+                    )
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                }
 
                 VStack(spacing: 16) {
                     HStack(alignment: .top) {
@@ -788,6 +807,16 @@ private struct LiveSpatialCaptureView: View {
                             #if DEBUG
                             if let lastCaptureProbeDiagnostics {
                                 CaptureProbeDiagnosticsBadge(diagnostics: lastCaptureProbeDiagnostics)
+                            }
+                            if let ghostPreview {
+                                V2GhostARDebugBadge(
+                                    isTransformValid: ghostPreview.confidence != .screenOnly
+                                        && ghostPreview.placementPlane != .unknown,
+                                    widthM: Float(ghostPreview.dimensionsMm.width) / 1_000,
+                                    heightM: Float(ghostPreview.dimensionsMm.height) / 1_000,
+                                    depthM: Float(ghostPreview.dimensionsMm.depth) / 1_000,
+                                    rendererActive: arSession != nil
+                                )
                             }
                             #endif
                         }
@@ -1142,6 +1171,31 @@ private struct LiveSpatialCaptureView: View {
             return .conflict("Too close to surface")
         }
         return .clear("Clearance envelope active")
+    }
+
+    /// Converts a GhostAppliancePreview into the lightweight V2GhostRenderSpec
+    /// consumed by V2GhostAROverlayView for world-space 3-D rendering.
+    private func ghostRenderSpec(from preview: GhostAppliancePreview) -> V2GhostRenderSpec {
+        let mm = preview.dimensionsMm
+        let cl = preview.clearanceOffsetsMm
+        return V2GhostRenderSpec(
+            worldPositionX: preview.worldPosition.x,
+            worldPositionY: preview.worldPosition.y,
+            worldPositionZ: preview.worldPosition.z,
+            planeNormalX: preview.planeNormal.x,
+            planeNormalY: preview.planeNormal.y,
+            planeNormalZ: preview.planeNormal.z,
+            placementPlane: preview.placementPlane,
+            widthM:  Float(mm.width)  / 1_000,
+            heightM: Float(mm.height) / 1_000,
+            depthM:  Float(mm.depth)  / 1_000,
+            clearanceLeftM:   Float(cl.left)   / 1_000,
+            clearanceRightM:  Float(cl.right)  / 1_000,
+            clearanceTopM:    Float(cl.top)    / 1_000,
+            clearanceBottomM: Float(cl.bottom) / 1_000,
+            clearanceFrontM:  Float(cl.front)  / 1_000,
+            clearanceBackM:   Float(cl.back)   / 1_000
+        )
     }
 
     private func lowerAnchorConfidence(
@@ -2199,6 +2253,29 @@ private struct CaptureProbeDiagnosticsBadge: View {
     private var distanceText: String {
         guard let distance = diagnostics.hitDistanceM else { return "n/a" }
         return String(format: "%.2fm", distance)
+    }
+}
+
+private struct V2GhostARDebugBadge: View {
+    let isTransformValid: Bool
+    let widthM: Float
+    let heightM: Float
+    let depthM: Float
+    let rendererActive: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("👻 Ghost AR debug")
+                .font(.caption2.weight(.semibold).monospaced())
+            Text("Transform: \(isTransformValid ? "✅ valid" : "⚠️ screenOnly")")
+            Text(String(format: "Dims: %.3f×%.3f×%.3f m", widthM, heightM, depthM))
+            Text("Renderer: \(rendererActive ? "✅ active" : "❌ inactive")")
+        }
+        .font(.caption2.monospaced())
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 #endif
