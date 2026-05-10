@@ -1191,15 +1191,15 @@ private struct LiveSpatialCaptureView: View {
             planeNormalY: preview.planeNormal.y,
             planeNormalZ: preview.planeNormal.z,
             placementPlane: preview.placementPlane,
-            widthM:  Float(mm.width)  / mmPerMeter,
+            widthM: Float(mm.width) / mmPerMeter,
             heightM: Float(mm.height) / mmPerMeter,
-            depthM:  Float(mm.depth)  / mmPerMeter,
-            clearanceLeftM:   Float(cl.left)   / mmPerMeter,
-            clearanceRightM:  Float(cl.right)  / mmPerMeter,
-            clearanceTopM:    Float(cl.top)    / mmPerMeter,
+            depthM: Float(mm.depth) / mmPerMeter,
+            clearanceLeftM: Float(cl.left) / mmPerMeter,
+            clearanceRightM: Float(cl.right) / mmPerMeter,
+            clearanceTopM: Float(cl.top) / mmPerMeter,
             clearanceBottomM: Float(cl.bottom) / mmPerMeter,
-            clearanceFrontM:  Float(cl.front)  / mmPerMeter,
-            clearanceBackM:   Float(cl.back)   / mmPerMeter
+            clearanceFrontM: Float(cl.front) / mmPerMeter,
+            clearanceBackM: Float(cl.back) / mmPerMeter
         )
     }
 
@@ -1210,19 +1210,26 @@ private struct LiveSpatialCaptureView: View {
     /// as `stageGhostPreview` so the appliance body sits flush against the surface.
     private func moveGhostPreview(rawHitPosition: SIMD3<Double>, planeNormal: SIMD3<Double>) {
         guard let preview = ghostPreview else { return }
+        // Double precision matches the SIMD3<Double> world position type.
         let mmPerMeter = 1_000.0
         var world = rawHitPosition
 
         switch preview.placementPlane {
         case .wall:
-            // Push the centre of the box outward from the wall by half its depth.
+            // Push the center of the box outward from the wall by half its depth.
+            //
+            // The Y component is zeroed before normalizing to project the surface
+            // normal onto the horizontal XZ plane, keeping the appliance body
+            // perfectly vertical regardless of any tilt in the detected wall plane.
+            // simd_length guard inside normalizedVector returns the fallback when the
+            // projected XZ vector is near-zero (e.g. dragging over a horizontal surface).
             let outward = normalizedVector(
                 SIMD3<Double>(planeNormal.x, 0, planeNormal.z),
                 fallback: SIMD3<Double>(0, 0, -1)
             )
             world += outward * (Double(preview.dimensionsMm.depth) / mmPerMeter / 2)
         case .floor:
-            // Lift the centre of the box up by half its height above the floor.
+            // Lift the center of the box up by half its height above the floor.
             world.y += Double(preview.dimensionsMm.height) / mmPerMeter / 2
         case .ceiling, .worktop, .unknown:
             break

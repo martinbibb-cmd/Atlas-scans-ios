@@ -2,8 +2,9 @@
 /// clearance envelope by sharing the live RoomPlan ARSession.
 ///
 /// The ARSCNView uses a fully transparent background so the RoomPlan camera
-/// feed underneath remains visible. User interaction is disabled so all touches
-/// pass through to the scanning session below.
+/// feed underneath remains visible. User interaction is enabled only while a
+/// ghost appliance spec is active; when no ghost is being previewed all touches
+/// pass through to the RoomPlan scanning session below.
 ///
 /// Coordinate convention: ARKit right-handed Y-up, units in metres.
 ///
@@ -194,9 +195,14 @@ final class V2GhostARCoordinator: NSObject {
               let sceneView else { return }
 
         let location = gesture.location(in: sceneView)
-        let preferredAlignment: ARRaycastQuery.TargetAlignment = dragPlane == .floor
-            ? .horizontal
-            : .vertical
+        let preferredAlignment: ARRaycastQuery.TargetAlignment
+        switch dragPlane {
+        case .floor, .worktop, .ceiling:
+            // All horizontal surfaces use the same ARKit alignment target.
+            preferredAlignment = .horizontal
+        case .wall, .unknown:
+            preferredAlignment = .vertical
+        }
 
         let targets: [ARRaycastQuery.Target] = [
             .existingPlaneGeometry,
@@ -224,12 +230,14 @@ final class V2GhostARCoordinator: NSObject {
     }
 
     private func fireCallback(from result: ARRaycastResult) {
-        let col3 = result.worldTransform.columns.3
+        // translationColumn (.columns.3) holds the world-space position of the hit.
+        let translationColumn = result.worldTransform.columns.3
+        // columns.2 is the forward/Z axis of the surface transform in ARKit's
+        // right-handed coordinate system; negating it gives the outward surface
+        // normal pointing away from the surface toward the viewer.
         let forward = result.worldTransform.columns.2
-        let position = SIMD3<Double>(Double(col3.x), Double(col3.y), Double(col3.z))
-        // ARKit forward (columns.2) points away from the surface into the room;
-        // negate it to get the outward wall/floor normal used by moveGhostPreview.
-        let normal = SIMD3<Double>(Double(-forward.x), Double(-forward.y), Double(-forward.z))
+        let position = SIMD3<Double>(translationColumn.x, translationColumn.y, translationColumn.z)
+        let normal = SIMD3<Double>(-forward.x, -forward.y, -forward.z)
         DispatchQueue.main.async { [weak self] in
             self?.onGhostDragged?(position, normal)
         }
@@ -279,7 +287,7 @@ final class V2GhostARCoordinator: NSObject {
         )
         envBox.firstMaterial = fillMaterial(color: UIColor.systemCyan.withAlphaComponent(0.13))
 
-        // Offset the envelope centre relative to the body centre so asymmetric
+        // Offset the envelope center relative to the body center so asymmetric
         // clearances (e.g. larger front than rear) sit correctly in world space.
         //
         // Convention (local frame):
