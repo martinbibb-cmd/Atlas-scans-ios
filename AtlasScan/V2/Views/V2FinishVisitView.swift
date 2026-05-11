@@ -149,8 +149,8 @@ struct V2FinishVisitView: View {
     private var actionsSection: some View {
         Section("Actions") {
             Button {
-                coordinator.updateEngineerNotes(engineerNotesDraft)
                 if readiness.isReady {
+                    coordinator.updateEngineerNotes(engineerNotesDraft)
                     coordinator.transition(to: .readyToExport)
                     coordinator.handOffToMind()
                     onDismiss()
@@ -158,7 +158,7 @@ struct V2FinishVisitView: View {
                     showMissingItemsReview = true
                 }
             } label: {
-                Label("Finish Visit", systemImage: "flag.checkered")
+                Label("Review & Finish Visit", systemImage: "flag.checkered")
             }
 
             Button {

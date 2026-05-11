@@ -1479,10 +1479,13 @@ private struct LiveSpatialCaptureView: View {
             if bounds.x <= minimumRenderableBoundsM
                 || bounds.y <= minimumRenderableBoundsM
                 || bounds.z <= minimumRenderableBoundsM {
-                missing.append("AR box bounds are zero")
+                missing.append("AR box bounds below visibility threshold")
             }
             let detail = missing.isEmpty ? "renderer not ready" : missing.joined(separator: ", ")
-            measurementFeedback = "Placement not ready yet (\(detail)). Move device until the live camera feed and 3D ghost appliance are visible."
+            let guidance = missing.contains("camera feed unavailable")
+                ? "Move device to recover camera tracking."
+                : "Reposition the ghost until the 3D appliance preview appears clearly."
+            measurementFeedback = "Placement not ready yet (\(detail)). \(guidance)"
             showMeasurementFeedback = true
             return
         }
