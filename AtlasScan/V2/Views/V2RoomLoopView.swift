@@ -1466,7 +1466,7 @@ private struct LiveSpatialCaptureView: View {
     private func confirmGhostPreview() {
         guard let preview = ghostPreview else { return }
         guard ghostPlacementIsWorldRenderable else {
-            measurementFeedback = "Placement not ready yet. Move device until live camera and world-space ghost are both visible."
+            measurementFeedback = "Placement not ready yet. Move device until live camera and AR placement preview are both visible."
             showMeasurementFeedback = true
             return
         }

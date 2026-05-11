@@ -48,7 +48,7 @@ struct V2FinishVisitView: View {
                             TextEditor(text: $engineerNotesDraft)
                                 .frame(minHeight: 120)
                         } footer: {
-                            Text("This note is included in the handoff so Mind can review incomplete evidence.")
+                            Text("This note is included in the handoff so Atlas Mind can review incomplete evidence.")
                         }
                         Section("Options") {
                             Button("Go back and complete missing items") {
@@ -56,7 +56,6 @@ struct V2FinishVisitView: View {
                             }
                             Button("Finish as Draft / Incomplete Visit") {
                                 coordinator.updateEngineerNotes(engineerNotesDraft)
-                                coordinator.transition(to: .draft)
                                 coordinator.transition(to: .incompleteReadyForReview)
                                 coordinator.handOffToMind()
                                 showMissingItemsReview = false
