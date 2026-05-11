@@ -171,6 +171,8 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
     private var containerNode: SCNNode?
     private var latestSpec: V2GhostRenderSpec?
     private var lastDebugPublishTime: TimeInterval = 0
+    private let debugPublishIntervalSeconds: TimeInterval = 0.2
+    private let minimumVisibleBoundsThresholdM = 0.0001
 
     /// Current placement plane, used to select raycast target alignment during tap.
     var placementPlane: GhostPlacementPlaneV1 = .wall
@@ -237,7 +239,7 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
     }
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        guard time - lastDebugPublishTime >= 0.2 else { return }
+        guard time - lastDebugPublishTime >= debugPublishIntervalSeconds else { return }
         lastDebugPublishTime = time
         publishDebugState(spec: latestSpec)
     }
@@ -267,7 +269,11 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
 
         let attached = containerNode?.parent != nil
         let bounds = containerNode.map(boundsExtents(for:))
-        let hasNonZeroBounds = bounds.map { $0.x > 0.0001 && $0.y > 0.0001 && $0.z > 0.0001 } ?? false
+        let hasNonZeroBounds = bounds.map {
+            $0.x > minimumVisibleBoundsThresholdM
+                && $0.y > minimumVisibleBoundsThresholdM
+                && $0.z > minimumVisibleBoundsThresholdM
+        } ?? false
         let worldPosition = containerNode.map(worldPosition(for:))
         let distance = worldPosition.flatMap { distanceFromCamera(to: $0, in: sceneView) }
         let opacity = primaryMaterialOpacity()

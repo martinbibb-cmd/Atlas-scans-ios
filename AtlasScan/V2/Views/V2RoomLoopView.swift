@@ -643,6 +643,7 @@ private struct LiveSpatialCaptureView: View {
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
     private let maxVisibleOffscreenPointers = 5
+    private let minimumRenderableBoundsM = 0.0001
     private let normalizedScreenCenter = 0.5
     private let noisyMeasurementThresholdMeters = 0.03
     private let ghostSurfaceConflictThresholdMeters = 0.05
@@ -1466,7 +1467,7 @@ private struct LiveSpatialCaptureView: View {
     private func confirmGhostPreview() {
         guard let preview = ghostPreview else { return }
         guard ghostPlacementIsWorldRenderable else {
-            measurementFeedback = "Placement not ready yet. Move device until live camera and AR placement preview are both visible."
+            measurementFeedback = "Placement not ready yet. Move device until you can see the live camera feed and the 3D ghost appliance."
             showMeasurementFeedback = true
             return
         }
@@ -1525,7 +1526,10 @@ private struct LiveSpatialCaptureView: View {
     private var ghostPlacementIsWorldRenderable: Bool {
         guard let state = ghostARDebugState else { return false }
         let bounds = state.arEntityBounds ?? SIMD3<Double>(0, 0, 0)
-        let hasBounds = bounds.x > 0.0001 && bounds.y > 0.0001 && bounds.z > 0.0001
+        let hasBounds =
+            bounds.x > minimumRenderableBoundsM
+            && bounds.y > minimumRenderableBoundsM
+            && bounds.z > minimumRenderableBoundsM
         return state.cameraFeedVisible && state.arEntityAttached && hasBounds && state.rendererActive
     }
 

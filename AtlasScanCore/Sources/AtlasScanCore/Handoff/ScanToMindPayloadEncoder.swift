@@ -13,6 +13,7 @@ public enum ScanToMindPayloadEncoder {
     }()
 
     /// Encodes `session` into a `ScanToMindHandoffV1` payload and returns it.
+    /// Incomplete sessions are allowed; missing evidence is included in payload metadata.
     ///
     public static func encode(session: SessionCaptureV2) throws -> ScanToMindHandoffV1 {
         let readiness = VisitReadinessV1.derive(from: session)
