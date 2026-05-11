@@ -1396,7 +1396,8 @@ private struct LiveSpatialCaptureView: View {
                 note: "DEBUG test appliance — camera/ghost calibration"
             )
         #else
-        guard let definition = selectedGhostApplianceDefinition else { return }
+        guard let selectedDef = selectedGhostApplianceDefinition else { return }
+        let definition = selectedDef
         #endif
 
         let resolvedPlane = resolvedPlacementPlane(for: plane, capturePoint: capturePoint)
