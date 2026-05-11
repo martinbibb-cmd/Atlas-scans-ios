@@ -793,7 +793,7 @@ private struct LiveSpatialCaptureView: View {
                     .contentShape(Rectangle())
                     .ignoresSafeArea()
                     .onTapGesture { location in
-                        guard ghostPreview == nil, measurementStartPoint == nil else { return }
+                        guard isReadyForTapCapture else { return }
                         captureAt(screenPoint: location)
                     }
                     .zIndex(5)
@@ -1152,6 +1152,12 @@ private struct LiveSpatialCaptureView: View {
         } else {
             showCapturePointMenu = true
         }
+    }
+
+    /// True when the tap-anywhere overlay should accept a tap and probe for a
+    /// new capture point: no ghost is being staged and no measurement is ongoing.
+    private var isReadyForTapCapture: Bool {
+        ghostPreview == nil && measurementStartPoint == nil
     }
 
     private func isAnchorLost(for point: LiveCapturePointV1) -> Bool {
@@ -1867,8 +1873,8 @@ private struct CenterCaptureReticleButton: View {
 // MARK: - BottomActionDock
 
 private struct BottomActionDock: View {
-    /// Minimum width of the Finish button so its text never wraps vertically
-    /// even on small screen widths.
+    /// Minimum width of the Finish button so its text never wraps on small
+    /// screen widths. "Finish" is short; 80pt is ample for all supported devices.
     fileprivate static let finishButtonMinWidth: CGFloat = 80
 
     let onMenu: () -> Void

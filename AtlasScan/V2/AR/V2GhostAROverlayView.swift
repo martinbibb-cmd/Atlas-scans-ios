@@ -191,6 +191,8 @@ final class V2GhostARCoordinator: NSObject {
     /// `placementPlane` (vertical for wall, horizontal for floor/worktop/ceiling),
     /// then falls back to any alignment if no aligned surface is found.
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        // Only act when the tap completes successfully. .cancelled/.failed states
+        // require no cleanup because no AR operation was started yet.
         guard gesture.state == .ended,
               let sceneView else { return }
 
