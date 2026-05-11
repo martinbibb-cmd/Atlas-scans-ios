@@ -54,7 +54,7 @@ struct V2FinishVisitView: View {
                             Button("Go back and complete missing items") {
                                 showMissingItemsReview = false
                             }
-                            Button("Finish as Draft / Incomplete Visit") {
+                            Button("Finish Draft (Incomplete)") {
                                 coordinator.updateEngineerNotes(engineerNotesDraft)
                                 coordinator.transition(to: .incompleteReadyForReview)
                                 coordinator.handOffToMind()

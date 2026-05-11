@@ -1476,7 +1476,7 @@ private struct LiveSpatialCaptureView: View {
             if debug?.arEntityAttached != true {
                 missing.append("AR box not attached to scene")
             }
-            if !hasRenderableBounds(bounds) {
+            if !hasMinimumBounds(bounds) {
                 missing.append("AR box bounds below visibility threshold")
             }
             let detail = missing.isEmpty ? "renderer not ready" : missing.joined(separator: ", ")
@@ -1542,11 +1542,11 @@ private struct LiveSpatialCaptureView: View {
     private var ghostPlacementIsWorldRenderable: Bool {
         guard let state = ghostARDebugState else { return false }
         let bounds = state.arEntityBounds ?? SIMD3<Double>(0, 0, 0)
-        let hasBounds = hasRenderableBounds(bounds)
+        let hasBounds = hasMinimumBounds(bounds)
         return state.cameraFeedVisible && state.arEntityAttached && hasBounds && state.rendererActive
     }
 
-    private func hasRenderableBounds(_ bounds: SIMD3<Double>) -> Bool {
+    private func hasMinimumBounds(_ bounds: SIMD3<Double>) -> Bool {
         bounds.x > minimumRenderableBoundsM
             && bounds.y > minimumRenderableBoundsM
             && bounds.z > minimumRenderableBoundsM
