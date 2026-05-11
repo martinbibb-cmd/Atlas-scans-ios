@@ -3,6 +3,7 @@
 
 import SwiftUI
 import RoomPlan
+import ARKit
 import simd
 import AtlasScanCore
 

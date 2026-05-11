@@ -1,6 +1,7 @@
 /// V2RoomLoopView — Orchestrates repeated room captures until the user finishes.
 
 import SwiftUI
+import ARKit
 import simd
 import AtlasScanCore
 import AtlasContracts
