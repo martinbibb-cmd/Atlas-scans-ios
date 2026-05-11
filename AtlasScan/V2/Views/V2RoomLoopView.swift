@@ -727,6 +727,10 @@ private struct LiveSpatialCaptureView: View {
     @State private var selectedRecentItem: RecentCaptureItemV1?
     /// The live ARSession shared from RoomPlan; used to drive the 3-D ghost overlay.
     @State private var arSession: ARSession?
+    /// Closure provided by V2GhostAROverlayView that captures a composited snapshot
+    /// of the current AR scene (camera feed + 3-D ghost + clearance envelope).
+    /// Set once the overlay is mounted; used by confirmGhostPreview to save a photo.
+    @State private var ghostARSnapshot: (() -> UIImage?)?
 
     var body: some View {
         GeometryReader { geometry in
@@ -780,6 +784,11 @@ private struct LiveSpatialCaptureView: View {
                         placementPlane: selectedGhostPlacementPlane,
                         onGhostTapped: { rawPosition, normal in
                             moveGhostPreview(rawHitPosition: rawPosition, planeNormal: normal)
+                        },
+                        onSnapshotCaptureReady: { capture in
+                            DispatchQueue.main.async {
+                                ghostARSnapshot = capture
+                            }
                         }
                     )
                     .ignoresSafeArea()
@@ -897,11 +906,23 @@ private struct LiveSpatialCaptureView: View {
                     .zIndex(hudOverlayLayer + 10)
 
                 if let ghostPreview {
-                    GhostPlacementOverlay(
-                        preview: ghostPreview,
-                        clearanceState: ghostClearanceState(for: ghostPreview)
-                    )
+                    // Compact corner provenance badge — positioned bottom-leading,
+                    // above the GhostPreviewActionBar.  The primary placement visual
+                    // is the 3-D world-space box from V2GhostAROverlayView above.
+                    VStack {
+                        Spacer()
+                        HStack(alignment: .bottom) {
+                            GhostPlacementOverlay(
+                                preview: ghostPreview,
+                                clearanceState: ghostClearanceState(for: ghostPreview)
+                            )
+                            .padding(.leading, 16)
+                            Spacer()
+                        }
+                        .padding(.bottom, 240)
+                    }
                     .zIndex(hudOverlayLayer + 5)
+                    .allowsHitTesting(false)
                 }
 
                 if let startPoint = measurementStartPoint,
@@ -1350,7 +1371,34 @@ private struct LiveSpatialCaptureView: View {
     }
 
     private func stageGhostPreview(on plane: GhostPlacementPlaneV1) {
-        guard let capturePoint = pendingCapturePoint, let definition = selectedGhostApplianceDefinition else { return }
+        guard let capturePoint = pendingCapturePoint else { return }
+
+        #if DEBUG
+        // In debug builds, fall back to a known-size test appliance when no
+        // definition has been selected so that the 3-D AR box can be validated
+        // independently of the picker flow.
+        // Dimensions: 440 × 750 × 360 mm — representative mid-size combi boiler.
+        let definition: GhostApplianceCandidate = selectedGhostApplianceDefinition
+            ?? GhostApplianceCandidate(
+                modelId: "debug-test-440x750x360",
+                templateId: nil,
+                brand: "DEBUG",
+                modelName: "Test 440×750×360 mm",
+                applianceType: "boiler",
+                boilerRole: GhostPreviewStrings.roleCombi,
+                objectCategory: .heatSource,
+                objectType: .boiler,
+                dimensionsMm: GhostApplianceDimensionsMmV1(width: 440, height: 750, depth: 360),
+                clearanceOffsetsMm: GhostApplianceClearanceOffsetsMmV1(
+                    top: 200, front: 600, back: 25, left: 100, right: 100
+                ),
+                customDefinitionId: nil,
+                note: "DEBUG test appliance — camera/ghost calibration"
+            )
+        #else
+        guard let definition = selectedGhostApplianceDefinition else { return }
+        #endif
+
         let resolvedPlane = resolvedPlacementPlane(for: plane, capturePoint: capturePoint)
         selectedGhostPlacementPlane = resolvedPlane
         let planeNormal = resolvedPlaneNormal(for: resolvedPlane, capturePoint: capturePoint)
@@ -1396,6 +1444,13 @@ private struct LiveSpatialCaptureView: View {
     private func confirmGhostPreview() {
         guard let preview = ghostPreview else { return }
 
+        // Capture a composited photo of the AR scene (camera feed + 3-D ghost
+        // + clearance envelope) before dismounting the overlay.  This gives the
+        // engineer a photographic record of exactly where the appliance was placed.
+        if let snapshot = ghostARSnapshot?() {
+            savePhoto(snapshot, capturePoint: pendingCapturePoint)
+        }
+
         let manualEntry: SpatialPinManualEntryV1? = {
             guard shouldPopulateManualEntry(for: preview) else { return nil }
             return SpatialPinManualEntryV1(
@@ -1436,6 +1491,7 @@ private struct LiveSpatialCaptureView: View {
         recentCaptures.append(RecentCaptureItemV1.from(pin: pin))
         ghostPreview = nil
         selectedGhostApplianceDefinition = nil
+        ghostARSnapshot = nil
     }
 
     private func locationContext(for plane: GhostPlacementPlaneV1) -> PinPlacementLocationContext {
@@ -2206,76 +2262,107 @@ private struct GhostPlacementOverlay: View {
     let preview: GhostAppliancePreview
     let clearanceState: GhostPreviewClearanceState
 
-    private var footprintSize: CGSize {
-        let width = max(CGFloat(preview.dimensionsMm.width) / 10, 50)
-        let height = max(CGFloat(preview.dimensionsMm.height) / 10, 60)
-        return CGSize(width: min(width, 180), height: min(height, 220))
+    // MARK: - Provenance helpers
+
+    /// Human-readable label for where the appliance dimensions came from.
+    private var dimensionsSource: String {
+        if preview.customDefinitionId != nil { return "Custom definition" }
+        if preview.templateId != nil { return "Spec template" }
+        return "Manual entry"
     }
 
-    private var clearanceSize: CGSize {
-        let expandedWidthMm = preview.dimensionsMm.width + preview.clearanceOffsetsMm.left + preview.clearanceOffsetsMm.right
-        let expandedHeightMm = preview.dimensionsMm.height + preview.clearanceOffsetsMm.top + preview.clearanceOffsetsMm.bottom
-        let width = max(CGFloat(expandedWidthMm) / 10, footprintSize.width + 8)
-        let height = max(CGFloat(expandedHeightMm) / 10, footprintSize.height + 8)
-        return CGSize(width: min(width, 230), height: min(height, 260))
+    /// Whether dimensions are from a manually entered or unknown-model record
+    /// rather than a verified manufacturer spec.
+    private var isManualFallback: Bool {
+        preview.templateId == nil && preview.customDefinitionId == nil
+    }
+
+    /// Short appliance ID string for provenance display.
+    private var applianceIdLabel: String {
+        preview.customDefinitionId ?? preview.templateId ?? "—"
     }
 
     private var needsReview: Bool {
         preview.confidence == .screenOnly || preview.placementPlane == .unknown
     }
 
+    // MARK: - Body
+
+    /// Compact corner info badge.  The 3-D world-space box rendered by
+    /// V2GhostAROverlayView is the primary placement visual; this badge is
+    /// purely informational and never acts as a placement proxy.
     var body: some View {
-        GeometryReader { geometry in
-            VStack(alignment: .leading, spacing: 6) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(clearanceState.color.opacity(0.16))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(clearanceState.color.opacity(0.9), lineWidth: 2))
-                        .frame(width: clearanceSize.width, height: clearanceSize.height)
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.cyan.opacity(0.22))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.cyan.opacity(0.9), lineWidth: 2))
-                        .frame(width: footprintSize.width, height: footprintSize.height)
-                }
-                Text("Preview: \(preview.displayName)")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 3) {
+            // Appliance title + fallback flag
+            HStack(spacing: 4) {
+                Image(systemName: "cube.transparent")
+                    .foregroundStyle(.cyan)
+                Text(preview.displayName)
+                    .fontWeight(.semibold)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height) × \(preview.dimensionsMm.depth) mm")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.9))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Clearance envelope")
-                    Text("Left \(preview.clearanceOffsetsMm.left) millimetres · Right \(preview.clearanceOffsetsMm.right) millimetres")
-                    Text("Top \(preview.clearanceOffsetsMm.top) millimetres · Bottom \(preview.clearanceOffsetsMm.bottom) millimetres")
-                }
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.86))
-                Text(clearanceState.message)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(clearanceState.color)
-                if needsReview {
-                    Text("Needs review")
+                if isManualFallback {
+                    Text("FALLBACK")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(.black)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
                         .background(.orange, in: Capsule())
                 }
             }
-            .padding(8)
-            .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
-            .position(screenPosition(in: geometry.size))
-        }
-        .allowsHitTesting(false)
-    }
+            .font(.caption)
+            .foregroundStyle(.white)
 
-    private func screenPosition(in size: CGSize) -> CGPoint {
-        CGPoint(
-            x: preview.screenPoint.x * size.width,
-            y: preview.screenPoint.y * size.height
-        )
+            // Dimensions
+            Text(
+                "\(preview.dimensionsMm.width) × \(preview.dimensionsMm.height)"
+                    + " × \(preview.dimensionsMm.depth) mm"
+            )
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.white.opacity(0.9))
+
+            // Provenance
+            Text("Source: \(dimensionsSource)")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.75))
+
+            // Appliance ID (truncated to keep badge compact)
+            Text("ID: \(applianceIdLabel)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.white.opacity(0.55))
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            // Clearance envelope summary
+            VStack(alignment: .leading, spacing: 1) {
+                Text(
+                    "Clearance L \(preview.clearanceOffsetsMm.left)"
+                        + " · R \(preview.clearanceOffsetsMm.right)"
+                        + " · T \(preview.clearanceOffsetsMm.top)"
+                        + " · B \(preview.clearanceOffsetsMm.bottom) mm"
+                )
+            }
+            .font(.caption2)
+            .foregroundStyle(.white.opacity(0.72))
+
+            // Clearance-conflict indicator
+            Text(clearanceState.message)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(clearanceState.color)
+
+            if needsReview {
+                Text("Needs review")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(.orange, in: Capsule())
+            }
+        }
+        .padding(8)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
+        .frame(maxWidth: 240, alignment: .leading)
+        .allowsHitTesting(false)
     }
 }
 
