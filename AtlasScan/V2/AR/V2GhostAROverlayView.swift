@@ -54,6 +54,8 @@ struct V2GhostRenderSpec {
 }
 
 struct V2GhostARDebugState {
+    static let minimumVisibleBoundsThresholdM = 0.0001
+
     let cameraFeedVisible: Bool
     let arEntityAttached: Bool
     let arEntityWorldPosition: SIMD3<Double>?
@@ -170,7 +172,6 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
     weak var sceneView: ARSCNView?
     private var containerNode: SCNNode?
     private var latestSpec: V2GhostRenderSpec?
-    private let minimumVisibleBoundsThresholdM = 0.0001
 
     /// Current placement plane, used to select raycast target alignment during tap.
     var placementPlane: GhostPlacementPlaneV1 = .wall
@@ -237,7 +238,10 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
     }
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        publishDebugState(spec: latestSpec)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.publishDebugState(spec: self.latestSpec)
+        }
     }
 
     private func publishDebugState(spec: V2GhostRenderSpec?) {
@@ -266,9 +270,9 @@ final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
         let attached = containerNode?.parent != nil
         let bounds = containerNode.map(boundsExtents(for:))
         let hasNonZeroBounds = bounds.map {
-            $0.x > minimumVisibleBoundsThresholdM
-                && $0.y > minimumVisibleBoundsThresholdM
-                && $0.z > minimumVisibleBoundsThresholdM
+            $0.x > V2GhostARDebugState.minimumVisibleBoundsThresholdM
+                && $0.y > V2GhostARDebugState.minimumVisibleBoundsThresholdM
+                && $0.z > V2GhostARDebugState.minimumVisibleBoundsThresholdM
         } ?? false
         let worldPosition = containerNode.map(worldPosition(for:))
         let distance = worldPosition.flatMap { distanceFromCamera(to: $0, in: sceneView) }

@@ -643,7 +643,7 @@ private struct LiveSpatialCaptureView: View {
     private let hudOverlayLayer: Double = 10
     private let maxRecentModelCount = 6
     private let maxVisibleOffscreenPointers = 5
-    private let minimumRenderableBoundsM = 0.0001
+    private let minimumRenderableBoundsM = V2GhostARDebugState.minimumVisibleBoundsThresholdM
     private let normalizedScreenCenter = 0.5
     private let noisyMeasurementThresholdMeters = 0.03
     private let ghostSurfaceConflictThresholdMeters = 0.05
@@ -1476,9 +1476,7 @@ private struct LiveSpatialCaptureView: View {
             if debug?.arEntityAttached != true {
                 missing.append("AR box not attached to scene")
             }
-            if bounds.x <= minimumRenderableBoundsM
-                || bounds.y <= minimumRenderableBoundsM
-                || bounds.z <= minimumRenderableBoundsM {
+            if !hasRenderableBounds(bounds) {
                 missing.append("AR box bounds below visibility threshold")
             }
             let detail = missing.isEmpty ? "renderer not ready" : missing.joined(separator: ", ")
@@ -1544,11 +1542,14 @@ private struct LiveSpatialCaptureView: View {
     private var ghostPlacementIsWorldRenderable: Bool {
         guard let state = ghostARDebugState else { return false }
         let bounds = state.arEntityBounds ?? SIMD3<Double>(0, 0, 0)
-        let hasBounds =
-            bounds.x > minimumRenderableBoundsM
+        let hasBounds = hasRenderableBounds(bounds)
+        return state.cameraFeedVisible && state.arEntityAttached && hasBounds && state.rendererActive
+    }
+
+    private func hasRenderableBounds(_ bounds: SIMD3<Double>) -> Bool {
+        bounds.x > minimumRenderableBoundsM
             && bounds.y > minimumRenderableBoundsM
             && bounds.z > minimumRenderableBoundsM
-        return state.cameraFeedVisible && state.arEntityAttached && hasBounds && state.rendererActive
     }
 
     private func locationContext(for plane: GhostPlacementPlaneV1) -> PinPlacementLocationContext {
