@@ -76,7 +76,7 @@ struct V2GhostAROverlayView: UIViewRepresentable {
     /// a composited UIImage snapshot of the current AR scene (camera feed +
     /// 3-D ghost + clearance envelope).  Store this closure and call it at
     /// confirm time to capture the placement photo.
-    var onSnapshotCaptureReady: ((() -> UIImage?) -> Void)?
+    var onSnapshotCaptureReady: ((@escaping () -> UIImage?) -> Void)?
 
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
