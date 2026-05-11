@@ -27,6 +27,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
     /// Exposes center-point probing so SwiftUI overlays can capture spatial
     /// points aligned with the RoomPlan camera view.
     var onCapturePointProbeReady: (((() -> LiveCapturePointProbeResultV1)?) -> Void)?
+    /// Exposes arbitrary screen-point probing so a tap anywhere on the camera
+    /// feed can be used as a capture point (not just the view centre).
+    var onScreenPointProbeReady: ((((CGPoint) -> LiveCapturePointProbeResultV1)?) -> Void)?
     /// Exposes frame-based world-to-screen projection for live spatial overlays.
     var onWorldPointProjectionReady: ((((SIMD3<Double>) -> CGPointCodable?)?) -> Void)?
     /// Exposes anchor-id based world-transform resolution for live status updates.
@@ -49,6 +52,9 @@ struct V2RoomPlanCaptureView: UIViewControllerRepresentable {
         context.coordinator.onLiveVertices = onLiveVertices
         context.coordinator.onCaptureEndedWithoutRoom = onCaptureEndedWithoutRoom
         onCapturePointProbeReady?({ context.coordinator.capturePointAtViewCenter() })
+        onScreenPointProbeReady?({ screenPoint in
+            context.coordinator.capturePointAt(screenPoint)
+        })
         onWorldPointProjectionReady?({ world in
             context.coordinator.projectNormalizedScreenPoint(for: world)
         })

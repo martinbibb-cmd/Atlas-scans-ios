@@ -63,14 +63,14 @@ struct V2GhostAROverlayView: UIViewRepresentable {
     /// Setting to nil removes any existing nodes from the scene.
     let spec: V2GhostRenderSpec?
 
-    /// Plane type used to constrain drag raycasts: wall → vertical, floor → horizontal.
-    var dragPlane: GhostPlacementPlaneV1 = .wall
+    /// Plane type used to constrain tap raycasts: wall → vertical, floor → horizontal.
+    var placementPlane: GhostPlacementPlaneV1 = .wall
 
-    /// Called on the main thread each time the user drags, with the raw
-    /// AR-surface hit position and outward surface normal (both in metres).
+    /// Called on the main thread when the user taps to reposition the ghost, with
+    /// the raw AR-surface hit position and outward surface normal (both in metres).
     /// The caller is responsible for applying the appliance half-depth/height
     /// offset before updating the ghostPreview world position.
-    var onGhostDragged: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+    var onGhostTapped: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
 
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
@@ -100,27 +100,27 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         // touches pass through to the RoomPlan session underneath.
         view.isUserInteractionEnabled = spec != nil
 
-        // Pan gesture drives drag-to-move; the coordinator raycasts at the
-        // touch location and fires onGhostDragged on every frame.
-        let pan = UIPanGestureRecognizer(
+        // Tap gesture drives tap-to-reposition; the coordinator raycasts at the
+        // touch location and fires onGhostTapped when a surface is hit.
+        let tap = UITapGestureRecognizer(
             target: context.coordinator,
-            action: #selector(V2GhostARCoordinator.handlePan(_:))
+            action: #selector(V2GhostARCoordinator.handleTap(_:))
         )
-        view.addGestureRecognizer(pan)
+        view.addGestureRecognizer(tap)
 
         context.coordinator.sceneView = view
-        context.coordinator.dragPlane = dragPlane
-        context.coordinator.onGhostDragged = onGhostDragged
+        context.coordinator.placementPlane = placementPlane
+        context.coordinator.onGhostTapped = onGhostTapped
         context.coordinator.update(spec: spec)
         return view
     }
 
     func updateUIView(_ uiView: ARSCNView, context: Context) {
-        // Sync interaction state and drag settings before updating nodes so
-        // that a newly placed ghost immediately accepts drag input.
+        // Sync interaction state and placement settings before updating nodes so
+        // that a newly placed ghost immediately accepts tap input.
         uiView.isUserInteractionEnabled = spec != nil
-        context.coordinator.dragPlane = dragPlane
-        context.coordinator.onGhostDragged = onGhostDragged
+        context.coordinator.placementPlane = placementPlane
+        context.coordinator.onGhostTapped = onGhostTapped
         context.coordinator.update(spec: spec)
     }
 
@@ -136,10 +136,10 @@ final class V2GhostARCoordinator: NSObject {
     weak var sceneView: ARSCNView?
     private var containerNode: SCNNode?
 
-    /// Current placement plane, used to select raycast target alignment during drag.
-    var dragPlane: GhostPlacementPlaneV1 = .wall
-    /// Called on every pan gesture frame with (rawHitPosition, planeNormal).
-    var onGhostDragged: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+    /// Current placement plane, used to select raycast target alignment during tap.
+    var placementPlane: GhostPlacementPlaneV1 = .wall
+    /// Called when the user taps to reposition with (rawHitPosition, planeNormal).
+    var onGhostTapped: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
 
     // MARK: - Update
 
@@ -185,20 +185,19 @@ final class V2GhostARCoordinator: NSObject {
         #endif
     }
 
-    // MARK: - Drag gesture
+    // MARK: - Tap gesture
 
-    /// Raycasts at the pan location, preferring the plane alignment that matches
-    /// `dragPlane` (vertical for wall, horizontal for floor/worktop/ceiling),
+    /// Raycasts at the tap location, preferring the plane alignment that matches
+    /// `placementPlane` (vertical for wall, horizontal for floor/worktop/ceiling),
     /// then falls back to any alignment if no aligned surface is found.
-    @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard gesture.state == .began || gesture.state == .changed,
+    @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard gesture.state == .ended,
               let sceneView else { return }
 
         let location = gesture.location(in: sceneView)
         let preferredAlignment: ARRaycastQuery.TargetAlignment
-        switch dragPlane {
+        switch placementPlane {
         case .floor, .worktop, .ceiling:
-            // All horizontal surfaces use the same ARKit alignment target.
             preferredAlignment = .horizontal
         case .wall, .unknown:
             preferredAlignment = .vertical
@@ -219,7 +218,7 @@ final class V2GhostARCoordinator: NSObject {
             }
         }
 
-        // Fallback: any alignment so the ghost tracks even in sparse scenes.
+        // Fallback: any alignment so the ghost repositions even in sparse scenes.
         for target in targets {
             if let query = sceneView.raycastQuery(from: location, allowing: target, alignment: .any),
                let result = sceneView.session.raycast(query).first {
@@ -239,7 +238,7 @@ final class V2GhostARCoordinator: NSObject {
         let position = SIMD3<Double>(Double(translationColumn.x), Double(translationColumn.y), Double(translationColumn.z))
         let normal = SIMD3<Double>(Double(-forward.x), Double(-forward.y), Double(-forward.z))
         DispatchQueue.main.async { [weak self] in
-            self?.onGhostDragged?(position, normal)
+            self?.onGhostTapped?(position, normal)
         }
     }
 

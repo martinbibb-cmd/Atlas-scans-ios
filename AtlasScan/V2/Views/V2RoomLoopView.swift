@@ -68,6 +68,9 @@ struct V2RoomLoopView: View {
     @State private var showRoomReview = false
     @State private var showVisitReview = false
     @State private var showFinishVisit = false
+    /// When true the next capturedRoom change will auto-save and begin the
+    /// next capture without showing the post-scan review screen.
+    @State private var skipReviewAndContinue = false
 
     var body: some View {
         Group {
@@ -92,8 +95,12 @@ struct V2RoomLoopView: View {
                     onMeasurementAdded: { measurement in pendingMeasurements.append(measurement) },
                     onPhotoAdded: { coordinator.addPhoto($0) },
                     onVoiceNoteAdded: { coordinator.addVoiceNote($0) },
-                    onCaptureEndedWithoutRoom: { showUnfinishedRoomRecovery = true },
+                    onCaptureEndedWithoutRoom: {
+                        skipReviewAndContinue = false
+                        showUnfinishedRoomRecovery = true
+                    },
                     onFinishVisit: { showFinishVisit = true },
+                    onNextRoom: { skipReviewAndContinue = true },
                     onEvidenceDeleted: { item in
                         switch item.evidenceType {
                         case .objectPin:
@@ -114,8 +121,13 @@ struct V2RoomLoopView: View {
                 .onChange(of: capturedRoom?.id) { _, newId in
                     if newId != nil {
                         showCapture = false
-                        showPostScanReview = true
-                        coordinator.transition(to: .reviewingRoom)
+                        if skipReviewAndContinue {
+                            skipReviewAndContinue = false
+                            saveRoomAndContinue(name: nextRoomSuggestedName)
+                        } else {
+                            showPostScanReview = true
+                            coordinator.transition(to: .reviewingRoom)
+                        }
                     }
                 }
             } else {
@@ -672,6 +684,9 @@ private struct LiveSpatialCaptureView: View {
     /// Called when the engineer taps "Finish Visit" from the capture action menu.
     /// The parent should present V2FinishVisitView.
     let onFinishVisit: () -> Void
+    /// Called when the engineer taps "Next Room" from the bottom dock or action menu.
+    /// The parent should skip the post-scan review and start the next capture immediately.
+    let onNextRoom: () -> Void
     /// Called when the engineer deletes an item from the evidence strip.
     /// The parent should remove pending pins/ghosts from its own state and
     /// route photo / voice-note deletions to the session coordinator.
@@ -683,6 +698,8 @@ private struct LiveSpatialCaptureView: View {
     @State private var ghostPreview: GhostAppliancePreview?
     @State private var pendingMeasurementsLocal: [SpatialMeasurementV1] = []
     @State private var capturePointProbe: (() -> LiveCapturePointProbeResultV1)?
+    /// Probe function for arbitrary screen-point capture (tap anywhere on screen).
+    @State private var screenPointProbe: ((CGPoint) -> LiveCapturePointProbeResultV1)?
     @State private var worldPointProjector: ((SIMD3<Double>) -> CGPointCodable?)?
     @State private var anchorTransformResolver: ((UUID) -> WorldTransformV1?)?
     @State private var capturePointsById: [UUID: LiveCapturePointV1] = [:]
@@ -728,6 +745,11 @@ private struct LiveSpatialCaptureView: View {
                             capturePointProbe = probe
                         }
                     },
+                    onScreenPointProbeReady: { probe in
+                        DispatchQueue.main.async {
+                            screenPointProbe = probe
+                        }
+                    },
                     onWorldPointProjectionReady: { projector in
                         DispatchQueue.main.async {
                             worldPointProjector = projector
@@ -749,18 +771,32 @@ private struct LiveSpatialCaptureView: View {
 
                 // 3-D ghost appliance overlay — transparent ARSCNView sharing the
                 // RoomPlan session so the ghost appears in the same world coordinate
-                // frame as the live room mesh.
-                if let arSession {
+                // frame as the live room mesh. Only mounted when a ghost is actively
+                // being previewed to prevent the ARSCNView from obscuring the camera.
+                if let arSession, ghostPreview != nil {
                     V2GhostAROverlayView(
                         arSession: arSession,
                         spec: ghostPreview.map { ghostRenderSpec(from: $0) },
-                        dragPlane: selectedGhostPlacementPlane,
-                        onGhostDragged: { rawPosition, normal in
+                        placementPlane: selectedGhostPlacementPlane,
+                        onGhostTapped: { rawPosition, normal in
                             moveGhostPreview(rawHitPosition: rawPosition, planeNormal: normal)
                         }
                     )
                     .ignoresSafeArea()
                 }
+
+                // Tap-anywhere capture: a transparent overlay at z-index 5, above the
+                // camera (implicit 0) and ghost overlay, but below the HUD (10+).
+                // Taps that land on HUD buttons/reticle are handled by those views
+                // (higher z-index) and never reach this layer.
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture { location in
+                        guard ghostPreview == nil, measurementStartPoint == nil else { return }
+                        captureAt(screenPoint: location)
+                    }
+                    .zIndex(5)
 
                 VStack(spacing: 16) {
                     HStack(alignment: .top) {
@@ -842,10 +878,12 @@ private struct LiveSpatialCaptureView: View {
                     }
 
                     BottomActionDock(
-                        onCapturePoint: captureCenterPoint,
-                        onMore: { shouldStopCapture = true },
-                        onReview: onReview,
-                        onFinish: onExit
+                        onMenu: captureCenterPoint,
+                        onFinish: { shouldStopCapture = true },
+                        onNextRoom: {
+                            shouldStopCapture = true
+                            onNextRoom()
+                        }
                     )
                     .zIndex(hudOverlayLayer)
                 }
@@ -909,7 +947,7 @@ private struct LiveSpatialCaptureView: View {
                     }
                 )
                 .padding(.bottom, 104)
-            } else if showCapturePointMenu, pendingCapturePoint != nil {
+            } else if showCapturePointMenu {
                 CaptureActionBubbleMenu(
                     onTagObject: {
                         showObjectPicker = true
@@ -937,6 +975,7 @@ private struct LiveSpatialCaptureView: View {
                     },
                     onNextRoom: {
                         stopCaptureAndCloseMenu()
+                        onNextRoom()
                     },
                     onFinishVisit: {
                         stopCaptureAndCloseMenu()
@@ -1069,6 +1108,32 @@ private struct LiveSpatialCaptureView: View {
                 trackingState: "unavailable"
             )
         )
+        applyProbeResult(probe)
+    }
+
+    /// Capture a spatial point at an arbitrary screen location (from a tap gesture).
+    private func captureAt(screenPoint: CGPoint) {
+        let probe = screenPointProbe?(screenPoint) ?? LiveCapturePointProbeResultV1(
+            screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+            worldPosition: nil,
+            anchorConfidence: .screenOnly,
+            hitNormal: nil,
+            anchorId: nil,
+            worldTransform: nil,
+            debugDiagnostics: CaptureProbeDiagnosticsV1(
+                raycastAttempted: false,
+                resultType: .failed,
+                hitDistanceM: nil,
+                planeAlignment: "none",
+                trackingState: "unavailable"
+            )
+        )
+        applyProbeResult(probe)
+    }
+
+    /// Shared logic: record the probe result as the pending capture point and
+    /// present the action menu (or the room-note-only fallback alert).
+    private func applyProbeResult(_ probe: LiveCapturePointProbeResultV1) {
         lastCaptureProbeDiagnostics = probe.debugDiagnostics
         let point = LiveCapturePointV1(
             roomId: prospectiveRoomId,
@@ -1802,41 +1867,28 @@ private struct CenterCaptureReticleButton: View {
 // MARK: - BottomActionDock
 
 private struct BottomActionDock: View {
-    /// Minimum width of the Finish button so its text never wraps vertically
-    /// even on small screen widths.
-    fileprivate static let finishButtonMinWidth: CGFloat = 90
-
-    let onCapturePoint: () -> Void
-    let onMore: () -> Void
-    let onReview: () -> Void
+    let onMenu: () -> Void
     let onFinish: () -> Void
+    let onNextRoom: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
-            dockButton(symbol: "scope", title: "Capture Point", action: onCapturePoint)
-            dockButton(symbol: "map", title: "Review", action: onReview)
+            dockButton(symbol: "line.3.horizontal", title: "Menu", action: onMenu)
             Button(action: onFinish) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Finish Capture")
+                    Text("Finish")
                         .lineLimit(1)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .frame(minWidth: BottomActionDock.finishButtonMinWidth)
+                .frame(minWidth: 80)
                 .background(.green.opacity(0.92), in: Capsule())
             }
             .buttonStyle(.plain)
-            Button(action: onMore) {
-                Image(systemName: "ellipsis")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .buttonStyle(.plain)
+            dockButton(symbol: "arrow.right.circle.fill", title: "Next Room", action: onNextRoom)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
