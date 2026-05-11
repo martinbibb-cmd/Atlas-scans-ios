@@ -72,6 +72,12 @@ struct V2GhostAROverlayView: UIViewRepresentable {
     /// offset before updating the ghostPreview world position.
     var onGhostTapped: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
 
+    /// Called once during makeUIView with a closure that, when invoked, returns
+    /// a composited UIImage snapshot of the current AR scene (camera feed +
+    /// 3-D ghost + clearance envelope).  Store this closure and call it at
+    /// confirm time to capture the placement photo.
+    var onSnapshotCaptureReady: ((() -> UIImage?) -> Void)?
+
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
 
@@ -84,6 +90,12 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         view.scene.background.contents = UIColor.clear
         view.backgroundColor = .clear
         view.isOpaque = false
+
+        // Belt-and-suspenders: also mark the Metal backing layer non-opaque so
+        // the Metal compositor does not treat un-rendered pixels as opaque black
+        // and obscure the RoomPlan camera feed rendered in the UIView layer below.
+        // Setting UIView.isOpaque = false alone is not sufficient for CAMetalLayer.
+        view.layer.isOpaque = false
 
         // Lighting is provided by the shared session; we add one fill light so
         // the translucent ghost geometry is visible in dim environments.
@@ -112,6 +124,14 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         context.coordinator.placementPlane = placementPlane
         context.coordinator.onGhostTapped = onGhostTapped
         context.coordinator.update(spec: spec)
+
+        // Expose snapshot capture so the caller can save a composited photo
+        // (camera feed + 3-D ghost + clearance envelope) when confirming placement.
+        let coordinator = context.coordinator
+        onSnapshotCaptureReady?({ [weak coordinator] in
+            coordinator?.captureSnapshot()
+        })
+
         return view
     }
 
@@ -140,6 +160,15 @@ final class V2GhostARCoordinator: NSObject {
     var placementPlane: GhostPlacementPlaneV1 = .wall
     /// Called when the user taps to reposition with (rawHitPosition, planeNormal).
     var onGhostTapped: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+
+    // MARK: - Snapshot
+
+    /// Returns a composited UIImage of the current AR scene (camera feed rendered
+    /// in the RoomPlan layer plus the 3-D ghost geometry rendered by this view).
+    /// Returns nil when the sceneView has been deallocated.
+    func captureSnapshot() -> UIImage? {
+        sceneView?.snapshot()
+    }
 
     // MARK: - Update
 
