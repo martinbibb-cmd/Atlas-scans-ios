@@ -236,8 +236,8 @@ final class V2GhostARCoordinator: NSObject {
         // right-handed coordinate system; negating it gives the outward surface
         // normal pointing away from the surface toward the viewer.
         let forward = result.worldTransform.columns.2
-        let position = SIMD3<Double>(translationColumn.x, translationColumn.y, translationColumn.z)
-        let normal = SIMD3<Double>(-forward.x, -forward.y, -forward.z)
+        let position = SIMD3<Double>(Double(translationColumn.x), Double(translationColumn.y), Double(translationColumn.z))
+        let normal = SIMD3<Double>(Double(-forward.x), Double(-forward.y), Double(-forward.z))
         DispatchQueue.main.async { [weak self] in
             self?.onGhostDragged?(position, normal)
         }
