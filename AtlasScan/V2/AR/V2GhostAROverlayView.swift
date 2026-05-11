@@ -1,10 +1,10 @@
 /// V2GhostAROverlayView — Renders a world-space 3D ghost appliance body and
 /// clearance envelope by sharing the live RoomPlan ARSession.
 ///
-/// The ARSCNView uses a fully transparent background so the RoomPlan camera
-/// feed underneath remains visible. User interaction is enabled only while a
-/// ghost appliance spec is active; when no ghost is being previewed all touches
-/// pass through to the RoomPlan scanning session below.
+/// The ARSCNView renders the live shared AR camera feed and overlays the
+/// world-space ghost geometry directly on top. User interaction is enabled only
+/// while a ghost appliance spec is active; when no ghost is being previewed all
+/// touches pass through to the RoomPlan scanning session below.
 ///
 /// Coordinate convention: ARKit right-handed Y-up, units in metres.
 ///
@@ -44,11 +44,25 @@ struct V2GhostRenderSpec {
     let clearanceBottomM: Float
     let clearanceFrontM: Float
     let clearanceBackM: Float
+    /// Effective centre offset applied from the raw wall/surface hit in metres.
+    let wallOffsetAppliedM: Float
 
     var isTransformValid: Bool {
         let n = SIMD3<Double>(planeNormalX, planeNormalY, planeNormalZ)
         return simd_length(n) > 0.001
     }
+}
+
+struct V2GhostARDebugState {
+    let cameraFeedVisible: Bool
+    let arEntityAttached: Bool
+    let arEntityWorldPosition: SIMD3<Double>?
+    let arEntityBounds: SIMD3<Double>?
+    let arEntityDistanceFromCamera: Double?
+    let materialOpacity: Double
+    let wallNormal: SIMD3<Double>
+    let wallOffsetApplied: Double
+    let rendererActive: Bool
 }
 
 // MARK: - V2GhostAROverlayView
@@ -77,6 +91,8 @@ struct V2GhostAROverlayView: UIViewRepresentable {
     /// 3-D ghost + clearance envelope).  Store this closure and call it at
     /// confirm time to capture the placement photo.
     var onSnapshotCaptureReady: ((@escaping () -> UIImage?) -> Void)?
+    /// Emits live renderer diagnostics for placement validation and debug HUD.
+    var onDebugStateChanged: ((V2GhostARDebugState) -> Void)?
 
     func makeUIView(context: Context) -> ARSCNView {
         let view = ARSCNView(frame: .zero)
@@ -84,18 +100,14 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         // Share the live RoomPlan session — no new session is started.
         view.session = arSession
         view.scene = SCNScene()
+        view.delegate = context.coordinator
 
-        // Transparent background: the RoomPlan camera feed shows through the
-        // underlying UIView layer.
-        view.scene.background.contents = UIColor.clear
-        view.backgroundColor = .clear
-        view.isOpaque = false
-
-        // Belt-and-suspenders: also mark the Metal backing layer non-opaque so
-        // the Metal compositor does not treat un-rendered pixels as opaque black
-        // and obscure the RoomPlan camera feed rendered in the UIView layer below.
-        // Setting UIView.isOpaque = false alone is not sufficient for CAMetalLayer.
-        view.layer.isOpaque = false
+        // Render the live camera feed directly in this ARSCNView so the engineer
+        // always sees camera + ghost composite while previewing placement.
+        view.scene.background.contents = nil
+        view.backgroundColor = .black
+        view.isOpaque = true
+        view.layer.isOpaque = true
 
         // Lighting is provided by the shared session; we add one fill light so
         // the translucent ghost geometry is visible in dim environments.
@@ -123,6 +135,7 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         context.coordinator.sceneView = view
         context.coordinator.placementPlane = placementPlane
         context.coordinator.onGhostTapped = onGhostTapped
+        context.coordinator.onDebugStateChanged = onDebugStateChanged
         context.coordinator.update(spec: spec)
 
         // Expose snapshot capture so the caller can save a composited photo
@@ -141,6 +154,7 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         uiView.isUserInteractionEnabled = spec != nil
         context.coordinator.placementPlane = placementPlane
         context.coordinator.onGhostTapped = onGhostTapped
+        context.coordinator.onDebugStateChanged = onDebugStateChanged
         context.coordinator.update(spec: spec)
     }
 
@@ -151,15 +165,19 @@ struct V2GhostAROverlayView: UIViewRepresentable {
 
 // MARK: - V2GhostARCoordinator
 
-final class V2GhostARCoordinator: NSObject {
+final class V2GhostARCoordinator: NSObject, ARSCNViewDelegate {
 
     weak var sceneView: ARSCNView?
     private var containerNode: SCNNode?
+    private var latestSpec: V2GhostRenderSpec?
+    private var lastDebugPublishTime: TimeInterval = 0
 
     /// Current placement plane, used to select raycast target alignment during tap.
     var placementPlane: GhostPlacementPlaneV1 = .wall
     /// Called when the user taps to reposition with (rawHitPosition, planeNormal).
     var onGhostTapped: ((SIMD3<Double>, SIMD3<Double>) -> Void)?
+    /// Emits live renderer diagnostics for placement validation and debug HUD.
+    var onDebugStateChanged: ((V2GhostARDebugState) -> Void)?
 
     // MARK: - Snapshot
 
@@ -173,9 +191,11 @@ final class V2GhostARCoordinator: NSObject {
     // MARK: - Update
 
     func update(spec: V2GhostRenderSpec?) {
+        latestSpec = spec
         guard let spec else {
             containerNode?.removeFromParentNode()
             containerNode = nil
+            publishDebugState(spec: nil)
             #if DEBUG
             print("[V2GhostAR] ghostTransform valid=— renderer=idle nodes=0")
             #endif
@@ -193,6 +213,7 @@ final class V2GhostARCoordinator: NSObject {
                 Float(spec.worldPositionZ)
             )
             container.orientation = worldOrientation(for: spec)
+            publishDebugState(spec: spec)
             return
         }
 
@@ -200,6 +221,7 @@ final class V2GhostARCoordinator: NSObject {
         let node = makeGhostContainerNode(spec: spec)
         sceneView.scene.rootNode.addChildNode(node)
         containerNode = node
+        publishDebugState(spec: spec)
 
         #if DEBUG
         let nodeCount = sceneView.scene.rootNode.childNodes.count
@@ -212,6 +234,92 @@ final class V2GhostARCoordinator: NSObject {
                 + " renderer=active nodes=\(nodeCount)"
         )
         #endif
+    }
+
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        guard time - lastDebugPublishTime >= 0.2 else { return }
+        lastDebugPublishTime = time
+        publishDebugState(spec: latestSpec)
+    }
+
+    private func publishDebugState(spec: V2GhostRenderSpec?) {
+        guard let sceneView else { return }
+
+        let frameAvailable = sceneView.session.currentFrame != nil
+        guard let spec else {
+            DispatchQueue.main.async { [weak self] in
+                self?.onDebugStateChanged?(
+                    V2GhostARDebugState(
+                        cameraFeedVisible: frameAvailable,
+                        arEntityAttached: false,
+                        arEntityWorldPosition: nil,
+                        arEntityBounds: nil,
+                        arEntityDistanceFromCamera: nil,
+                        materialOpacity: 0,
+                        wallNormal: SIMD3(0, 0, 0),
+                        wallOffsetApplied: 0,
+                        rendererActive: false
+                    )
+                )
+            }
+            return
+        }
+
+        let attached = containerNode?.parent != nil
+        let bounds = containerNode.map(boundsExtents(for:))
+        let hasNonZeroBounds = bounds.map { $0.x > 0.0001 && $0.y > 0.0001 && $0.z > 0.0001 } ?? false
+        let worldPosition = containerNode.map(worldPosition(for:))
+        let distance = worldPosition.flatMap { distanceFromCamera(to: $0, in: sceneView) }
+        let opacity = primaryMaterialOpacity()
+        let rendererActive = attached && hasNonZeroBounds
+
+        DispatchQueue.main.async { [weak self] in
+            self?.onDebugStateChanged?(
+                V2GhostARDebugState(
+                    cameraFeedVisible: frameAvailable,
+                    arEntityAttached: attached,
+                    arEntityWorldPosition: worldPosition,
+                    arEntityBounds: bounds,
+                    arEntityDistanceFromCamera: distance,
+                    materialOpacity: opacity,
+                    wallNormal: SIMD3(spec.planeNormalX, spec.planeNormalY, spec.planeNormalZ),
+                    wallOffsetApplied: Double(spec.wallOffsetAppliedM),
+                    rendererActive: rendererActive
+                )
+            )
+        }
+    }
+
+    private func worldPosition(for node: SCNNode) -> SIMD3<Double> {
+        let world = node.presentation.worldPosition
+        return SIMD3(Double(world.x), Double(world.y), Double(world.z))
+    }
+
+    private func boundsExtents(for node: SCNNode) -> SIMD3<Double> {
+        let (minBox, maxBox) = node.boundingBox
+        let width = max(0, maxBox.x - minBox.x)
+        let height = max(0, maxBox.y - minBox.y)
+        let depth = max(0, maxBox.z - minBox.z)
+        return SIMD3(Double(width), Double(height), Double(depth))
+    }
+
+    private func distanceFromCamera(to point: SIMD3<Double>, in sceneView: ARSCNView) -> Double? {
+        guard let camera = sceneView.pointOfView?.presentation.worldPosition else { return nil }
+        let cameraPos = SIMD3<Double>(Double(camera.x), Double(camera.y), Double(camera.z))
+        return simd_length(point - cameraPos)
+    }
+
+    private func primaryMaterialOpacity() -> Double {
+        guard
+            let geometry = containerNode?.childNodes.first?.geometry,
+            let material = geometry.firstMaterial
+        else {
+            return 0
+        }
+        if let color = material.diffuse.contents as? UIColor {
+            return Double(color.cgColor.alpha)
+        }
+        return Double(material.transparency)
     }
 
     // MARK: - Tap gesture

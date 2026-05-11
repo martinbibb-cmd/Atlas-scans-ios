@@ -63,6 +63,13 @@ struct HandoffView: View {
                         Text(error).foregroundStyle(.red).font(.caption)
                     }
                 }
+                if !readiness.isReady {
+                    Section {
+                        Label("Incomplete capture — review required", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
+                }
             }
             .navigationTitle("Hand Off to Mind")
             .navigationBarTitleDisplayMode(.inline)
@@ -80,7 +87,7 @@ struct HandoffView: View {
                             Text("Send")
                         }
                     }
-                    .disabled(!readiness.isReady || isTransmitting)
+                    .disabled(isTransmitting)
                 }
             }
         }
@@ -89,10 +96,12 @@ struct HandoffView: View {
     private func sendHandoff() async {
         isTransmitting = true
         defer { isTransmitting = false }
+        coordinator.transition(to: readiness.isReady ? .readyToExport : .incompleteReadyForReview)
         do {
             let payload = try AtlasScanCore.ScanToMindPayloadEncoder.encode(session: coordinator.session)
             let url = try payload.buildDeepLinkURL()
             await UIApplication.shared.open(url)
+            coordinator.transition(to: .exported)
             dismiss()
         } catch {
             transmitError = error.localizedDescription

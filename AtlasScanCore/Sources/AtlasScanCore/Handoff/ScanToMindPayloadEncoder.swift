@@ -14,15 +14,14 @@ public enum ScanToMindPayloadEncoder {
 
     /// Encodes `session` into a `ScanToMindHandoffV1` payload and returns it.
     ///
-    /// Performs readiness checks; throws `HandoffError.readinessNotSatisfied`
-    /// if the session hasn't met all 7 visit-readiness gates.
     public static func encode(session: SessionCaptureV2) throws -> ScanToMindHandoffV1 {
         let readiness = VisitReadinessV1.derive(from: session)
-        let unmet = readiness.unmetConditions
-        guard unmet.isEmpty else {
-            throw HandoffError.readinessNotSatisfied(unmet)
-        }
-        return ScanToMindHandoffV1(session: session, readiness: readiness)
+        return ScanToMindHandoffV1(
+            session: session,
+            readiness: readiness,
+            missingEvidence: readiness.unmetConditions,
+            engineerNotes: session.engineerNotes
+        )
     }
 
     /// Returns the raw JSON `Data` for the payload (for diagnostics / clipboard).

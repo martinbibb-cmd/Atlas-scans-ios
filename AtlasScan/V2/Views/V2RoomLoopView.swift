@@ -731,6 +731,8 @@ private struct LiveSpatialCaptureView: View {
     /// of the current AR scene (camera feed + 3-D ghost + clearance envelope).
     /// Set once the overlay is mounted; used by confirmGhostPreview to save a photo.
     @State private var ghostARSnapshot: (() -> UIImage?)?
+    /// Live world-space renderer diagnostics emitted by V2GhostAROverlayView.
+    @State private var ghostARDebugState: V2GhostARDebugState?
 
     var body: some View {
         GeometryReader { geometry in
@@ -788,6 +790,11 @@ private struct LiveSpatialCaptureView: View {
                         onSnapshotCaptureReady: { capture in
                             DispatchQueue.main.async {
                                 ghostARSnapshot = capture
+                            }
+                        },
+                        onDebugStateChanged: { state in
+                            DispatchQueue.main.async {
+                                ghostARDebugState = state
                             }
                         }
                     )
@@ -865,7 +872,7 @@ private struct LiveSpatialCaptureView: View {
                                     widthM: Float(ghostPreview.dimensionsMm.width) / mmPerMeter,
                                     heightM: Float(ghostPreview.dimensionsMm.height) / mmPerMeter,
                                     depthM: Float(ghostPreview.dimensionsMm.depth) / mmPerMeter,
-                                    rendererActive: arSession != nil
+                                    debugState: ghostARDebugState
                                 )
                             }
                             #endif
@@ -952,6 +959,7 @@ private struct LiveSpatialCaptureView: View {
                     title: ghostPreview.displayName,
                     selectedPlane: selectedGhostPlacementPlane,
                     onConfirm: confirmGhostPreview,
+                    canConfirm: ghostPlacementIsWorldRenderable,
                     onAdjust: { showPlacementPlanePicker = true },
                     onSelectPlane: { plane in
                         selectedGhostPlacementPlane = plane
@@ -960,11 +968,13 @@ private struct LiveSpatialCaptureView: View {
                     onChangeAppliance: {
                         self.ghostPreview = nil
                         selectedGhostApplianceDefinition = nil
+                        ghostARDebugState = nil
                         showGhostAppliancePicker = true
                     },
                     onCancel: {
                         self.ghostPreview = nil
                         selectedGhostApplianceDefinition = nil
+                        ghostARDebugState = nil
                     }
                 )
                 .padding(.bottom, 104)
@@ -1276,6 +1286,15 @@ private struct LiveSpatialCaptureView: View {
         let mm = preview.dimensionsMm
         let cl = preview.clearanceOffsetsMm
         let mmPerMeter: Float = 1_000
+        let offsetM: Float
+        switch preview.placementPlane {
+        case .wall:
+            offsetM = Float(preview.dimensionsMm.depth) / mmPerMeter / 2
+        case .floor:
+            offsetM = Float(preview.dimensionsMm.height) / mmPerMeter / 2
+        case .ceiling, .worktop, .unknown:
+            offsetM = 0
+        }
         return V2GhostRenderSpec(
             worldPositionX: preview.worldPosition.x,
             worldPositionY: preview.worldPosition.y,
@@ -1292,7 +1311,8 @@ private struct LiveSpatialCaptureView: View {
             clearanceTopM: Float(cl.top) / mmPerMeter,
             clearanceBottomM: Float(cl.bottom) / mmPerMeter,
             clearanceFrontM: Float(cl.front) / mmPerMeter,
-            clearanceBackM: Float(cl.back) / mmPerMeter
+            clearanceBackM: Float(cl.back) / mmPerMeter,
+            wallOffsetAppliedM: offsetM
         )
     }
 
@@ -1372,6 +1392,7 @@ private struct LiveSpatialCaptureView: View {
 
     private func stageGhostPreview(on plane: GhostPlacementPlaneV1) {
         guard let capturePoint = pendingCapturePoint else { return }
+        ghostARDebugState = nil
 
         #if DEBUG
         // In debug builds, fall back to a known-size test appliance when no
@@ -1444,6 +1465,11 @@ private struct LiveSpatialCaptureView: View {
 
     private func confirmGhostPreview() {
         guard let preview = ghostPreview else { return }
+        guard ghostPlacementIsWorldRenderable else {
+            measurementFeedback = "Placement not ready yet. Move device until live camera and world-space ghost are both visible."
+            showMeasurementFeedback = true
+            return
+        }
 
         // Capture a composited photo of the AR scene (camera feed + 3-D ghost
         // + clearance envelope) before dismounting the overlay.  This gives the
@@ -1493,6 +1519,14 @@ private struct LiveSpatialCaptureView: View {
         ghostPreview = nil
         selectedGhostApplianceDefinition = nil
         ghostARSnapshot = nil
+        ghostARDebugState = nil
+    }
+
+    private var ghostPlacementIsWorldRenderable: Bool {
+        guard let state = ghostARDebugState else { return false }
+        let bounds = state.arEntityBounds ?? SIMD3<Double>(0, 0, 0)
+        let hasBounds = bounds.x > 0.0001 && bounds.y > 0.0001 && bounds.z > 0.0001
+        return state.cameraFeedVisible && state.arEntityAttached && hasBounds && state.rendererActive
     }
 
     private func locationContext(for plane: GhostPlacementPlaneV1) -> PinPlacementLocationContext {
@@ -2371,6 +2405,7 @@ private struct GhostPreviewActionBar: View {
     let title: String
     let selectedPlane: GhostPlacementPlaneV1
     let onConfirm: () -> Void
+    let canConfirm: Bool
     let onAdjust: () -> Void
     let onSelectPlane: (GhostPlacementPlaneV1) -> Void
     let onChangeAppliance: () -> Void
@@ -2388,6 +2423,7 @@ private struct GhostPreviewActionBar: View {
             HStack(spacing: 8) {
                 Button("Confirm placement", action: onConfirm)
                     .buttonStyle(.borderedProminent)
+                    .disabled(!canConfirm)
                 Button("Adjust", action: onAdjust)
                     .buttonStyle(.bordered)
                 Button("Change appliance", action: onChangeAppliance)
@@ -2473,15 +2509,34 @@ private struct V2GhostARDebugBadge: View {
     let widthM: Float
     let heightM: Float
     let depthM: Float
-    let rendererActive: Bool
+    let debugState: V2GhostARDebugState?
 
     var body: some View {
+        let bounds = debugState?.arEntityBounds
+        let world = debugState?.arEntityWorldPosition
+        let wallNormal = debugState?.wallNormal
         VStack(alignment: .trailing, spacing: 2) {
             Text("👻 Ghost AR debug")
                 .font(.caption2.weight(.semibold).monospaced())
             Text("Transform: \(isTransformValid ? "✅ valid" : "⚠️ screenOnly")")
             Text(String(format: "Dims: %.3f×%.3f×%.3f m", widthM, heightM, depthM))
-            Text("Renderer: \(rendererActive ? "✅ active" : "❌ inactive")")
+            Text("Camera: \((debugState?.cameraFeedVisible ?? false) ? "✅" : "❌")")
+            Text("Attached: \((debugState?.arEntityAttached ?? false) ? "✅" : "❌")")
+            Text("Renderer: \((debugState?.rendererActive ?? false) ? "✅ active" : "❌ inactive")")
+            if let world {
+                Text(String(format: "World: %.2f %.2f %.2f", world.x, world.y, world.z))
+            }
+            if let bounds {
+                Text(String(format: "Bounds: %.2f %.2f %.2f", bounds.x, bounds.y, bounds.z))
+            }
+            if let distance = debugState?.arEntityDistanceFromCamera {
+                Text(String(format: "Distance: %.2f m", distance))
+            }
+            Text(String(format: "Opacity: %.2f", debugState?.materialOpacity ?? 0))
+            if let wallNormal {
+                Text(String(format: "WallN: %.2f %.2f %.2f", wallNormal.x, wallNormal.y, wallNormal.z))
+            }
+            Text(String(format: "Offset: %.2f m", debugState?.wallOffsetApplied ?? 0))
         }
         .font(.caption2.monospaced())
         .foregroundStyle(.white)

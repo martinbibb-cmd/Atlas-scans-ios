@@ -70,6 +70,8 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     public let schemaVersion: String
     public let session: SessionCaptureV2
     public let readiness: VisitReadinessV1
+    public let missingEvidence: [String]
+    public let engineerNotes: String?
     public let handedOffAt: String
     public let handoffId: UUID
     public let visitId: UUID
@@ -87,12 +89,16 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     public init(
         session: SessionCaptureV2,
         readiness: VisitReadinessV1,
+        missingEvidence: [String]? = nil,
+        engineerNotes: String? = nil,
         handedOffAt: Date = Date(),
         handoffId: UUID = UUID()
     ) {
         self.schemaVersion = "1.0"
         self.session = session
         self.readiness = readiness
+        self.missingEvidence = missingEvidence ?? readiness.unmetConditions
+        self.engineerNotes = engineerNotes ?? session.engineerNotes
         self.handedOffAt = ISO8601DateFormatter().string(from: handedOffAt)
         self.handoffId = handoffId
         self.visitId = session.visitId
@@ -106,7 +112,7 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     // MARK: - Custom Codable (backward compat)
 
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, session, readiness, handedOffAt, handoffId, visitId
+        case schemaVersion, session, readiness, missingEvidence, engineerNotes, handedOffAt, handoffId, visitId
         case equipmentEvidenceGroups
     }
 
@@ -115,6 +121,9 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         schemaVersion = try c.decode(String.self, forKey: .schemaVersion)
         session = try c.decode(SessionCaptureV2.self, forKey: .session)
         readiness = try c.decode(VisitReadinessV1.self, forKey: .readiness)
+        missingEvidence = try c.decodeIfPresent([String].self, forKey: .missingEvidence)
+            ?? readiness.unmetConditions
+        engineerNotes = try c.decodeIfPresent(String.self, forKey: .engineerNotes)
         handedOffAt = try c.decode(String.self, forKey: .handedOffAt)
         handoffId = try c.decode(UUID.self, forKey: .handoffId)
         visitId = try c.decode(UUID.self, forKey: .visitId)
