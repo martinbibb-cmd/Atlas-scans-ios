@@ -773,10 +773,10 @@ private struct LiveSpatialCaptureView: View {
                 // RoomPlan session so the ghost appears in the same world coordinate
                 // frame as the live room mesh. Only mounted when a ghost is actively
                 // being previewed to prevent the ARSCNView from obscuring the camera.
-                if let arSession, ghostPreview != nil {
+                if let arSession, let activeGhost = ghostPreview {
                     V2GhostAROverlayView(
                         arSession: arSession,
-                        spec: ghostPreview.map { ghostRenderSpec(from: $0) },
+                        spec: ghostRenderSpec(from: activeGhost),
                         placementPlane: selectedGhostPlacementPlane,
                         onGhostTapped: { rawPosition, normal in
                             moveGhostPreview(rawHitPosition: rawPosition, planeNormal: normal)
@@ -947,7 +947,7 @@ private struct LiveSpatialCaptureView: View {
                     }
                 )
                 .padding(.bottom, 104)
-            } else if showCapturePointMenu {
+            } else if showCapturePointMenu, pendingCapturePoint != nil {
                 CaptureActionBubbleMenu(
                     onTagObject: {
                         showObjectPicker = true
@@ -1867,6 +1867,10 @@ private struct CenterCaptureReticleButton: View {
 // MARK: - BottomActionDock
 
 private struct BottomActionDock: View {
+    /// Minimum width of the Finish button so its text never wraps vertically
+    /// even on small screen widths.
+    fileprivate static let finishButtonMinWidth: CGFloat = 80
+
     let onMenu: () -> Void
     let onFinish: () -> Void
     let onNextRoom: () -> Void
@@ -1884,7 +1888,7 @@ private struct BottomActionDock: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .frame(minWidth: 80)
+                .frame(minWidth: BottomActionDock.finishButtonMinWidth)
                 .background(.green.opacity(0.92), in: Capsule())
             }
             .buttonStyle(.plain)

@@ -198,6 +198,7 @@ final class V2GhostARCoordinator: NSObject {
         let preferredAlignment: ARRaycastQuery.TargetAlignment
         switch placementPlane {
         case .floor, .worktop, .ceiling:
+            // All horizontal surfaces use the same ARKit alignment target.
             preferredAlignment = .horizontal
         case .wall, .unknown:
             preferredAlignment = .vertical
