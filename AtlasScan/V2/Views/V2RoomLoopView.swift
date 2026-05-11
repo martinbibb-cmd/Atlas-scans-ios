@@ -1467,7 +1467,22 @@ private struct LiveSpatialCaptureView: View {
     private func confirmGhostPreview() {
         guard let preview = ghostPreview else { return }
         guard ghostPlacementIsWorldRenderable else {
-            measurementFeedback = "Placement not ready yet. Move device until you can see the live camera feed and the 3D ghost appliance."
+            let debug = ghostARDebugState
+            let bounds = debug?.arEntityBounds ?? SIMD3<Double>(0, 0, 0)
+            var missing: [String] = []
+            if debug?.cameraFeedVisible != true {
+                missing.append("camera feed unavailable")
+            }
+            if debug?.arEntityAttached != true {
+                missing.append("AR box not attached to scene")
+            }
+            if bounds.x <= minimumRenderableBoundsM
+                || bounds.y <= minimumRenderableBoundsM
+                || bounds.z <= minimumRenderableBoundsM {
+                missing.append("AR box bounds are zero")
+            }
+            let detail = missing.isEmpty ? "renderer not ready" : missing.joined(separator: ", ")
+            measurementFeedback = "Placement not ready yet (\(detail)). Move device until the live camera feed and 3D ghost appliance are visible."
             showMeasurementFeedback = true
             return
         }
