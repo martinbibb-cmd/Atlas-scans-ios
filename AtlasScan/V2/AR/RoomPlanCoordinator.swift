@@ -43,7 +43,31 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         captureView?.captureSession.stop()
     }
 
+    /// Probe the world at the centre of the capture view.
     func capturePointAtViewCenter() -> LiveCapturePointProbeResultV1 {
+        guard let captureView else {
+            return LiveCapturePointProbeResultV1(
+                screenPoint: CGPointCodable(x: 0.5, y: 0.5),
+                worldPosition: nil,
+                anchorConfidence: .screenOnly,
+                hitNormal: nil,
+                anchorId: nil,
+                worldTransform: nil,
+                debugDiagnostics: CaptureProbeDiagnosticsV1(
+                    raycastAttempted: false,
+                    resultType: .failed,
+                    hitDistanceM: nil,
+                    planeAlignment: "none",
+                    trackingState: "viewUnavailable"
+                )
+            )
+        }
+        let center = CGPoint(x: captureView.bounds.midX, y: captureView.bounds.midY)
+        return capturePointAt(center)
+    }
+
+    /// Probe the world at an arbitrary screen-space point (UIKit coordinates).
+    func capturePointAt(_ screenPoint: CGPoint) -> LiveCapturePointProbeResultV1 {
         guard let captureView else {
             return LiveCapturePointProbeResultV1(
                 screenPoint: CGPointCodable(x: 0.5, y: 0.5),
@@ -63,10 +87,9 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         }
 
         let bounds = captureView.bounds
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let normalizedPoint = CGPointCodable(
-            x: bounds.width > 0 ? center.x / bounds.width : 0.5,
-            y: bounds.height > 0 ? center.y / bounds.height : 0.5
+            x: bounds.width > 0 ? screenPoint.x / bounds.width : 0.5,
+            y: bounds.height > 0 ? screenPoint.y / bounds.height : 0.5
         )
 
         guard let frame = captureView.captureSession.arSession.currentFrame else {
@@ -86,7 +109,7 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
                 )
             )
         }
-        let samplePoints = reticleSamplePoints(around: center, in: bounds)
+        let samplePoints = reticleSamplePoints(around: screenPoint, in: bounds)
         var candidates: [ProbeHitCandidate] = []
         for samplePoint in samplePoints {
             if let raycastCandidate = raycastCandidate(
