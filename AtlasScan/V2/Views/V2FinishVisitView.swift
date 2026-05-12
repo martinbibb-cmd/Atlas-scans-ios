@@ -44,9 +44,11 @@ struct V2FinishVisitView: View {
                                 Label(item, systemImage: "exclamationmark.circle")
                             }
                         }
-                        Section("Reason / note") {
+                        Section {
                             TextEditor(text: $engineerNotesDraft)
                                 .frame(minHeight: 120)
+                        } header: {
+                            Text("Reason / note")
                         } footer: {
                             Text("This note is included in the handoff so Atlas Mind can review incomplete evidence.")
                         }

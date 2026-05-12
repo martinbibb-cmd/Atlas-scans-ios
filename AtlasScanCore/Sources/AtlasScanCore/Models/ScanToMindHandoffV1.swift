@@ -64,6 +64,15 @@ public struct VisitHandoffPackV1: Codable, Sendable {
     }
 }
 
+// MARK: - Handoff completion status
+
+/// Describes whether a handoff represents a fully-complete visit record or an
+/// incomplete draft that requires further review in Atlas Mind.
+public enum HandoffCompletionStatusV1: String, Codable, Sendable {
+    case complete
+    case incompleteDraft = "incomplete_draft"
+}
+
 // MARK: - Handoff payload
 
 public struct ScanToMindHandoffV1: Codable, Sendable {
@@ -75,6 +84,8 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     public let handedOffAt: String
     public let handoffId: UUID
     public let visitId: UUID
+    /// Whether the visit is fully complete or an incomplete draft requiring review.
+    public let completionStatus: HandoffCompletionStatusV1
 
     /// Equipment evidence groups derived from the session's spatial pins.
     ///
@@ -102,6 +113,7 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         self.handedOffAt = ISO8601DateFormatter().string(from: handedOffAt)
         self.handoffId = handoffId
         self.visitId = session.visitId
+        self.completionStatus = readiness.isReady ? .complete : .incompleteDraft
         self.equipmentEvidenceGroups = EquipmentEvidenceMapper.buildGroups(
             from: session.rooms,
             photos: session.photos,
@@ -113,7 +125,7 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion, session, readiness, missingEvidence, engineerNotes, handedOffAt, handoffId, visitId
-        case equipmentEvidenceGroups
+        case equipmentEvidenceGroups, completionStatus
     }
 
     public init(from decoder: Decoder) throws {
@@ -127,6 +139,9 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         handedOffAt = try c.decode(String.self, forKey: .handedOffAt)
         handoffId = try c.decode(UUID.self, forKey: .handoffId)
         visitId = try c.decode(UUID.self, forKey: .visitId)
+        // Backward-compat: derive from readiness when field absent in older payloads.
+        completionStatus = try c.decodeIfPresent(HandoffCompletionStatusV1.self, forKey: .completionStatus)
+            ?? (readiness.isReady ? .complete : .incompleteDraft)
         // Backward-compat: derive from session rooms when field absent in older payloads.
         equipmentEvidenceGroups = try c.decodeIfPresent(EquipmentEvidenceGroupsV1.self, forKey: .equipmentEvidenceGroups)
             ?? EquipmentEvidenceMapper.buildGroups(from: session.rooms, photos: session.photos, visitId: visitId.uuidString)

@@ -42,3 +42,4 @@ Library/
 # Temporary files
 *.tmp
 *.temp
+*.bak

@@ -1,10 +1,10 @@
 /// V2GhostAROverlayView — Renders a world-space 3D ghost appliance body and
 /// clearance envelope by sharing the live RoomPlan ARSession.
 ///
-/// The ARSCNView renders the live shared AR camera feed and overlays the
-/// world-space ghost geometry directly on top. User interaction is enabled only
-/// while a ghost appliance spec is active; when no ghost is being previewed all
-/// touches pass through to the RoomPlan scanning session below.
+/// The ARSCNView is rendered as a transparent overlay over the RoomPlan camera
+/// view. It shares the live session for world-space tracking and renders only
+/// the ghost geometry (body wireframe + clearance envelope) on a clear
+/// background so the underlying camera feed always shows through.
 ///
 /// Coordinate convention: ARKit right-handed Y-up, units in metres.
 ///
@@ -104,12 +104,13 @@ struct V2GhostAROverlayView: UIViewRepresentable {
         view.scene = SCNScene()
         view.delegate = context.coordinator
 
-        // Render the live camera feed directly in this ARSCNView so the engineer
-        // always sees camera + ghost composite while previewing placement.
-        view.scene.background.contents = nil
-        view.backgroundColor = .black
-        view.isOpaque = true
-        view.layer.isOpaque = true
+        // The camera feed is owned by the RoomPlan view below; this ARSCNView
+        // sits on top and renders only the ghost geometry on a transparent
+        // background so the underlying camera layer always shows through.
+        view.scene.background.contents = UIColor.clear
+        view.backgroundColor = .clear
+        view.isOpaque = false
+        view.layer.isOpaque = false
 
         // Lighting is provided by the shared session; we add one fill light so
         // the translucent ghost geometry is visible in dim environments.

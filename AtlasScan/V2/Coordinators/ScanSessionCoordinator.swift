@@ -113,6 +113,7 @@ public final class ScanSessionCoordinator: ObservableObject {
             session.rooms.append(resolvedRoom)
         }
         updateCeilingHeightQAFlag(for: resolvedRoom)
+        updateGeometryQAFlags(for: resolvedRoom)
         scheduleSave()
     }
 
@@ -602,6 +603,48 @@ public final class ScanSessionCoordinator: ObservableObject {
             zs.min() ?? 0,
             zs.max() ?? 0
         )
+    }
+
+    /// Minimum floor area (m²) below which a captured room polygon is flagged
+    /// as low-confidence. Rooms under 1 m² are almost certainly partial scans.
+    private let minimumTypicalRoomAreaM2 = 1.0
+
+    /// Inspects the room's floor polygon and emits geometry QA flags for
+    /// degenerate or suspicious shapes. Called every time a room is upserted.
+    private func updateGeometryQAFlags(for room: RoomCaptureV2) {
+        session.qaFlags.removeAll {
+            ($0.type == .polygonCollapsed || $0.type == .lowConfidenceRoomShape)
+                && $0.roomId == room.id
+        }
+        let vertexCount = room.polygonVertices.count
+        if vertexCount < 3 {
+            session.emitQAFlag(
+                QAFlagV1(
+                    type: .polygonCollapsed,
+                    roomId: room.id,
+                    detail: "Room polygon has \(vertexCount) vertices — too few to form a valid room shape."
+                )
+            )
+        } else if vertexCount == 3 {
+            session.emitQAFlag(
+                QAFlagV1(
+                    type: .lowConfidenceRoomShape,
+                    roomId: room.id,
+                    detail: "Room polygon is a triangle (\(vertexCount) vertices) — capture may be incomplete."
+                )
+            )
+        } else {
+            let area = room.floorAreaM2
+            if area < minimumTypicalRoomAreaM2 {
+                session.emitQAFlag(
+                    QAFlagV1(
+                        type: .lowConfidenceRoomShape,
+                        roomId: room.id,
+                        detail: String(format: "Captured room area %.2f m² is unusually small.", area)
+                    )
+                )
+            }
+        }
     }
 
     private func updateCeilingHeightQAFlag(for room: RoomCaptureV2) {

@@ -142,6 +142,11 @@ public enum QAFlagType: String, Codable, CaseIterable, Sendable {
     case incompleteTranscript = "INCOMPLETE_TRANSCRIPT"
     case flueConflict       = "FLUE_CONFLICT"
     case abnormalCeilingHeight = "ABNORMAL_CEILING_HEIGHT"
+    // Geometry quality flags — emitted during room save.
+    case unstableGeometry            = "UNSTABLE_GEOMETRY"
+    case polygonCollapsed            = "POLYGON_COLLAPSED"
+    case wallCountChangedAfterCapture = "WALL_COUNT_CHANGED_AFTER_CAPTURE"
+    case lowConfidenceRoomShape      = "LOW_CONFIDENCE_ROOM_SHAPE"
 }
 
 public struct QAFlagV1: Codable, Identifiable, Sendable {

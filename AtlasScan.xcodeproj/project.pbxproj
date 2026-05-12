@@ -32,6 +32,7 @@
 		AA010062 /* VoiceNoteRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020062 /* VoiceNoteRecorder.swift */; };
 		AA010063 /* VoiceNoteRecorderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020063 /* VoiceNoteRecorderSheet.swift */; };
 		AA010064 /* VoiceNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020064 /* VoiceNoteTests.swift */; };
+		AAQF0001 /* GeometryQAFlagTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAQF0002 /* GeometryQAFlagTests.swift */; };
 		AA010065 /* VoiceNotePlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020065 /* VoiceNotePlaybackManager.swift */; };
 
 		AA010070 /* JSONInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020070 /* JSONInspectorView.swift */; };
@@ -218,6 +219,7 @@
 		AA020062 /* VoiceNoteRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorder.swift; sourceTree = "<group>"; };
 		AA020063 /* VoiceNoteRecorderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteRecorderSheet.swift; sourceTree = "<group>"; };
 		AA020064 /* VoiceNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteTests.swift; sourceTree = "<group>"; };
+		AAQF0002 /* GeometryQAFlagTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryQAFlagTests.swift; sourceTree = "<group>"; };
 		AA020065 /* VoiceNotePlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotePlaybackManager.swift; sourceTree = "<group>"; };
 
 		AA020070 /* JSONInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONInspectorView.swift; sourceTree = "<group>"; };
@@ -855,6 +857,8 @@
 
 				AA020064 /* VoiceNoteTests.swift */,
 
+				AAQF0002 /* GeometryQAFlagTests.swift */,
+
 				AA0200B0 /* VisitCompletionValidatorTests.swift */,
 
 				AA0200E1 /* CaptureSessionExporterTests.swift */,
@@ -1168,6 +1172,8 @@
 				AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */,
 
 				AA010064 /* VoiceNoteTests.swift in Sources */,
+
+				AAQF0001 /* GeometryQAFlagTests.swift in Sources */,
 
 				AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */,
 
