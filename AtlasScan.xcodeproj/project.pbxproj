@@ -180,6 +180,11 @@
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
 		AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30013 /* V2OffscreenPointerOverlay.swift */; };
 		AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30019 /* V2DebugLifecycleOverlay.swift */; };
+		AAV2001A /* SurveyRoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001A /* SurveyRoomState.swift */; };
+		AAV2001B /* RoomCandidateV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001B /* RoomCandidateV1.swift */; };
+		AAV2001C /* CapturePointV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001C /* CapturePointV1.swift */; };
+		AAV2001D /* ExistingEquipmentPinV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001D /* ExistingEquipmentPinV1.swift */; };
+		AAV2001E /* AtlasScanSessionV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001E /* AtlasScanSessionV1.swift */; };
 		AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C01 /* EquipmentEvidenceGroupedView.swift */; };
 		AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C02 /* EquipmentEvidenceMapperTests.swift */; };
 		AAD10001 /* AtlasAuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20001 /* AtlasAuthState.swift */; };
@@ -386,6 +391,11 @@
 		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
 		AAV30013 /* V2OffscreenPointerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OffscreenPointerOverlay.swift; sourceTree = "<group>"; };
 		AAV30019 /* V2DebugLifecycleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2DebugLifecycleOverlay.swift; sourceTree = "<group>"; };
+		AAV3001A /* SurveyRoomState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyRoomState.swift; sourceTree = "<group>"; };
+		AAV3001B /* RoomCandidateV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomCandidateV1.swift; sourceTree = "<group>"; };
+		AAV3001C /* CapturePointV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePointV1.swift; sourceTree = "<group>"; };
+		AAV3001D /* ExistingEquipmentPinV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExistingEquipmentPinV1.swift; sourceTree = "<group>"; };
+		AAV3001E /* AtlasScanSessionV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanSessionV1.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -878,6 +888,11 @@
 			isa = PBXGroup;
 			children = (
 				AAV30014 /* V2VisitLifecycleState.swift */,
+				AAV3001A /* SurveyRoomState.swift */,
+				AAV3001B /* RoomCandidateV1.swift */,
+				AAV3001C /* CapturePointV1.swift */,
+				AAV3001D /* ExistingEquipmentPinV1.swift */,
+				AAV3001E /* AtlasScanSessionV1.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1205,6 +1220,11 @@
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
 				AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */,
+				AAV2001A /* SurveyRoomState.swift in Sources */,
+				AAV2001B /* RoomCandidateV1.swift in Sources */,
+				AAV2001C /* CapturePointV1.swift in Sources */,
+				AAV2001D /* ExistingEquipmentPinV1.swift in Sources */,
+				AAV2001E /* AtlasScanSessionV1.swift in Sources */,
 				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,
 				AAD10001 /* AtlasAuthState.swift in Sources */,
 				AAD10002 /* AtlasAuthService.swift in Sources */,
