@@ -846,8 +846,12 @@ struct VanModeView: View {
         case .missingFabric:          return "questionmark.circle"
         case .lowPhotoCount:          return "photo.badge.exclamationmark"
         case .incompleteTranscript:   return "mic.slash"
-        case .flueConflict:           return "exclamationmark.triangle"
-        case .abnormalCeilingHeight:  return "arrow.up.and.down.circle.fill"
+        case .flueConflict:                  return "exclamationmark.triangle"
+        case .abnormalCeilingHeight:         return "arrow.up.and.down.circle.fill"
+        case .unstableGeometry:              return "exclamationmark.arrow.triangle.2.circlepath"
+        case .polygonCollapsed:              return "xmark.circle"
+        case .wallCountChangedAfterCapture:  return "number.circle"
+        case .lowConfidenceRoomShape:        return "questionmark.diamond"
         }
     }
 
@@ -858,8 +862,12 @@ struct VanModeView: View {
         case .flueConflict:           return .red
         case .missingFabric:          return .orange
         case .lowPhotoCount:          return .orange
-        case .incompleteTranscript:   return .orange
-        case .abnormalCeilingHeight:  return .orange
+        case .incompleteTranscript:          return .orange
+        case .abnormalCeilingHeight:         return .orange
+        case .unstableGeometry:              return .orange
+        case .polygonCollapsed:              return .orange
+        case .wallCountChangedAfterCapture:  return .orange
+        case .lowConfidenceRoomShape:        return .orange
         }
     }
 
