@@ -1,0 +1,175 @@
+import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(GoogleSignIn)
+import GoogleSignIn
+#endif
+
+@MainActor
+final class GoogleAtlasAuthService: AtlasAuthService {
+    private let visitClient: CloudflareVisitClient
+    private let fallbackService: DevMockAtlasAuthService
+
+    init(
+        visitClient: CloudflareVisitClient = .shared,
+        fallbackService: DevMockAtlasAuthService = DevMockAtlasAuthService()
+    ) {
+        self.visitClient = visitClient
+        self.fallbackService = fallbackService
+    }
+
+    func restoreSession() async throws -> AtlasAuthSessionV1? {
+#if canImport(GoogleSignIn)
+        if GIDSignIn.sharedInstance.hasPreviousSignIn {
+            let result = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+            let token = result.user.idToken?.tokenString ?? result.user.accessToken.tokenString
+            guard !token.isEmpty else {
+                throw AtlasAuthError.missingGoogleToken
+            }
+            AtlasKeychainStore.saveAuthToken(token)
+            return AtlasAuthSessionV1(
+                profile: AtlasUserProfileV1(
+                    id: result.user.userID ?? result.user.profile?.email ?? UUID().uuidString,
+                    email: result.user.profile?.email,
+                    displayName: result.user.profile?.name
+                ),
+                authToken: token,
+                providerUserId: result.user.userID
+            )
+        }
+#endif
+        if let fallback = try await fallbackService.restoreSession() {
+            return fallback
+        }
+        return nil
+    }
+
+    func signInWithGoogle() async throws -> AtlasAuthSessionV1 {
+#if canImport(GoogleSignIn) && canImport(UIKit)
+        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+              !clientID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            throw AtlasAuthError.missingGoogleClientID
+        }
+
+        guard let presenting = Self.topViewController() else {
+            throw AtlasAuthError.missingPresentationContext
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenting)
+        let token = result.user.idToken?.tokenString ?? result.user.accessToken.tokenString
+        guard !token.isEmpty else {
+            throw AtlasAuthError.missingGoogleToken
+        }
+
+        AtlasKeychainStore.saveAuthToken(token)
+
+        return AtlasAuthSessionV1(
+            profile: AtlasUserProfileV1(
+                id: result.user.userID ?? result.user.profile?.email ?? UUID().uuidString,
+                email: result.user.profile?.email,
+                displayName: result.user.profile?.name
+            ),
+            authToken: token,
+            providerUserId: result.user.userID
+        )
+#else
+        return try await fallbackService.signInWithGoogle()
+#endif
+    }
+
+    func signOut() async {
+#if canImport(GoogleSignIn)
+        GIDSignIn.sharedInstance.signOut()
+#endif
+        AtlasKeychainStore.deleteAuthToken()
+    }
+
+    func fetchWorkspaces(for session: AtlasAuthSessionV1) async throws -> [AtlasWorkspaceV1] {
+        let display = session.profile.displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shortName = (display?.isEmpty == false ? display! : "Atlas")
+        return [
+            AtlasWorkspaceV1(id: "mind-primary", name: "\(shortName) Workspace")
+        ]
+    }
+
+    func fetchVisits(
+        workspaceId: String,
+        session: AtlasAuthSessionV1
+    ) async throws -> [AtlasVisitIdentityV1] {
+        _ = workspaceId
+        _ = session
+        do {
+            let visits = try await visitClient.fetchUpcomingVisits()
+            return visits.map {
+                AtlasVisitIdentityV1(
+                    id: $0.id,
+                    visitReference: $0.visitReference,
+                    propertyAddress: $0.propertyAddress,
+                    status: $0.status,
+                    scheduledAtISO8601: $0.scheduledAt,
+                    source: .mind
+                )
+            }
+        } catch {
+            return try await fallbackService.fetchVisits(workspaceId: workspaceId, session: session)
+        }
+    }
+
+    func createVisit(
+        workspaceId: String,
+        session: AtlasAuthSessionV1
+    ) async throws -> AtlasVisitIdentityV1 {
+        _ = workspaceId
+        let dateCode = DateFormatter.jobCodeFormatter.string(from: Date())
+        let emailPrefix = session.profile.email?
+            .split(separator: "@")
+            .first
+            .map(String.init)
+            .prefix(4)
+            .uppercased() ?? "ATLS"
+        let reference = "JOB-\(dateCode)-\(emailPrefix)"
+
+        do {
+            let remoteId = try await visitClient.createVisit(reference: reference, propertyAddress: nil)
+            return AtlasVisitIdentityV1(
+                id: remoteId,
+                visitReference: reference,
+                propertyAddress: nil,
+                status: "in_progress",
+                scheduledAtISO8601: ISO8601DateFormatter().string(from: Date()),
+                source: .mind
+            )
+        } catch {
+            return try await fallbackService.createVisit(workspaceId: workspaceId, session: session)
+        }
+    }
+
+#if canImport(UIKit)
+    private static func topViewController() -> UIViewController? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        let window = scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+        var root = window?.rootViewController
+        while let presented = root?.presentedViewController {
+            root = presented
+        }
+        return root
+    }
+#endif
+}
+
+private extension DateFormatter {
+    static let jobCodeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+}
