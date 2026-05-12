@@ -166,7 +166,7 @@ final class GoogleAtlasAuthService: AtlasAuthService {
     private func exchangeFirebaseToken(using user: GIDGoogleUser) async throws -> String {
 #if canImport(FirebaseAuth)
         guard let idToken = user.idToken?.tokenString, !idToken.isEmpty else {
-            throw AtlasAuthError.missingGoogleToken
+            throw AtlasAuthError.missingGoogleIDTokenForFirebase
         }
         let accessToken = user.accessToken.tokenString
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
