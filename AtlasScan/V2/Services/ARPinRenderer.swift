@@ -44,9 +44,11 @@ public final class ARPinRenderer: ObservableObject {
     }
 
     /// Called when the user enters (or re-enters) `roomId`. Computes the set
-    /// of placement requests for the room's renderable pins (worldLocked or
-    /// raycastEstimated only). screen-only and manual pins are intentionally
-    /// excluded from AR — they surface in the review screen.
+    /// of placement requests for the room's renderable pins. Only pins whose
+    /// `AnchorConfidence.canRenderInAR` is true (currently `worldLocked`
+    /// only) are returned — `raycastEstimated`, `screenOnly`, and `manual`
+    /// pins are intentionally excluded from AR re-rendering and surface in
+    /// the review screen instead.
     public func enterRoom(_ roomId: UUID) {
         let pins = store.renderablePins(in: roomId)
         activePlacements = pins.compactMap { pin -> PlacementRequest? in

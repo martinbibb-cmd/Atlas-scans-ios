@@ -43,7 +43,7 @@ public struct TagObjectSheet: View {
                 Section("Object") {
                     Picker("Category", selection: $category) {
                         ForEach(EquipmentObjectCategory.allCases, id: \.self) { cat in
-                            Text(cat.rawValue.replacingOccurrences(of: "_", with: " ").capitalized).tag(cat)
+                            Text(cat.displayName).tag(cat)
                         }
                     }
                     TextField("Optional label", text: $label)
@@ -53,7 +53,7 @@ public struct TagObjectSheet: View {
                 Section {
                     Picker("Anchor", selection: $confidence) {
                         ForEach(availableConfidences, id: \.self) { c in
-                            Text(c.rawValue.replacingOccurrences(of: "_", with: " ").capitalized).tag(c)
+                            Text(c.displayName).tag(c)
                         }
                     }
                     if confidence.requiresReview {

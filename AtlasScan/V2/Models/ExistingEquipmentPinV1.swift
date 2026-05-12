@@ -76,6 +76,16 @@ public enum AnchorConfidence: String, Codable, Sendable, CaseIterable {
     public var requiresReview: Bool {
         self == .screenOnly || self == .manual
     }
+
+    /// User-facing label used in `TagObjectSheet` and review screens.
+    public var displayName: String {
+        switch self {
+        case .worldLocked:      return "World-locked"
+        case .raycastEstimated: return "Raycast-estimated"
+        case .screenOnly:       return "Screen only"
+        case .manual:           return "Manual"
+        }
+    }
 }
 
 // MARK: - Pin review status
