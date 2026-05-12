@@ -51,6 +51,7 @@ private enum FirebaseBootstrap {
         options.apiKey = apiKey
         options.projectID = projectID
         options.storageBucket = stringValue(for: "FirebaseStorageBucket")
+        options.clientID = stringValue(for: "FirebaseClientID")
         options.bundleID = Bundle.main.bundleIdentifier
         FirebaseApp.configure(options: options)
     }

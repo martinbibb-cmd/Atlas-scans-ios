@@ -8,6 +8,9 @@ import GoogleSignIn
 #if canImport(FirebaseAuth)
 import FirebaseAuth
 #endif
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
 
 @MainActor
 final class GoogleAtlasAuthService: AtlasAuthService {
@@ -37,8 +40,15 @@ final class GoogleAtlasAuthService: AtlasAuthService {
 
     func signInWithGoogle() async throws -> AtlasAuthSessionV1 {
 #if canImport(GoogleSignIn) && canImport(UIKit)
-        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
-              !clientID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let plistClientID = (Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+#if canImport(FirebaseCore)
+        let firebaseClientID = FirebaseApp.app()?.options.clientID?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+#else
+        let firebaseClientID: String? = nil
+#endif
+        guard let clientID = [plistClientID, firebaseClientID].compactMap({ $0 }).first(where: { !$0.isEmpty })
         else {
             throw AtlasAuthError.missingGoogleClientID
         }
