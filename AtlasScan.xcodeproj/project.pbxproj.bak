@@ -857,8 +857,6 @@
 
 				AA020064 /* VoiceNoteTests.swift */,
 
-				AAQF0002 /* GeometryQAFlagTests.swift */,
-
 				AA0200B0 /* VisitCompletionValidatorTests.swift */,
 
 				AA0200E1 /* CaptureSessionExporterTests.swift */,
@@ -1172,8 +1170,6 @@
 				AA010050 /* LiDARClearanceMeasurementTests.swift in Sources */,
 
 				AA010064 /* VoiceNoteTests.swift in Sources */,
-
-				AAQF0001 /* GeometryQAFlagTests.swift in Sources */,
 
 				AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */,
 

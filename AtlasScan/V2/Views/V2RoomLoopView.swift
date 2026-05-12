@@ -2089,7 +2089,9 @@ private struct CaptureActionBubbleMenu: View {
             HStack(spacing: 8) {
                 bubbleAction(title: "Measure", systemImage: "ruler.fill", action: onMeasure)
                 bubbleAction(title: "Note", systemImage: "note.text", action: onNote)
+                #if DEBUG
                 bubbleAction(title: "Preview", systemImage: "cube.transparent.fill", action: onPreviewAppliance)
+                #endif
             }
             HStack(spacing: 8) {
                 bubbleAction(title: "Next Room", systemImage: "arrow.right.circle.fill", action: onNextRoom)
