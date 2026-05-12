@@ -159,16 +159,16 @@ final class GoogleAtlasAuthService: AtlasAuthService {
 
     private func exchangeFirebaseToken(using user: GIDGoogleUser) async throws -> String {
 #if canImport(FirebaseAuth)
-        let idToken = user.idToken?.tokenString ?? ""
+        guard let idToken = user.idToken?.tokenString, !idToken.isEmpty else {
+            throw AtlasAuthError.missingGoogleToken
+        }
         let accessToken = user.accessToken.tokenString
-        if !idToken.isEmpty {
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-            do {
-                let authResult = try await Auth.auth().signIn(with: credential)
-                return try await authResult.user.getIDToken()
-            } catch {
-                throw AtlasAuthError.firebaseAuthFailed(error.localizedDescription)
-            }
+        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+        do {
+            let authResult = try await Auth.auth().signIn(with: credential)
+            return try await authResult.user.getIDToken()
+        } catch {
+            throw AtlasAuthError.firebaseAuthFailed(error.localizedDescription)
         }
 #endif
         return user.idToken?.tokenString ?? user.accessToken.tokenString
