@@ -29,9 +29,33 @@ public struct WorldTransformV1: Codable, Equatable, Sendable {
 
 // MARK: - Room capture
 
+/// Describes the current lifecycle state of a captured room.
+/// Used to filter which rooms appear on the Property Map and to
+/// guard against automatic room creation.
+public enum V2RoomCaptureStatusV1: String, Codable, Sendable {
+    /// Scan is currently in progress (not yet completed).
+    case scanning
+    /// Scan completed but not yet reviewed or named by the user.
+    case captured
+    /// Room was saved to the visit by the user (default for backward-compat).
+    case saved
+    /// Room was saved as a draft (incomplete scan — no full geometry).
+    case draft
+    /// Room has been flagged as needing review before the visit is finished.
+    case needsReview
+    /// Room was explicitly discarded by the user.
+    case discarded
+}
+
 public struct RoomCaptureV2: Codable, Identifiable, Sendable {
     public let id: UUID          // == roomId used elsewhere
     public var displayName: String
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    /// Capture status of this room. Decoded with `decodeIfPresent` so records
+    /// written before this field existed default to `.saved` — every previously
+    /// persisted room was intentionally saved by the user.
+    public var captureStatus: V2RoomCaptureStatusV1
 
     // ── Geometry ─────────────────────────────────────────────────────────────
     /// Ordered polygon vertices in the horizontal (X, Z) plane.
@@ -77,6 +101,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         floorLevelY: Double = 0.0,
         ceilingHeightM: Double = 2.4,
         rawCapturedCeilingHeightM: Double? = nil,
+        captureStatus: V2RoomCaptureStatusV1 = .saved,
         capturedAt: Date = Date()
     ) {
         self.id = id
@@ -85,6 +110,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.floorLevelY = floorLevelY
         self.ceilingHeightM = ceilingHeightM
         self.rawCapturedCeilingHeightM = rawCapturedCeilingHeightM
+        self.captureStatus = captureStatus
         self.fabricCapture = nil
         self.pinnedObjects = []
         self.ghostAppliancePlacements = []
@@ -103,6 +129,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         case pinnedObjects, ghostAppliancePlacements, customApplianceDefinitions
         case measurements
         case usdzAssetPath, incomingConnectionReview, capturedAt
+        case captureStatus
     }
 
     public init(from decoder: any Decoder) throws {
@@ -122,6 +149,9 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         usdzAssetPath = try c.decodeIfPresent(String.self, forKey: .usdzAssetPath)
         incomingConnectionReview = try c.decodeIfPresent(RoomConnectionReviewV1.self, forKey: .incomingConnectionReview)
         capturedAt = try c.decode(Date.self, forKey: .capturedAt)
+        // Backward-compat: captureStatus absent in records written before this field.
+        // Default to .saved — every previously persisted room was intentionally saved.
+        captureStatus = try c.decodeIfPresent(V2RoomCaptureStatusV1.self, forKey: .captureStatus) ?? .saved
     }
 
     // MARK: Helpers

@@ -208,6 +208,12 @@ public final class ScanSessionCoordinator: ObservableObject {
         scheduleSave()
     }
 
+    /// Permanently deletes a saved room and all its associated evidence.
+    /// Used by the Visit Home screen room card "Delete" action.
+    public func deleteRoom(withId roomId: UUID) {
+        discardUnfinishedRoomEvidence(for: roomId)
+    }
+
     public func emitQAFlag(_ flag: QAFlagV1) {
         session.emitQAFlag(flag)
         scheduleSave()
