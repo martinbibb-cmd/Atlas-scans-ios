@@ -37,6 +37,10 @@ enum AtlasAuthError: LocalizedError {
     case googleSignInUnavailable
     case missingGoogleToken
     case notAuthenticated
+    case firebaseAuthFailed(String)
+    case firebaseAuthUnavailable
+    case missingGoogleIDTokenForFirebase
+    case missingGoogleUserIdentity
 
     var errorDescription: String? {
         switch self {
@@ -50,6 +54,14 @@ enum AtlasAuthError: LocalizedError {
             return "Google sign-in succeeded but no token was returned."
         case .notAuthenticated:
             return "Sign in is required."
+        case .firebaseAuthFailed(let message):
+            return "Firebase authentication failed: \(message)"
+        case .firebaseAuthUnavailable:
+            return "FirebaseAuth SDK is not linked in this build."
+        case .missingGoogleIDTokenForFirebase:
+            return "Google sign-in did not return an ID token required for Firebase authentication."
+        case .missingGoogleUserIdentity:
+            return "Google sign-in did not return a stable user identifier."
         }
     }
 }

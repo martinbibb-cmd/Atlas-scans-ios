@@ -49,6 +49,8 @@
 
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
+		AAPKG017 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG104 /* FirebaseAuth */; };
+		AAPKG018 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG105 /* FirebaseCore */; };
 
 		AA0100B0 /* VisitCompletionValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200B0 /* VisitCompletionValidatorTests.swift */; };
 
@@ -458,6 +460,8 @@
 				AAPKG003 /* AtlasContracts in Frameworks */,
 				AAPKG013 /* AtlasScanCore in Frameworks */,
 				AAPKG016 /* GoogleSignIn in Frameworks */,
+				AAPKG017 /* FirebaseAuth in Frameworks */,
+				AAPKG018 /* FirebaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1115,6 +1119,8 @@
 				AAPKG002 /* AtlasContracts */,
 				AAPKG012 /* AtlasScanCore */,
 				AAPKG102 /* GoogleSignIn */,
+				AAPKG104 /* FirebaseAuth */,
+				AAPKG105 /* FirebaseCore */,
 			);
 			productName = AtlasScan;
 			productReference = AA030001 /* AtlasScan.app */;
@@ -1173,6 +1179,7 @@
 				AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */,
 				AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */,
 				AAPKG101 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				AAPKG103 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = AA060002 /* Products */;
 			projectDirPath = "";
@@ -1694,6 +1701,14 @@
 				minimumVersion = 7.1.0;
 			};
 		};
+		AAPKG103 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -1732,6 +1747,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAPKG101 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		AAPKG104 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAPKG103 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		AAPKG105 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAPKG103 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
