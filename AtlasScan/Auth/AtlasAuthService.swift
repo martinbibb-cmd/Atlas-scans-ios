@@ -37,6 +37,7 @@ enum AtlasAuthError: LocalizedError {
     case googleSignInUnavailable
     case missingGoogleToken
     case notAuthenticated
+    case firebaseAuthFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -50,6 +51,8 @@ enum AtlasAuthError: LocalizedError {
             return "Google sign-in succeeded but no token was returned."
         case .notAuthenticated:
             return "Sign in is required."
+        case .firebaseAuthFailed(let message):
+            return "Firebase authentication failed: \(message)"
         }
     }
 }
