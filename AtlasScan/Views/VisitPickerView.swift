@@ -71,6 +71,7 @@ struct AtlasVisitPickerView: View {
                 }
             }
 
+            #if DEBUG
             if !orphanVisits.isEmpty {
                 Section("Local Orphan Visits (Debug Fallback)") {
                     ForEach(orphanVisits) { visit in
@@ -83,6 +84,7 @@ struct AtlasVisitPickerView: View {
                     }
                 }
             }
+            #endif
         }
         .navigationTitle("Choose Visit")
         .toolbar {

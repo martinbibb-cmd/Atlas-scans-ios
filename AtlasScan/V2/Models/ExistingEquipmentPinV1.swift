@@ -93,12 +93,17 @@ public enum PinReviewStatus: String, Codable, Sendable, CaseIterable {
 /// row-major flat array of 16 doubles. Avoids importing `simd` here so this
 /// type compiles cleanly on non-Apple platforms (e.g. SwiftPM Linux builds).
 /// Bridging helpers to/from `simd_float4x4` live alongside the AR renderer.
-public struct WorldTransformV1: Codable, Sendable, Equatable {
+///
+/// Note: A separate, AtlasScanCore-level `WorldTransformV1` exists for the
+/// underlying `SpatialPinV1`. We deliberately keep this survey-shell type
+/// distinct so that the new equipment-pin model is not coupled to the
+/// AtlasScanCore type system as it evolves.
+public struct EquipmentPinWorldTransformV1: Codable, Sendable, Equatable {
     /// Row-major 16 doubles. Always exactly 16 entries.
     public let matrix: [Double]
 
     public init(matrix: [Double]) {
-        precondition(matrix.count == 16, "WorldTransformV1 requires exactly 16 entries")
+        precondition(matrix.count == 16, "EquipmentPinWorldTransformV1 requires exactly 16 entries")
         self.matrix = matrix
     }
 }
@@ -128,7 +133,7 @@ public struct ExistingEquipmentPinV1: Codable, Identifiable, Sendable, Equatable
     public var label: String?
 
     public var anchorConfidence: AnchorConfidence
-    public var worldTransform: WorldTransformV1?
+    public var worldTransform: EquipmentPinWorldTransformV1?
     public var screenPosition: ScreenPositionV1?
 
     public var linkedPhotoIds: [UUID]
@@ -149,7 +154,7 @@ public struct ExistingEquipmentPinV1: Codable, Identifiable, Sendable, Equatable
         objectCategory: EquipmentObjectCategory,
         label: String? = nil,
         anchorConfidence: AnchorConfidence,
-        worldTransform: WorldTransformV1? = nil,
+        worldTransform: EquipmentPinWorldTransformV1? = nil,
         screenPosition: ScreenPositionV1? = nil,
         linkedPhotoIds: [UUID] = [],
         reviewStatus: PinReviewStatus? = nil,
@@ -195,7 +200,7 @@ public struct ExistingEquipmentPinV1: Codable, Identifiable, Sendable, Equatable
         objectCategory = try c.decodeIfPresent(EquipmentObjectCategory.self, forKey: .objectCategory) ?? .other
         label = try c.decodeIfPresent(String.self, forKey: .label)
         anchorConfidence = try c.decodeIfPresent(AnchorConfidence.self, forKey: .anchorConfidence) ?? .manual
-        worldTransform = try c.decodeIfPresent(WorldTransformV1.self, forKey: .worldTransform)
+        worldTransform = try c.decodeIfPresent(EquipmentPinWorldTransformV1.self, forKey: .worldTransform)
         screenPosition = try c.decodeIfPresent(ScreenPositionV1.self, forKey: .screenPosition)
         linkedPhotoIds = try c.decodeIfPresent([UUID].self, forKey: .linkedPhotoIds) ?? []
         reviewStatus = try c.decodeIfPresent(PinReviewStatus.self, forKey: .reviewStatus)
