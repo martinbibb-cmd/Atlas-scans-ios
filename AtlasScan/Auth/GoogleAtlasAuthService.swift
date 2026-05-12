@@ -171,7 +171,7 @@ final class GoogleAtlasAuthService: AtlasAuthService {
             throw AtlasAuthError.firebaseAuthFailed(error.localizedDescription)
         }
 #else
-        throw AtlasAuthError.firebaseAuthFailed("FirebaseAuth is not linked in this build.")
+        throw AtlasAuthError.firebaseAuthUnavailable
 #endif
     }
 #endif
