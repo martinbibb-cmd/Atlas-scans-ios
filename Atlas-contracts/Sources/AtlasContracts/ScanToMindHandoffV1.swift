@@ -293,7 +293,7 @@ public struct SpatialEvidenceMeasurementV1: Codable, Sendable {
     public let needsReview: Bool
 }
 
-public struct UnresolvedSpatialEvidenceV1: Codable, Sendable {
+public struct UnresolvedSpatialEvidenceV1: Codable, Sendable, Hashable {
     public let kind: String
     public let message: String
     public let roomId: String?
@@ -594,13 +594,23 @@ public extension ScanToMindHandoffV1 {
             "LOW_CONFIDENCE_ROOM_SHAPE",
             "ROOM_SHAPE_NEEDS_REVIEW"
         ]
-        let geometryKeywords = ["geometry", "polygon", "wall", "room shape", "room outline", "triangle", "tiny room"]
+        let geometryKeywordGroups = [
+            ["geometry"],
+            ["polygon"],
+            ["wall"],
+            ["room", "shape"],
+            ["room", "outline"],
+            ["triangle"],
+            ["tiny room"]
+        ]
 
         return capture.qaFlags.filter { flag in
-            explicitGeometryCodes.contains(flag.code)
-                || geometryKeywords.contains(where: { keyword in
-                    flag.code.localizedCaseInsensitiveContains(keyword)
-                        || flag.message.localizedCaseInsensitiveContains(keyword)
+            let searchText = "\(flag.code) \(flag.message)"
+            return explicitGeometryCodes.contains(flag.code)
+                || geometryKeywordGroups.contains(where: { keywords in
+                    keywords.allSatisfy { keyword in
+                        searchText.localizedCaseInsensitiveContains(keyword)
+                    }
                 })
         }
     }

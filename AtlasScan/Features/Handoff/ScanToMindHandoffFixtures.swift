@@ -156,6 +156,7 @@ enum ScanToMindHandoffFixtures {
                     captureTimestamp: timestamp,
                     previewImageRef: "utility.jpg",
                     rawScanAssetRef: nil,
+                    // Intentionally partial geometry so the fixture stays review required.
                     rawWidthM: 1.2,
                     rawDepthM: nil,
                     rawHeightM: nil,

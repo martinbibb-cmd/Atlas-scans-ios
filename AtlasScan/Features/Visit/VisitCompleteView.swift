@@ -134,6 +134,7 @@ struct VisitCompleteView: View {
             Image(systemName: requiresReview ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                 .font(.system(size: 80, weight: .thin))
                 .foregroundStyle(requiresReview ? .orange : .green)
+                .accessibilityLabel(requiresReview ? "Review required" : "Visit complete")
 
             Text(requiresReview ? "Review Required" : "Visit Complete")
                 .font(.largeTitle.bold())
@@ -180,7 +181,7 @@ struct VisitCompleteView: View {
 
             if !handoff.unresolvedEvidence.isEmpty {
                 detailSection("Unresolved items") {
-                    ForEach(Array(handoff.unresolvedEvidence.enumerated()), id: \.offset) { _, item in
+                    ForEach(handoff.unresolvedEvidence, id: \.self) { item in
                         Label(item.message, systemImage: "exclamationmark.circle")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -190,7 +191,7 @@ struct VisitCompleteView: View {
 
             if !handoff.geometryQAFlags.isEmpty {
                 detailSection("Geometry QA flags") {
-                    ForEach(Array(handoff.geometryQAFlags.enumerated()), id: \.offset) { _, flag in
+                    ForEach(handoff.geometryQAFlags, id: \.self) { flag in
                         Label(flag.message, systemImage: "triangle.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -282,13 +283,18 @@ struct VisitCompleteView: View {
         Label(label, systemImage: passed ? "checkmark.circle.fill" : "xmark.circle")
             .font(.caption)
             .foregroundStyle(passed ? .green : .secondary)
+            .accessibilityLabel("\(label): \(passed ? "passed" : "failed")")
     }
 }
 
 // MARK: - Preview
 
 #if DEBUG
-#Preview {
+#Preview("Incomplete draft") {
     VisitCompleteView(handoff: ScanToMindHandoffFixtures.incompleteDraft, onDone: {})
+}
+
+#Preview("Complete") {
+    VisitCompleteView(handoff: ScanToMindHandoffFixtures.complete, onDone: {})
 }
 #endif

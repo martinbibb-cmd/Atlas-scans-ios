@@ -211,9 +211,15 @@ struct ReviewExportView: View {
     // MARK: - Handoff section
 
     private var handoffSection: some View {
-        let errors = CaptureSessionExporter.validate(store.draft)
-        let canBuildHandoff = errors.isEmpty
-        let handoff = reviewHandoff
+        let exportResult = try? CaptureSessionExporter.export(store.draft)
+        let canBuildHandoff = exportResult != nil
+        let handoff = exportResult.map {
+            ScanToMindHandoffBuilder.buildHandoffFromDraft(
+                store.draft,
+                capture: $0.payload,
+                reason: .reviewInMind
+            )
+        }
         let finalOutputsLocked = handoff?.requiresReview ?? false
 
         return Section {
@@ -324,6 +330,8 @@ struct ReviewExportView: View {
                 Label("Final outputs stay locked until review is completed in Atlas Mind.", systemImage: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .accessibilityAddTraits(.isStaticText)
+                    .accessibilityLabel("Final outputs are locked until review is completed in Atlas Mind.")
             }
 
             if let errorMessage = workspacePackageError {
@@ -425,17 +433,6 @@ struct ReviewExportView: View {
             mindHandoffVisitId = store.draft.visitReference
             showingMindHandoff = true
         }
-    }
-
-    private var reviewHandoff: ScanToMindHandoffV1? {
-        guard let result = try? CaptureSessionExporter.export(store.draft) else {
-            return nil
-        }
-        return ScanToMindHandoffBuilder.buildHandoffFromDraft(
-            store.draft,
-            capture: result.payload,
-            reason: .reviewInMind
-        )
     }
 
     // MARK: - Actions: Quote planner handoff
