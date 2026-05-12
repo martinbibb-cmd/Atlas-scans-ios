@@ -835,18 +835,6 @@ private struct LiveSpatialCaptureView: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 8) {
-                            if let pendingCapturePoint {
-                                CapturePointStatusBadge(
-                                    point: pendingCapturePoint,
-                                    isAnchorLost: isAnchorLost(for: pendingCapturePoint)
-                                )
-                            }
-                            if let diagnostics = lastCaptureProbeDiagnostics {
-                                ProbeCaptureStatusBadge(
-                                    diagnostics: diagnostics,
-                                    pendingPoint: pendingCapturePoint
-                                )
-                            }
                             if measurementStartPoint != nil {
                                 MeasurementInProgressBadge()
                             }
@@ -862,6 +850,18 @@ private struct LiveSpatialCaptureView: View {
                                 MeasurementsCountBadge(count: pendingMeasurementsLocal.count)
                             }
                             #if DEBUG
+                            if let pendingCapturePoint {
+                                CapturePointStatusBadge(
+                                    point: pendingCapturePoint,
+                                    isAnchorLost: isAnchorLost(for: pendingCapturePoint)
+                                )
+                            }
+                            if let diagnostics = lastCaptureProbeDiagnostics {
+                                ProbeCaptureStatusBadge(
+                                    diagnostics: diagnostics,
+                                    pendingPoint: pendingCapturePoint
+                                )
+                            }
                             if let lastCaptureProbeDiagnostics {
                                 CaptureProbeDiagnosticsBadge(diagnostics: lastCaptureProbeDiagnostics)
                             }
@@ -881,6 +881,13 @@ private struct LiveSpatialCaptureView: View {
                         .zIndex(hudOverlayLayer)
                     }
                     .padding(.horizontal, 16)
+
+                    if ghostPreview == nil && measurementStartPoint == nil {
+                        CaptureInstructionBadge()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .zIndex(hudOverlayLayer)
+                            .padding(.top, 4)
+                    }
 
                     Spacer()
 
@@ -1956,6 +1963,19 @@ private struct LiveSpatialCaptureView: View {
             break
         }
         onEvidenceDeleted(item)
+    }
+}
+
+// MARK: - CaptureInstructionBadge
+
+private struct CaptureInstructionBadge: View {
+    var body: some View {
+        Text("Point at a surface and tap ⊙ to capture")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(.black.opacity(0.35), in: Capsule())
     }
 }
 
