@@ -170,8 +170,9 @@ final class GoogleAtlasAuthService: AtlasAuthService {
         } catch {
             throw AtlasAuthError.firebaseAuthFailed(error.localizedDescription)
         }
+#else
+        throw AtlasAuthError.firebaseAuthFailed("FirebaseAuth is not linked in this build.")
 #endif
-        return user.idToken?.tokenString ?? user.accessToken.tokenString
     }
 #endif
 
