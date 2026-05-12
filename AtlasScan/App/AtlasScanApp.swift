@@ -39,7 +39,25 @@ private struct AtlasAuthRootView: View {
                     }
                 } else if let workspace = authState.selectedWorkspace {
                     if let visit = authState.selectedVisit {
-                        PropertyMapView()
+                        Group {
+                            if FeatureFlags.isEnabled(.continuousSurveyShell) {
+                                SurveyAppRootView(
+                                    workspace: workspace,
+                                    visit: visit,
+                                    onSignOut: {
+                                        Task {
+                                            coordinator.discardActiveSession()
+                                            await authState.signOut()
+                                        }
+                                    },
+                                    onChangeVisit: {
+                                        authState.selectedVisit = nil
+                                    }
+                                )
+                            } else {
+                                PropertyMapView()
+                            }
+                        }
                             .onAppear {
                                 applyVisitContextIfNeeded(visit: visit)
                             }

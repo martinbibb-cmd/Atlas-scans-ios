@@ -180,6 +180,11 @@
 		AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30012 /* SurfaceSemanticV1Tests.swift */; };
 		AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30013 /* V2OffscreenPointerOverlay.swift */; };
 		AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30019 /* V2DebugLifecycleOverlay.swift */; };
+		AAV2001A /* SurveyRoomState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001A /* SurveyRoomState.swift */; };
+		AAV2001B /* RoomCandidateV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001B /* RoomCandidateV1.swift */; };
+		AAV2001C /* CapturePointV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001C /* CapturePointV1.swift */; };
+		AAV2001D /* ExistingEquipmentPinV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001D /* ExistingEquipmentPinV1.swift */; };
+		AAV2001E /* AtlasScanSessionV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001E /* AtlasScanSessionV1.swift */; };
 		AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C01 /* EquipmentEvidenceGroupedView.swift */; };
 		AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C02 /* EquipmentEvidenceMapperTests.swift */; };
 		AAD10001 /* AtlasAuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20001 /* AtlasAuthState.swift */; };
@@ -191,6 +196,32 @@
 		AAD10007 /* WorkspacePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20007 /* WorkspacePickerView.swift */; };
 		AAD10008 /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20008 /* VisitPickerView.swift */; };
 		AAPKG016 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG102 /* GoogleSignIn */; };
+		AAV2001F /* SurveyAppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001F /* SurveyAppRootView.swift */; };
+		AAV20020 /* FeatureFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30020 /* FeatureFlag.swift */; };
+		AAV20021 /* SurveySessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30021 /* SurveySessionStore.swift */; };
+		AAV20022 /* SurveyAutosaveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30022 /* SurveyAutosaveService.swift */; };
+		AAV20023 /* AtlasVisitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30023 /* AtlasVisitSyncService.swift */; };
+		AAV20024 /* ScanToMindHandoffBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30024 /* ScanToMindHandoffBuilder.swift */; };
+		AAV20025 /* MindDeepLinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30025 /* MindDeepLinkService.swift */; };
+		AAV20026 /* SurveyHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30026 /* SurveyHomeView.swift */; };
+		AAV20027 /* SurveyHomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30027 /* SurveyHomeViewModel.swift */; };
+		AAV20028 /* FinishSurveyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30028 /* FinishSurveyView.swift */; };
+		AAV20029 /* FinishSurveyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30029 /* FinishSurveyViewModel.swift */; };
+		AAV2002A /* EvidenceReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002A /* EvidenceReviewView.swift */; };
+		AAV2002B /* ContinuousSurveyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002B /* ContinuousSurveyView.swift */; };
+		AAV2002C /* ContinuousSurveyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002C /* ContinuousSurveyViewModel.swift */; };
+		AAV2002D /* CaptureBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002D /* CaptureBottomBar.swift */; };
+		AAV2002E /* CaptureStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002E /* CaptureStatusBar.swift */; };
+		AAV2002F /* CaptureReticleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3002F /* CaptureReticleView.swift */; };
+		AAV20030 /* PhotoCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30030 /* PhotoCaptureService.swift */; };
+		AAV20031 /* VoiceNoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30031 /* VoiceNoteService.swift */; };
+		AAV20032 /* MeasurementCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30032 /* MeasurementCaptureService.swift */; };
+		AAV20033 /* RoomSegmentationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30033 /* RoomSegmentationService.swift */; };
+		AAV20034 /* RoomSuggestionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30034 /* RoomSuggestionSheet.swift */; };
+		AAV20035 /* SpatialEvidenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30035 /* SpatialEvidenceStore.swift */; };
+		AAV20036 /* ARPinRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30036 /* ARPinRenderer.swift */; };
+		AAV20037 /* TagObjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30037 /* TagObjectSheet.swift */; };
+		AAV20038 /* ContinuousSurveyShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30038 /* ContinuousSurveyShellTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -386,6 +417,37 @@
 		AAV30012 /* SurfaceSemanticV1Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceSemanticV1Tests.swift; sourceTree = "<group>"; };
 		AAV30013 /* V2OffscreenPointerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2OffscreenPointerOverlay.swift; sourceTree = "<group>"; };
 		AAV30019 /* V2DebugLifecycleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2DebugLifecycleOverlay.swift; sourceTree = "<group>"; };
+		AAV3001A /* SurveyRoomState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyRoomState.swift; sourceTree = "<group>"; };
+		AAV3001B /* RoomCandidateV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomCandidateV1.swift; sourceTree = "<group>"; };
+		AAV3001C /* CapturePointV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePointV1.swift; sourceTree = "<group>"; };
+		AAV3001D /* ExistingEquipmentPinV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExistingEquipmentPinV1.swift; sourceTree = "<group>"; };
+		AAV3001E /* AtlasScanSessionV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasScanSessionV1.swift; sourceTree = "<group>"; };
+		AAV3001F /* SurveyAppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyAppRootView.swift; sourceTree = "<group>"; };
+		AAV30020 /* FeatureFlag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlag.swift; sourceTree = "<group>"; };
+		AAV30021 /* SurveySessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveySessionStore.swift; sourceTree = "<group>"; };
+		AAV30022 /* SurveyAutosaveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyAutosaveService.swift; sourceTree = "<group>"; };
+		AAV30023 /* AtlasVisitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasVisitSyncService.swift; sourceTree = "<group>"; };
+		AAV30024 /* ScanToMindHandoffBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffBuilder.swift; sourceTree = "<group>"; };
+		AAV30025 /* MindDeepLinkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindDeepLinkService.swift; sourceTree = "<group>"; };
+		AAV30026 /* SurveyHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyHomeView.swift; sourceTree = "<group>"; };
+		AAV30027 /* SurveyHomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyHomeViewModel.swift; sourceTree = "<group>"; };
+		AAV30028 /* FinishSurveyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishSurveyView.swift; sourceTree = "<group>"; };
+		AAV30029 /* FinishSurveyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishSurveyViewModel.swift; sourceTree = "<group>"; };
+		AAV3002A /* EvidenceReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidenceReviewView.swift; sourceTree = "<group>"; };
+		AAV3002B /* ContinuousSurveyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousSurveyView.swift; sourceTree = "<group>"; };
+		AAV3002C /* ContinuousSurveyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousSurveyViewModel.swift; sourceTree = "<group>"; };
+		AAV3002D /* CaptureBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureBottomBar.swift; sourceTree = "<group>"; };
+		AAV3002E /* CaptureStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureStatusBar.swift; sourceTree = "<group>"; };
+		AAV3002F /* CaptureReticleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureReticleView.swift; sourceTree = "<group>"; };
+		AAV30030 /* PhotoCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureService.swift; sourceTree = "<group>"; };
+		AAV30031 /* VoiceNoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteService.swift; sourceTree = "<group>"; };
+		AAV30032 /* MeasurementCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementCaptureService.swift; sourceTree = "<group>"; };
+		AAV30033 /* RoomSegmentationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSegmentationService.swift; sourceTree = "<group>"; };
+		AAV30034 /* RoomSuggestionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSuggestionSheet.swift; sourceTree = "<group>"; };
+		AAV30035 /* SpatialEvidenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialEvidenceStore.swift; sourceTree = "<group>"; };
+		AAV30036 /* ARPinRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPinRenderer.swift; sourceTree = "<group>"; };
+		AAV30037 /* TagObjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagObjectSheet.swift; sourceTree = "<group>"; };
+		AAV30038 /* ContinuousSurveyShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousSurveyShellTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -454,6 +516,7 @@
 			children = (
 				AA020001 /* AtlasScanApp.swift */,
 				AA0200C1 /* CaptureAppRootView.swift */,
+				AAV3001F /* SurveyAppRootView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -828,6 +891,11 @@
 				AAV50003 /* AR */,
 				AAV50004 /* Views */,
 				AAV50005 /* Models */,
+				AAV50006 /* Config */,
+				AAV50007 /* Persistence */,
+				AAV50008 /* Sync */,
+				AAV50009 /* Handoff */,
+				AAV5000A /* Services */,
 			);
 			path = V2;
 			sourceTree = "<group>";
@@ -870,6 +938,18 @@
 				AAV30015 /* V2PostScanRoomReviewView.swift */,
 				AAV30016 /* V2FinishVisitView.swift */,
 				AAV30017 /* V2IdentifiableDedupe.swift */,
+				AAV30026 /* SurveyHomeView.swift */,
+				AAV30027 /* SurveyHomeViewModel.swift */,
+				AAV30028 /* FinishSurveyView.swift */,
+				AAV30029 /* FinishSurveyViewModel.swift */,
+				AAV3002A /* EvidenceReviewView.swift */,
+				AAV3002B /* ContinuousSurveyView.swift */,
+				AAV3002C /* ContinuousSurveyViewModel.swift */,
+				AAV3002D /* CaptureBottomBar.swift */,
+				AAV3002E /* CaptureStatusBar.swift */,
+				AAV3002F /* CaptureReticleView.swift */,
+				AAV30034 /* RoomSuggestionSheet.swift */,
+				AAV30037 /* TagObjectSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -878,8 +958,60 @@
 			isa = PBXGroup;
 			children = (
 				AAV30014 /* V2VisitLifecycleState.swift */,
+				AAV3001A /* SurveyRoomState.swift */,
+				AAV3001B /* RoomCandidateV1.swift */,
+				AAV3001C /* CapturePointV1.swift */,
+				AAV3001D /* ExistingEquipmentPinV1.swift */,
+				AAV3001E /* AtlasScanSessionV1.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		AAV50006 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30020 /* FeatureFlag.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		AAV50007 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30021 /* SurveySessionStore.swift */,
+				AAV30022 /* SurveyAutosaveService.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		AAV50008 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30023 /* AtlasVisitSyncService.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
+		AAV50009 /* Handoff */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30024 /* ScanToMindHandoffBuilder.swift */,
+				AAV30025 /* MindDeepLinkService.swift */,
+			);
+			path = Handoff;
+			sourceTree = "<group>";
+		};
+		AAV5000A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AAV30030 /* PhotoCaptureService.swift */,
+				AAV30031 /* VoiceNoteService.swift */,
+				AAV30032 /* MeasurementCaptureService.swift */,
+				AAV30033 /* RoomSegmentationService.swift */,
+				AAV30035 /* SpatialEvidenceStore.swift */,
+				AAV30036 /* ARPinRenderer.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		AA060000 = {
@@ -932,6 +1064,7 @@
 				AAV30010 /* V2LiveCaptureJourneyTests.swift */,
 				AAV30012 /* SurfaceSemanticV1Tests.swift */,
 				AA020C02 /* EquipmentEvidenceMapperTests.swift */,
+				AAV30038 /* ContinuousSurveyShellTests.swift */,
 			);
 			path = AtlasScanTests;
 			sourceTree = "<group>";
@@ -1205,6 +1338,11 @@
 				AAV20011 /* V2RecentCaptureStrip.swift in Sources */,
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
 				AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */,
+				AAV2001A /* SurveyRoomState.swift in Sources */,
+				AAV2001B /* RoomCandidateV1.swift in Sources */,
+				AAV2001C /* CapturePointV1.swift in Sources */,
+				AAV2001D /* ExistingEquipmentPinV1.swift in Sources */,
+				AAV2001E /* AtlasScanSessionV1.swift in Sources */,
 				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,
 				AAD10001 /* AtlasAuthState.swift in Sources */,
 				AAD10002 /* AtlasAuthService.swift in Sources */,
@@ -1214,6 +1352,31 @@
 				AAD10006 /* LoginView.swift in Sources */,
 				AAD10007 /* WorkspacePickerView.swift in Sources */,
 				AAD10008 /* VisitPickerView.swift in Sources */,
+				AAV2001F /* SurveyAppRootView.swift in Sources */,
+				AAV20020 /* FeatureFlag.swift in Sources */,
+				AAV20021 /* SurveySessionStore.swift in Sources */,
+				AAV20022 /* SurveyAutosaveService.swift in Sources */,
+				AAV20023 /* AtlasVisitSyncService.swift in Sources */,
+				AAV20024 /* ScanToMindHandoffBuilder.swift in Sources */,
+				AAV20025 /* MindDeepLinkService.swift in Sources */,
+				AAV20026 /* SurveyHomeView.swift in Sources */,
+				AAV20027 /* SurveyHomeViewModel.swift in Sources */,
+				AAV20028 /* FinishSurveyView.swift in Sources */,
+				AAV20029 /* FinishSurveyViewModel.swift in Sources */,
+				AAV2002A /* EvidenceReviewView.swift in Sources */,
+				AAV2002B /* ContinuousSurveyView.swift in Sources */,
+				AAV2002C /* ContinuousSurveyViewModel.swift in Sources */,
+				AAV2002D /* CaptureBottomBar.swift in Sources */,
+				AAV2002E /* CaptureStatusBar.swift in Sources */,
+				AAV2002F /* CaptureReticleView.swift in Sources */,
+				AAV20030 /* PhotoCaptureService.swift in Sources */,
+				AAV20031 /* VoiceNoteService.swift in Sources */,
+				AAV20032 /* MeasurementCaptureService.swift in Sources */,
+				AAV20033 /* RoomSegmentationService.swift in Sources */,
+				AAV20034 /* RoomSuggestionSheet.swift in Sources */,
+				AAV20035 /* SpatialEvidenceStore.swift in Sources */,
+				AAV20036 /* ARPinRenderer.swift in Sources */,
+				AAV20037 /* TagObjectSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1259,6 +1422,7 @@
 				AAV20010 /* V2LiveCaptureJourneyTests.swift in Sources */,
 				AAV20012 /* SurfaceSemanticV1Tests.swift in Sources */,
 				AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */,
+				AAV20038 /* ContinuousSurveyShellTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
