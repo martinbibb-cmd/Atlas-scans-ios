@@ -123,6 +123,7 @@
 		AA010400 /* ScanToMindHandoffBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020400 /* ScanToMindHandoffBuilder.swift */; };
 		AA010401 /* ScanToMindPayloadEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020401 /* ScanToMindPayloadEncoder.swift */; };
 		AA010402 /* OpenAtlasMind.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020402 /* OpenAtlasMind.swift */; };
+		AA010403 /* ScanToMindHandoffFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020403 /* ScanToMindHandoffFixtures.swift */; };
 
 		AA010500 /* BuildInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020500 /* BuildInfoView.swift */; };
 		AA010501 /* PermissionPreflightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020501 /* PermissionPreflightView.swift */; };
@@ -303,6 +304,7 @@
 		AA020400 /* ScanToMindHandoffBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffBuilder.swift; sourceTree = "<group>"; };
 		AA020401 /* ScanToMindPayloadEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindPayloadEncoder.swift; sourceTree = "<group>"; };
 		AA020402 /* OpenAtlasMind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAtlasMind.swift; sourceTree = "<group>"; };
+		AA020403 /* ScanToMindHandoffFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffFixtures.swift; sourceTree = "<group>"; };
 
 		AA020500 /* BuildInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfoView.swift; sourceTree = "<group>"; };
 		AA020501 /* PermissionPreflightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionPreflightView.swift; sourceTree = "<group>"; };
@@ -654,6 +656,7 @@
 				AA020400 /* ScanToMindHandoffBuilder.swift */,
 				AA020401 /* ScanToMindPayloadEncoder.swift */,
 				AA020402 /* OpenAtlasMind.swift */,
+				AA020403 /* ScanToMindHandoffFixtures.swift */,
 			);
 			path = Handoff;
 			sourceTree = "<group>";
@@ -1110,6 +1113,7 @@
 				AA010400 /* ScanToMindHandoffBuilder.swift in Sources */,
 				AA010401 /* ScanToMindPayloadEncoder.swift in Sources */,
 				AA010402 /* OpenAtlasMind.swift in Sources */,
+				AA010403 /* ScanToMindHandoffFixtures.swift in Sources */,
 
 				AA010500 /* BuildInfoView.swift in Sources */,
 				AA010501 /* PermissionPreflightView.swift in Sources */,
