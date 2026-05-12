@@ -129,23 +129,33 @@ struct PropertyMapView: View {
         .background(Color(.systemGroupedBackground))
     }
 
+    /// Rooms to render on the stitched map (geometry is available and trusted).
+    private var mapVisibleRooms: [RoomCaptureV2] {
+        coordinator.session.rooms.filter {
+            $0.captureStatus == .saved || $0.captureStatus == .needsReview || $0.captureStatus == .captured
+        }
+    }
+
+    /// Rooms to show in the room list (everything except deliberately discarded rooms).
+    private var listedRooms: [RoomCaptureV2] {
+        coordinator.session.rooms.filter { $0.captureStatus != .discarded }
+    }
+
     private var roomList: some View {
         List {
             Section("Stitched Property Plan") {
-                let savedRooms = coordinator.session.rooms.filter { $0.captureStatus == .saved || $0.captureStatus == .needsReview || $0.captureStatus == .captured }
-                if savedRooms.isEmpty {
+                if mapVisibleRooms.isEmpty {
                     Text("No rooms saved yet")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    V2StitchedPropertyMapPreview(rooms: savedRooms)
+                    V2StitchedPropertyMapPreview(rooms: mapVisibleRooms)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
             Section("Rooms") {
-                let savedRooms = coordinator.session.rooms.filter { $0.captureStatus != .discarded }
-                ForEach(savedRooms) { room in
+                ForEach(listedRooms) { room in
                     NavigationLink(destination: VanModeView(room: room, coordinator: coordinator)) {
                         roomRow(room)
                     }
