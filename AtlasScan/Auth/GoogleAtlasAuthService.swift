@@ -5,6 +5,9 @@ import UIKit
 #if canImport(GoogleSignIn)
 import GoogleSignIn
 #endif
+#if canImport(FirebaseAuth)
+import FirebaseAuth
+#endif
 
 @MainActor
 final class GoogleAtlasAuthService: AtlasAuthService {
@@ -23,20 +26,7 @@ final class GoogleAtlasAuthService: AtlasAuthService {
 #if canImport(GoogleSignIn)
         if GIDSignIn.sharedInstance.hasPreviousSignIn {
             let result = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
-            let token = result.user.idToken?.tokenString ?? result.user.accessToken.tokenString
-            guard !token.isEmpty else {
-                throw AtlasAuthError.missingGoogleToken
-            }
-            AtlasKeychainStore.saveAuthToken(token)
-            return AtlasAuthSessionV1(
-                profile: AtlasUserProfileV1(
-                    id: result.user.userID ?? result.user.profile?.email ?? UUID().uuidString,
-                    email: result.user.profile?.email,
-                    displayName: result.user.profile?.name
-                ),
-                authToken: token,
-                providerUserId: result.user.userID
-            )
+            return try await makeSession(from: result.user)
         }
 #endif
         if let fallback = try await fallbackService.restoreSession() {
@@ -61,28 +51,16 @@ final class GoogleAtlasAuthService: AtlasAuthService {
         GIDSignIn.sharedInstance.configuration = config
 
         let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenting)
-        let token = result.user.idToken?.tokenString ?? result.user.accessToken.tokenString
-        guard !token.isEmpty else {
-            throw AtlasAuthError.missingGoogleToken
-        }
-
-        AtlasKeychainStore.saveAuthToken(token)
-
-        return AtlasAuthSessionV1(
-            profile: AtlasUserProfileV1(
-                id: result.user.userID ?? result.user.profile?.email ?? UUID().uuidString,
-                email: result.user.profile?.email,
-                displayName: result.user.profile?.name
-            ),
-            authToken: token,
-            providerUserId: result.user.userID
-        )
+        return try await makeSession(from: result.user)
 #else
         return try await fallbackService.signInWithGoogle()
 #endif
     }
 
     func signOut() async {
+#if canImport(FirebaseAuth)
+        try? Auth.auth().signOut()
+#endif
 #if canImport(GoogleSignIn)
         GIDSignIn.sharedInstance.signOut()
 #endif
@@ -148,6 +126,40 @@ final class GoogleAtlasAuthService: AtlasAuthService {
             return try await fallbackService.createVisit(workspaceId: workspaceId, session: session)
         }
     }
+
+#if canImport(GoogleSignIn)
+    private func makeSession(from user: GIDGoogleUser) async throws -> AtlasAuthSessionV1 {
+        let token = try await exchangeFirebaseToken(using: user)
+        guard !token.isEmpty else {
+            throw AtlasAuthError.missingGoogleToken
+        }
+
+        AtlasKeychainStore.saveAuthToken(token)
+
+        return AtlasAuthSessionV1(
+            profile: AtlasUserProfileV1(
+                id: user.userID ?? user.profile?.email ?? UUID().uuidString,
+                email: user.profile?.email,
+                displayName: user.profile?.name
+            ),
+            authToken: token,
+            providerUserId: user.userID
+        )
+    }
+
+    private func exchangeFirebaseToken(using user: GIDGoogleUser) async throws -> String {
+#if canImport(FirebaseAuth)
+        let idToken = user.idToken?.tokenString ?? ""
+        let accessToken = user.accessToken.tokenString
+        if !idToken.isEmpty {
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+            let authResult = try await Auth.auth().signIn(with: credential)
+            return try await authResult.user.getIDToken()
+        }
+#endif
+        return user.idToken?.tokenString ?? user.accessToken.tokenString
+    }
+#endif
 
 #if canImport(UIKit)
     private static func topViewController() -> UIViewController? {

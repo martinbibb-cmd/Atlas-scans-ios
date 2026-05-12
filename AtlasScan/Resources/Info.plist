@@ -32,6 +32,20 @@
 	<string>Atlas Scan uses motion and orientation data to support ARKit room-capture features during site surveys.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Atlas Scan may use the local network to discover nearby devices for collaborative capture sessions.</string>
+	<key>FirebaseAPIKey</key>
+	<string>AIzaSyB29wTr9xSZ005Xmj1aXagEJ7KSQwFkVWI</string>
+	<key>FirebaseAuthDomain</key>
+	<string>atlas-phm.firebaseapp.com</string>
+	<key>FirebaseProjectID</key>
+	<string>atlas-phm</string>
+	<key>FirebaseStorageBucket</key>
+	<string>atlas-phm.firebasestorage.app</string>
+	<key>FirebaseMessagingSenderID</key>
+	<string>521348423908</string>
+	<key>FirebaseAppID</key>
+	<string>1:521348423908:web:4fec107fb333eee64c0cf1</string>
+	<key>FirebaseMeasurementID</key>
+	<string>G-8BS0TSF9Z8</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
