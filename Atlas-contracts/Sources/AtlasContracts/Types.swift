@@ -22,7 +22,7 @@ public enum ScanConfidenceBand: String, Codable, Sendable, CaseIterable {
 // MARK: - QA Flag
 
 /// A QA flag attached to a scanned entity or to the whole bundle.
-public struct ScanQAFlag: Codable, Sendable {
+public struct ScanQAFlag: Codable, Sendable, Hashable {
     /// Machine-readable flag code.
     public let code: String
     /// Human-readable description.

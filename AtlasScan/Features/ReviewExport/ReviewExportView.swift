@@ -211,10 +211,43 @@ struct ReviewExportView: View {
     // MARK: - Handoff section
 
     private var handoffSection: some View {
-        let errors = CaptureSessionExporter.validate(store.draft)
-        let isReady = errors.isEmpty
+        let exportResult = try? CaptureSessionExporter.export(store.draft)
+        let canBuildHandoff = exportResult != nil
+        let handoff = exportResult.map {
+            ScanToMindHandoffBuilder.buildHandoffFromDraft(
+                store.draft,
+                capture: $0.payload,
+                reason: .reviewInMind
+            )
+        }
+        let finalOutputsLocked = handoff?.requiresReview ?? false
 
         return Section {
+            if let handoff, handoff.requiresReview {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Incomplete capture — review required", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.orange)
+                    if !handoff.missingEvidence.isEmpty {
+                        ForEach(handoff.missingEvidence, id: \.self) { item in
+                            Label(item, systemImage: "minus.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if !handoff.unresolvedEvidence.isEmpty {
+                        Text("\(handoff.unresolvedEvidence.count) unresolved item(s) still need review in Atlas Mind.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !handoff.geometryQAFlags.isEmpty {
+                        Text("\(handoff.geometryQAFlags.count) geometry QA flag(s) still need review.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             if store.draft.exportState == .exported {
                 exportedBanner
             }
@@ -236,7 +269,7 @@ struct ReviewExportView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!isReady || isBuildingPackage)
+            .disabled(!canBuildHandoff || isBuildingPackage)
             .listRowBackground(Color.clear)
 
             // SECONDARY — Open Quote Planner in Atlas Mind
@@ -255,7 +288,7 @@ struct ReviewExportView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(!isReady || isBuildingQuotePlanner)
+            .disabled(!canBuildHandoff || finalOutputsLocked || isBuildingQuotePlanner)
             .listRowBackground(Color.clear)
 
             // Quote planner error + fallback actions
@@ -264,10 +297,10 @@ struct ReviewExportView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
 
-                if let url = quotePlannerLinkURL {
+                if let url = quotePlannerLinkURL, !finalOutputsLocked {
                     quotePlannerFallbackActions(url: url)
                 }
-            } else if let url = quotePlannerLinkURL {
+            } else if let url = quotePlannerLinkURL, !finalOutputsLocked {
                 quotePlannerFallbackActions(url: url)
             }
 
@@ -279,7 +312,7 @@ struct ReviewExportView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(!isReady || isBuildingPackage)
+            .disabled(!canBuildHandoff || finalOutputsLocked || isBuildingPackage)
             .listRowBackground(Color.clear)
 
             // Share Capture Package
@@ -290,8 +323,16 @@ struct ReviewExportView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(!isReady || isBuildingPackage)
+            .disabled(!canBuildHandoff || finalOutputsLocked || isBuildingPackage)
             .listRowBackground(Color.clear)
+
+            if finalOutputsLocked {
+                Label("Final outputs stay locked until review is completed in Atlas Mind.", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .accessibilityAddTraits(.isStaticText)
+                    .accessibilityLabel("Final outputs are locked until review is completed in Atlas Mind.")
+            }
 
             if let errorMessage = workspacePackageError {
                 Label(errorMessage, systemImage: "xmark.circle")

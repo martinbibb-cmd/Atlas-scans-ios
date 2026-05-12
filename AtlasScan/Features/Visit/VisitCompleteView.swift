@@ -36,86 +36,26 @@ struct VisitCompleteView: View {
     /// The quote-planner URL for the "copy link" fallback, built on demand.
     @State private var quotePlannerLinkURL: URL?
 
+    private var requiresReview: Bool {
+        handoff?.requiresReview ?? false
+    }
+
+    private var canOpenFinalOutputs: Bool {
+        handoff?.finalOutputsAllowed ?? false
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Completion graphic
-                VStack(spacing: 16) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 80, weight: .thin))
-                        .foregroundStyle(.green)
-
-                    Text("Visit Complete")
-                        .font(.largeTitle.bold())
-
-                    Text("All required evidence has been captured.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                }
-
-                Spacer()
-
-                // Handoff diagnostics
-                handoffDiagnosticsView
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
-
-                // Actions
-                VStack(spacing: 12) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    completionHeader
+                    handoffDiagnosticsView
                     if let handoff {
-                        Button {
-                            OpenAtlasMind.openMind(with: handoff)
-                            onDone()
-                        } label: {
-                            Label("Continue in Atlas Mind", systemImage: "brain.head.profile")
-                                .font(.body.bold())
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.accentColor)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            let url = OpenAtlasMind.makeQuotePlannerURL(for: handoff)
-                            quotePlannerLinkURL = url
-                            OpenAtlasMind.openQuotePlanner(with: handoff)
-                        } label: {
-                            Label("Open Quote Planner in Atlas Mind", systemImage: "list.clipboard")
-                                .font(.body)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color(.secondarySystemBackground))
-                                .foregroundStyle(.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
-                        .buttonStyle(.plain)
-
-                        if let url = quotePlannerLinkURL {
-                            quotePlannerFallbackRow(url: url)
-                        }
+                        reviewSummaryView(handoff: handoff)
                     }
-
-                    Button {
-                        onDone()
-                    } label: {
-                        Label("Return to Home", systemImage: "house")
-                            .font(.body)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .foregroundStyle(.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .buttonStyle(.plain)
+                    actionsView
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+                .padding(24)
             }
             .navigationTitle("Complete")
             .navigationBarTitleDisplayMode(.inline)
@@ -188,12 +128,173 @@ struct VisitCompleteView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
+
+    private var completionHeader: some View {
+        VStack(spacing: 16) {
+            Image(systemName: requiresReview ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                .font(.system(size: 80, weight: .thin))
+                .foregroundStyle(requiresReview ? .orange : .green)
+                .accessibilityLabel(requiresReview ? "Review required" : "Visit complete")
+
+            Text(requiresReview ? "Review Required" : "Visit Complete")
+                .font(.largeTitle.bold())
+
+            Text(
+                requiresReview
+                    ? "Incomplete capture — review required before final outputs are available."
+                    : "All required evidence has been captured."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func reviewSummaryView(handoff: ScanToMindHandoffV1) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if requiresReview {
+                Label("Incomplete capture — review required", systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+            }
+
+            detailSection("Readiness flags") {
+                readinessRow(label: "Rooms captured", passed: handoff.visit.readiness.hasRooms)
+                readinessRow(label: "Photos captured", passed: handoff.visit.readiness.hasPhotos)
+                readinessRow(label: "Heating system tagged", passed: handoff.visit.readiness.hasHeatingSystem)
+                readinessRow(label: "Hot water system tagged", passed: handoff.visit.readiness.hasHotWaterSystem)
+                readinessRow(label: "Boiler tagged", passed: handoff.visit.readiness.hasBoiler)
+                readinessRow(label: "Flue tagged", passed: handoff.visit.readiness.hasFlue)
+                readinessRow(label: "Voice notes recorded", passed: handoff.visit.readiness.hasNotes)
+            }
+
+            if !handoff.missingEvidence.isEmpty {
+                detailSection("Missing evidence") {
+                    ForEach(handoff.missingEvidence, id: \.self) { item in
+                        Label(item, systemImage: "minus.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if !handoff.unresolvedEvidence.isEmpty {
+                detailSection("Unresolved items") {
+                    ForEach(handoff.unresolvedEvidence, id: \.self) { item in
+                        Label(item.message, systemImage: "exclamationmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if !handoff.geometryQAFlags.isEmpty {
+                detailSection("Geometry QA flags") {
+                    ForEach(handoff.geometryQAFlags, id: \.self) { flag in
+                        Label(flag.message, systemImage: "triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var actionsView: some View {
+        VStack(spacing: 12) {
+            if let handoff {
+                Button {
+                    OpenAtlasMind.openMind(with: handoff)
+                    onDone()
+                } label: {
+                    Label(
+                        requiresReview ? "Continue in Atlas Mind for Review" : "Continue in Atlas Mind",
+                        systemImage: "brain.head.profile"
+                    )
+                    .font(.body.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    let url = OpenAtlasMind.makeQuotePlannerURL(for: handoff)
+                    quotePlannerLinkURL = url
+                    OpenAtlasMind.openQuotePlanner(with: handoff)
+                } label: {
+                    Label("Open Quote Planner in Atlas Mind", systemImage: "list.clipboard")
+                        .font(.body)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .foregroundStyle(.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canOpenFinalOutputs)
+                .opacity(canOpenFinalOutputs ? 1 : 0.5)
+
+                if requiresReview {
+                    Text("Final outputs stay locked until review is completed in Atlas Mind.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if let url = quotePlannerLinkURL, canOpenFinalOutputs {
+                    quotePlannerFallbackRow(url: url)
+                }
+            }
+
+            Button {
+                onDone()
+            } label: {
+                Label("Return to Home", systemImage: "house")
+                    .font(.body)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func detailSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            content()
+        }
+    }
+
+    private func readinessRow(label: String, passed: Bool) -> some View {
+        Label(label, systemImage: passed ? "checkmark.circle.fill" : "xmark.circle")
+            .font(.caption)
+            .foregroundStyle(passed ? .green : .secondary)
+            .accessibilityLabel("\(label): \(passed ? "passed" : "failed")")
+    }
 }
 
 // MARK: - Preview
 
 #if DEBUG
-#Preview {
-    VisitCompleteView(handoff: nil, onDone: {})
+#Preview("Incomplete draft") {
+    VisitCompleteView(handoff: ScanToMindHandoffFixtures.incompleteDraft, onDone: {})
+}
+
+#Preview("Complete") {
+    VisitCompleteView(handoff: ScanToMindHandoffFixtures.complete, onDone: {})
 }
 #endif

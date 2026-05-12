@@ -37,6 +37,11 @@ import Foundation
 /// Carried as a percent-encoded JSON query parameter on Mind's
 /// `/receive-scan` route.  Atlas Mind reads this payload to preload
 /// the visit and display the appropriate capture summary.
+public enum HandoffCompletionStatusV1: String, Codable, Sendable {
+    case complete
+    case incompleteDraft = "incomplete_draft"
+}
+
 public struct ScanToMindHandoffV1: Codable, Sendable {
 
     // MARK: Schema identity
@@ -79,6 +84,12 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     /// Full capture data for this visit.
     public let capture: SessionCaptureV2
 
+    /// Human-readable readiness gaps that still need review.
+    public let missingEvidence: [String]
+
+    /// Whether the handoff is fully complete or still requires review.
+    public let completionStatus: HandoffCompletionStatusV1
+
     /// Structured room → capture-point evidence graph for Mind rendering.
     public let spatialEvidenceGraph: SpatialEvidenceGraphV1
 
@@ -102,6 +113,8 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         capture: SessionCaptureV2,
         reason: ScanToMindHandoffReasonV1,
         exportedAt: String,
+        missingEvidence: [String]? = nil,
+        completionStatus: HandoffCompletionStatusV1? = nil,
         spatialEvidenceGraph: SpatialEvidenceGraphV1? = nil,
         unresolvedEvidence: [UnresolvedSpatialEvidenceV1]? = nil,
         equipmentEvidenceGroups: EquipmentEvidenceGroupsV1? = nil
@@ -116,6 +129,8 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         self.reason = reason
         self.visit = visit
         self.capture = capture
+        self.missingEvidence = missingEvidence ?? visit.readiness.missingItems
+        self.completionStatus = completionStatus ?? (visit.readiness.isReady ? .complete : .incompleteDraft)
         self.spatialEvidenceGraph = evidenceGraph
         self.unresolvedEvidence = unresolvedEvidence ?? evidenceGraph.defaultUnresolvedEvidence()
         self.equipmentEvidenceGroups = equipmentEvidenceGroups
@@ -127,6 +142,7 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case kind, schemaVersion, sourceApp, targetApp
         case exportedAt, reason, visit, capture
+        case missingEvidence, completionStatus
         case spatialEvidenceGraph, unresolvedEvidence
         case equipmentEvidenceGroups
     }
@@ -141,6 +157,10 @@ public struct ScanToMindHandoffV1: Codable, Sendable {
         reason = try c.decode(ScanToMindHandoffReasonV1.self, forKey: .reason)
         visit = try c.decode(HandoffVisitSnapshotV1.self, forKey: .visit)
         capture = try c.decode(SessionCaptureV2.self, forKey: .capture)
+        missingEvidence = try c.decodeIfPresent([String].self, forKey: .missingEvidence)
+            ?? visit.readiness.missingItems
+        completionStatus = try c.decodeIfPresent(HandoffCompletionStatusV1.self, forKey: .completionStatus)
+            ?? (visit.readiness.isReady ? .complete : .incompleteDraft)
         spatialEvidenceGraph = try c.decode(SpatialEvidenceGraphV1.self, forKey: .spatialEvidenceGraph)
         unresolvedEvidence = try c.decode([UnresolvedSpatialEvidenceV1].self, forKey: .unresolvedEvidence)
         // Backward-compat: derive from capture.objectPins when absent in older payloads.
@@ -273,7 +293,7 @@ public struct SpatialEvidenceMeasurementV1: Codable, Sendable {
     public let needsReview: Bool
 }
 
-public struct UnresolvedSpatialEvidenceV1: Codable, Sendable {
+public struct UnresolvedSpatialEvidenceV1: Codable, Sendable, Hashable {
     public let kind: String
     public let message: String
     public let roomId: String?
@@ -562,6 +582,48 @@ public struct HandoffVisitSnapshotV1: Codable, Sendable {
         self.readiness = readiness
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+public extension ScanToMindHandoffV1 {
+    var geometryQAFlags: [ScanQAFlag] {
+        let explicitGeometryCodes: Set<String> = [
+            "UNSTABLE_GEOMETRY",
+            "POLYGON_COLLAPSED",
+            "WALL_COUNT_CHANGED_AFTER_CAPTURE",
+            "LOW_CONFIDENCE_ROOM_SHAPE",
+            "ROOM_SHAPE_NEEDS_REVIEW"
+        ]
+        let geometryKeywordGroups = [
+            ["geometry"],
+            ["polygon"],
+            ["wall"],
+            ["room", "shape"],
+            ["room", "outline"],
+            ["triangle"],
+            ["tiny room"]
+        ]
+
+        return capture.qaFlags.filter { flag in
+            let searchText = "\(flag.code) \(flag.message)"
+            return explicitGeometryCodes.contains(flag.code)
+                || geometryKeywordGroups.contains(where: { keywords in
+                    keywords.allSatisfy { keyword in
+                        searchText.localizedCaseInsensitiveContains(keyword)
+                    }
+                })
+        }
+    }
+
+    var requiresReview: Bool {
+        completionStatus == .incompleteDraft
+            || !missingEvidence.isEmpty
+            || !unresolvedEvidence.isEmpty
+            || !geometryQAFlags.isEmpty
+    }
+
+    var finalOutputsAllowed: Bool {
+        !requiresReview
     }
 }
 
