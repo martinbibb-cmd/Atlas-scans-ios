@@ -40,6 +40,12 @@ final class GoogleAtlasAuthService: AtlasAuthService {
 
     func signInWithGoogle() async throws -> AtlasAuthSessionV1 {
 #if canImport(GoogleSignIn) && canImport(UIKit)
+#if canImport(FirebaseCore)
+        if FirebaseApp.app() == nil,
+           Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+        }
+#endif
         let plistClientID = (Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 #if canImport(FirebaseCore)
