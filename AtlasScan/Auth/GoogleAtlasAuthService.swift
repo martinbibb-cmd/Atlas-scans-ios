@@ -152,9 +152,13 @@ final class GoogleAtlasAuthService: AtlasAuthService {
 
         AtlasKeychainStore.saveAuthToken(token)
 
+        guard let profileId = user.userID ?? user.profile?.email else {
+            throw AtlasAuthError.missingGoogleUserIdentity
+        }
+
         return AtlasAuthSessionV1(
             profile: AtlasUserProfileV1(
-                id: user.userID ?? user.profile?.email ?? UUID().uuidString,
+                id: profileId,
                 email: user.profile?.email,
                 displayName: user.profile?.name
             ),
