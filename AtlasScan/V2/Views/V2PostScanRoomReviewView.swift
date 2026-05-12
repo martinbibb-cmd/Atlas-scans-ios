@@ -61,6 +61,9 @@ struct V2PostScanRoomReviewView: View {
 
     // MARK: - Geometry QA helpers
 
+    /// Rooms smaller than this area (m²) are flagged as suspicious.
+    /// At 1 m² a domestic room is barely a cupboard — anything below this
+    /// almost always indicates a partial or failed scan rather than a real room.
     private static let minimumTypicalRoomAreaM2 = 1.0
 
     /// Classifies the captured room's polygon quality.
@@ -149,10 +152,15 @@ struct V2PostScanRoomReviewView: View {
         case .triangle:
             return "The room shape is a triangle (3 points). This usually means the scan was cut short or the device lost tracking. Consider rescanning for a complete floor plan."
         case .tiny:
-            return String(format: "Captured floor area is %.1f m² — unusually small. The scan may be incomplete.", capturedRoom.floorAreaM2)
+            return "Captured floor area is \(formattedFloorArea) — unusually small. The scan may be incomplete."
         case .ok:
             return ""
         }
+    }
+
+    /// Area formatted to one decimal place with unit, e.g. "0.4 m²".
+    private var formattedFloorArea: String {
+        String(format: "%.1f m²", capturedRoom.floorAreaM2)
     }
 
     private var floorPlanSection: some View {
@@ -176,7 +184,7 @@ struct V2PostScanRoomReviewView: View {
         HStack(spacing: 20) {
             if capturedRoom.hasClosedFloorPolygon {
                 statCell(
-                    value: String(format: "%.1f m²", capturedRoom.floorAreaM2),
+                    value: formattedFloorArea,
                     label: "Floor area",
                     icon: "square.dashed"
                 )
