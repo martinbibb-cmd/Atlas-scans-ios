@@ -30,13 +30,37 @@ final class ScanToMindHandoffTests: XCTestCase {
         AtlasScanVisit(visitNumber: visitNumber)
     }
 
-    private func makeDraft(visitReference: String = "JOB-HANDOFF-TEST") -> CaptureSessionDraft {
+    private func makeDraft(
+        visitReference: String = "JOB-HANDOFF-TEST",
+        complete: Bool = false
+    ) -> CaptureSessionDraft {
         var draft = CaptureSessionStore.newSession(visitReference: visitReference)
         // Add minimal evidence so CaptureSessionExporter.export succeeds.
         var scan = CapturedRoomScanDraft()
         scan.roomLabel = "Kitchen"
         draft.roomScans.append(scan)
         draft.photos.append(CapturedPhotoDraft(localFilename: "overview.jpg"))
+        if complete {
+            draft.propertyAddress = "1 Atlas Way"
+
+            var boiler = CapturedObjectPinDraft(type: .boiler)
+            boiler.roomId = scan.id
+            boiler.pinSource = .manual
+            boiler.reviewStatus = .confirmed
+
+            var flue = CapturedObjectPinDraft(type: .flue)
+            flue.roomId = scan.id
+            flue.pinSource = .manual
+            flue.reviewStatus = .confirmed
+
+            draft.objectPins.append(contentsOf: [boiler, flue])
+
+            var note = CapturedVoiceNoteDraft()
+            note.roomId = scan.id
+            note.transcript = "Boiler and flue confirmed."
+            note.reviewStatus = .confirmed
+            draft.voiceNotes.append(note)
+        }
         return draft
     }
 
@@ -329,6 +353,43 @@ final class ScanToMindHandoffTests: XCTestCase {
         XCTAssertNotNil(decoded.capture.quotePlannerEvidence)
         XCTAssertEqual(decoded.capture.quotePlannerEvidence?.candidateLocations.first?.kind,
                        QuoteAnchorKind.proposedBoiler.rawValue)
+    }
+
+    func test_incompleteDraft_handoffImport_roundTripsAndRequiresReview() throws {
+        let visit = makeVisit()
+        let draft = makeDraft()
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = try ScanToMindHandoffBuilder.buildHandoff(
+            visit: visit,
+            capture: capture,
+            reason: .reviewInMind
+        )
+
+        let encoded = try ScanToMindPayloadEncoder.encodeForURL(handoff)
+        let decoded = try ScanToMindPayloadEncoder.decodeFromURLPayload(encoded)
+
+        XCTAssertEqual(decoded.completionStatus, .incompleteDraft)
+        XCTAssertFalse(decoded.missingEvidence.isEmpty, "Incomplete imports must retain missing evidence.")
+        XCTAssertTrue(decoded.requiresReview, "Incomplete imports must remain review-required, not failed.")
+    }
+
+    func test_complete_handoffImport_roundTripsWithoutReviewLock() throws {
+        let visit = makeVisit()
+        let draft = makeDraft(complete: true)
+        let capture = SessionCaptureV2Builder.buildSessionCaptureV2(visit: visit, draft: draft)
+        let handoff = try ScanToMindHandoffBuilder.buildHandoff(
+            visit: visit,
+            capture: capture,
+            reason: .completedCapture
+        )
+
+        let encoded = try ScanToMindPayloadEncoder.encodeForURL(handoff)
+        let decoded = try ScanToMindPayloadEncoder.decodeFromURLPayload(encoded)
+
+        XCTAssertEqual(decoded.completionStatus, .complete)
+        XCTAssertTrue(decoded.missingEvidence.isEmpty)
+        XCTAssertFalse(decoded.requiresReview)
+        XCTAssertTrue(decoded.finalOutputsAllowed)
     }
 
     // MARK: - JSON fixture round-trip (canonical shape)
