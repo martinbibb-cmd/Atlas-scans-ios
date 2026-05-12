@@ -12,6 +12,8 @@ struct V2FinishVisitView: View {
 
     @ObservedObject var coordinator: ScanSessionCoordinator
     let onDismiss: () -> Void
+    @State private var showMissingItemsReview = false
+    @State private var engineerNotesDraft = ""
 
     private var readiness: VisitReadinessV1 {
         VisitReadinessV1.derive(from: coordinator.session)
@@ -33,6 +35,45 @@ struct V2FinishVisitView: View {
             }
             .sheet(isPresented: $coordinator.showHandoff) {
                 HandoffView(coordinator: coordinator)
+            }
+            .sheet(isPresented: $showMissingItemsReview) {
+                NavigationStack {
+                    List {
+                        Section("Missing items") {
+                            ForEach(readiness.unmetConditions, id: \.self) { item in
+                                Label(item, systemImage: "exclamationmark.circle")
+                            }
+                        }
+                        Section("Reason / note") {
+                            TextEditor(text: $engineerNotesDraft)
+                                .frame(minHeight: 120)
+                        } footer: {
+                            Text("This note is included in the handoff so Atlas Mind can review incomplete evidence.")
+                        }
+                        Section("Options") {
+                            Button("Go back and complete missing items") {
+                                showMissingItemsReview = false
+                            }
+                            Button("Finish Draft (Incomplete)") {
+                                coordinator.updateEngineerNotes(engineerNotesDraft)
+                                coordinator.transition(to: .incompleteReadyForReview)
+                                coordinator.handOffToMind()
+                                showMissingItemsReview = false
+                                onDismiss()
+                            }
+                        }
+                    }
+                    .navigationTitle("Missing Evidence Review")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showMissingItemsReview = false }
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                engineerNotesDraft = coordinator.session.engineerNotes ?? ""
             }
         }
     }
@@ -108,14 +149,21 @@ struct V2FinishVisitView: View {
     private var actionsSection: some View {
         Section("Actions") {
             Button {
-                coordinator.handOffToMind()
-                onDismiss()
+                if readiness.isReady {
+                    coordinator.updateEngineerNotes(engineerNotesDraft)
+                    coordinator.transition(to: .readyToExport)
+                    coordinator.handOffToMind()
+                    onDismiss()
+                } else {
+                    showMissingItemsReview = true
+                }
             } label: {
-                Label("Export / Open Atlas Mind", systemImage: "arrow.up.forward.app")
+                Label("Review & Finish Visit", systemImage: "flag.checkered")
             }
-            .foregroundStyle(readiness.isReady ? Color.accentColor : .secondary)
 
             Button {
+                coordinator.updateEngineerNotes(engineerNotesDraft)
+                coordinator.transition(to: .draft)
                 onDismiss()
             } label: {
                 Label("Finish as Draft (incomplete)", systemImage: "doc.badge.clock")

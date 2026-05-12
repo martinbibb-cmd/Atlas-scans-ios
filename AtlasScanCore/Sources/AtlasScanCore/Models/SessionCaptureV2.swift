@@ -10,6 +10,7 @@ public struct SessionCaptureV2: Codable, Identifiable, Sendable {
     public var visitLabel: String?
     public let capturedAt: Date
     public var propertyAddress: String?
+    public var engineerNotes: String?
     public var rooms: [RoomCaptureV2]
     public var transcripts: [ProcessedTranscriptV1]
     public var photos: [PhotoEvidenceV1]
@@ -21,7 +22,8 @@ public struct SessionCaptureV2: Codable, Identifiable, Sendable {
         visitReference: String? = nil,
         visitLabel: String? = nil,
         capturedAt: Date = Date(),
-        propertyAddress: String? = nil
+        propertyAddress: String? = nil,
+        engineerNotes: String? = nil
     ) {
         self.id = UUID()
         self.version = "2.0"
@@ -30,6 +32,7 @@ public struct SessionCaptureV2: Codable, Identifiable, Sendable {
         self.visitLabel = visitLabel
         self.capturedAt = capturedAt
         self.propertyAddress = propertyAddress
+        self.engineerNotes = engineerNotes
         self.rooms = []
         self.transcripts = []
         self.photos = []

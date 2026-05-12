@@ -146,6 +146,12 @@ public final class ScanSessionCoordinator: ObservableObject {
         scheduleSave()
     }
 
+    public func updateEngineerNotes(_ notes: String?) {
+        let trimmed = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        session.engineerNotes = (trimmed?.isEmpty == true) ? nil : trimmed
+        scheduleSave()
+    }
+
     // MARK: - Evidence deletion
 
     /// Removes a single evidence item from the session by its source evidence ID.

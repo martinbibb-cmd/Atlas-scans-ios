@@ -15,6 +15,12 @@ public enum VisitCaptureLifecycleState: String, Codable {
     case choosingNextStep
     /// User is reviewing all captured visit data.
     case visitReview
+    /// Visit finished as draft before capture completeness checks pass.
+    case draft
+    /// Visit is actively being captured (high-level lifecycle state).
+    case capturing
+    /// Missing evidence exists; visit is finishable but requires review.
+    case incompleteReadyForReview = "incomplete_ready_for_review"
     /// Visit is complete and ready to export.
     case readyToExport
     /// Visit data has been exported / handed off to Atlas Mind.
