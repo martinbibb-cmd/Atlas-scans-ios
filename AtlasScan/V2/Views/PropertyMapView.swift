@@ -132,18 +132,20 @@ struct PropertyMapView: View {
     private var roomList: some View {
         List {
             Section("Stitched Property Plan") {
-                if coordinator.session.rooms.isEmpty {
-                    Text("No rooms captured yet")
+                let savedRooms = coordinator.session.rooms.filter { $0.captureStatus == .saved || $0.captureStatus == .needsReview || $0.captureStatus == .captured }
+                if savedRooms.isEmpty {
+                    Text("No rooms saved yet")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    StitchedPropertyMapPreview(rooms: coordinator.session.rooms)
+                    V2StitchedPropertyMapPreview(rooms: savedRooms)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
             Section("Rooms") {
-                ForEach(coordinator.session.rooms) { room in
+                let savedRooms = coordinator.session.rooms.filter { $0.captureStatus != .discarded }
+                ForEach(savedRooms) { room in
                     NavigationLink(destination: VanModeView(room: room, coordinator: coordinator)) {
                         roomRow(room)
                     }
@@ -214,12 +216,12 @@ struct PropertyMapView: View {
     }
 }
 
-private struct StitchedPropertyMapPreview: View {
+struct V2StitchedPropertyMapPreview: View {
     let rooms: [RoomCaptureV2]
 
     var body: some View {
         GeometryReader { geometry in
-            let metrics = PropertyMapMetrics(rooms: rooms, size: geometry.size)
+            let metrics = V2PropertyMapMetrics(rooms: rooms, size: geometry.size)
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.accentColor.opacity(0.06))
@@ -265,7 +267,7 @@ private struct StitchedPropertyMapPreview: View {
     }
 }
 
-private struct PropertyMapMetrics {
+struct V2PropertyMapMetrics {
     private static let inset: CGFloat = 18
     let minX: Double
     let minZ: Double

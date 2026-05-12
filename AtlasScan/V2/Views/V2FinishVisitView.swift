@@ -30,7 +30,7 @@ struct V2FinishVisitView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onDismiss() }
+                    Button("Return to Visit") { onDismiss() }
                 }
             }
             .sheet(isPresented: $coordinator.showHandoff) {
