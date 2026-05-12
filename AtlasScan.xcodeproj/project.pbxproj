@@ -182,6 +182,15 @@
 		AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30019 /* V2DebugLifecycleOverlay.swift */; };
 		AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C01 /* EquipmentEvidenceGroupedView.swift */; };
 		AA010C02 /* EquipmentEvidenceMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA020C02 /* EquipmentEvidenceMapperTests.swift */; };
+		AAD10001 /* AtlasAuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20001 /* AtlasAuthState.swift */; };
+		AAD10002 /* AtlasAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20002 /* AtlasAuthService.swift */; };
+		AAD10003 /* GoogleAtlasAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20003 /* GoogleAtlasAuthService.swift */; };
+		AAD10004 /* DevMockAtlasAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20004 /* DevMockAtlasAuthService.swift */; };
+		AAD10005 /* AtlasSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20005 /* AtlasSessionStore.swift */; };
+		AAD10006 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20006 /* LoginView.swift */; };
+		AAD10007 /* WorkspacePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20007 /* WorkspacePickerView.swift */; };
+		AAD10008 /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20008 /* VisitPickerView.swift */; };
+		AAPKG016 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG102 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -336,6 +345,14 @@
 		AA020A07 /* CustomRoomShapeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoomShapeRenderer.swift; sourceTree = "<group>"; };
 		AA020C01 /* EquipmentEvidenceGroupedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentEvidenceGroupedView.swift; sourceTree = "<group>"; };
 		AA020C02 /* EquipmentEvidenceMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentEvidenceMapperTests.swift; sourceTree = "<group>"; };
+		AAD20001 /* AtlasAuthState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasAuthState.swift; sourceTree = "<group>"; };
+		AAD20002 /* AtlasAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasAuthService.swift; sourceTree = "<group>"; };
+		AAD20003 /* GoogleAtlasAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAtlasAuthService.swift; sourceTree = "<group>"; };
+		AAD20004 /* DevMockAtlasAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevMockAtlasAuthService.swift; sourceTree = "<group>"; };
+		AAD20005 /* AtlasSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSessionStore.swift; sourceTree = "<group>"; };
+		AAD20006 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		AAD20007 /* WorkspacePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspacePickerView.swift; sourceTree = "<group>"; };
+		AAD20008 /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -378,6 +395,7 @@
 			files = (
 				AAPKG003 /* AtlasContracts in Frameworks */,
 				AAPKG013 /* AtlasScanCore in Frameworks */,
+				AAPKG016 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +415,8 @@
 			isa = PBXGroup;
 			children = (
 				AA050002 /* App */,
+				AAD50001 /* Auth */,
+				AAD50002 /* Views */,
 				AA050003 /* Features */,
 				AA050004 /* Models */,
 				AA050005 /* Services */,
@@ -405,6 +425,28 @@
 				AAV50001 /* V2 */,
 			);
 			path = AtlasScan;
+			sourceTree = "<group>";
+		};
+		AAD50001 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				AAD20001 /* AtlasAuthState.swift */,
+				AAD20002 /* AtlasAuthService.swift */,
+				AAD20003 /* GoogleAtlasAuthService.swift */,
+				AAD20004 /* DevMockAtlasAuthService.swift */,
+				AAD20005 /* AtlasSessionStore.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		AAD50002 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AAD20006 /* LoginView.swift */,
+				AAD20007 /* WorkspacePickerView.swift */,
+				AAD20008 /* VisitPickerView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		AA050002 /* App */ = {
@@ -939,6 +981,7 @@
 			packageProductDependencies = (
 				AAPKG002 /* AtlasContracts */,
 				AAPKG012 /* AtlasScanCore */,
+				AAPKG102 /* GoogleSignIn */,
 			);
 			productName = AtlasScan;
 			productReference = AA030001 /* AtlasScan.app */;
@@ -996,6 +1039,7 @@
 			packageReferences = (
 				AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */,
 				AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */,
+				AAPKG101 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			productRefGroup = AA060002 /* Products */;
 			projectDirPath = "";
@@ -1162,6 +1206,14 @@
 				AAV20013 /* V2OffscreenPointerOverlay.swift in Sources */,
 				AAV20019 /* V2DebugLifecycleOverlay.swift in Sources */,
 				AA010C01 /* EquipmentEvidenceGroupedView.swift in Sources */,
+				AAD10001 /* AtlasAuthState.swift in Sources */,
+				AAD10002 /* AtlasAuthService.swift in Sources */,
+				AAD10003 /* GoogleAtlasAuthService.swift in Sources */,
+				AAD10004 /* DevMockAtlasAuthService.swift in Sources */,
+				AAD10005 /* AtlasSessionStore.swift in Sources */,
+				AAD10006 /* LoginView.swift in Sources */,
+				AAD10007 /* WorkspacePickerView.swift in Sources */,
+				AAD10008 /* VisitPickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1469,6 +1521,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		AAPKG101 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCLocalSwiftPackageReference section */
 		AAPKG001 /* XCLocalSwiftPackageReference "AtlasContracts" */ = {
 			isa = XCLocalSwiftPackageReference;
@@ -1500,6 +1563,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAPKG011 /* XCLocalSwiftPackageReference "AtlasScanCore" */;
 			productName = AtlasScanCore;
+		};
+		AAPKG102 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAPKG101 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
