@@ -17,6 +17,10 @@ struct AtlasScanApp: App {
     init() {
 #if canImport(FirebaseCore)
         FirebaseBootstrap.configureIfNeeded()
+#if DEBUG
+        print("Firebase configured:", FirebaseApp.app() != nil)
+        print("Firebase clientID:", FirebaseApp.app()?.options.clientID ?? "missing")
+#endif
 #endif
     }
 

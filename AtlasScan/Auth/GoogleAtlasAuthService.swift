@@ -46,15 +46,16 @@ final class GoogleAtlasAuthService: AtlasAuthService {
             FirebaseApp.configure()
         }
 #endif
-        let plistClientID = (Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
 #if canImport(FirebaseCore)
         let firebaseClientID = FirebaseApp.app()?.options.clientID?
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let plistClientID = (Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 #else
+        let plistClientID: String? = nil
         let firebaseClientID: String? = nil
 #endif
-        guard let clientID = [plistClientID, firebaseClientID].compactMap({ $0 }).first(where: { !$0.isEmpty })
+        guard let clientID = [firebaseClientID, plistClientID].compactMap({ $0 }).first(where: { !$0.isEmpty })
         else {
             throw AtlasAuthError.missingGoogleClientID
         }
