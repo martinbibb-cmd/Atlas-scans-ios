@@ -16,7 +16,7 @@
 import Foundation
 import AtlasScanCore
 
-public enum ScanToMindHandoffBuilder {
+public enum V2ScanToMindHandoffBuilder {
 
     /// Builds a handoff payload from the given session. Engineer notes
     /// supplied here override anything stored on the session.
