@@ -47,6 +47,8 @@
 
 		AA010089 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA020089 /* Assets.xcassets */; };
 
+		AA01008A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AA02008A /* GoogleService-Info.plist */; };
+
 		AAPKG003 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG002 /* AtlasContracts */; };
 		AAPKG005 /* AtlasContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG004 /* AtlasContracts */; };
 		AAPKG017 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG104 /* FirebaseAuth */; };
@@ -276,6 +278,8 @@
 		AA020079 /* VoiceNoteCategoryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNoteCategoryPicker.swift; sourceTree = "<group>"; };
 
 		AA020089 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+
+		AA02008A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 
 		AA030001 /* AtlasScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA030002 /* AtlasScanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasScanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -609,6 +613,7 @@
 			children = (
 				AA030003 /* Info.plist */,
 				AA020089 /* Assets.xcassets */,
+				AA02008A /* GoogleService-Info.plist */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1197,6 +1202,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA010089 /* Assets.xcassets in Resources */,
+				AA01008A /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
