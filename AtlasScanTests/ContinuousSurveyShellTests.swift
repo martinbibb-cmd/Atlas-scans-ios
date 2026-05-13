@@ -55,7 +55,7 @@ final class ContinuousSurveyShellTests: XCTestCase {
     func test_handoffBuilder_acceptsIncompleteSession() throws {
         let session = SessionCaptureV2(visitId: UUID())
         // No rooms, no photos, no anything — should still produce a payload.
-        let handoff = try ScanToMindHandoffBuilder.build(session: session)
+        let handoff = try V2ScanToMindHandoffBuilder.build(session: session)
 
         XCTAssertEqual(handoff.completionStatus, .incompleteDraft)
     }

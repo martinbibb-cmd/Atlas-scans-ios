@@ -45,7 +45,7 @@ public final class FinishSurveyViewModel: ObservableObject {
     /// caller is responsible for transmitting the payload (e.g. via
     /// `MindDeepLinkService`).
     public func buildHandoff() throws -> ScanToMindHandoffV1 {
-        try ScanToMindHandoffBuilder.build(
+        try V2ScanToMindHandoffBuilder.build(
             session: session,
             engineerNotesOverride: engineerNotes
         )

@@ -84,7 +84,7 @@
 		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
 		AA0100DB /* AtlasRecommendationsWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DB /* AtlasRecommendationsWebView.swift */; };
 		AA0100DC /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DC /* WelcomeView.swift */; };
-		AA0100DD /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* VisitPickerView.swift */; };
+		AA0100DD /* AtlasVisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* AtlasVisitPickerView.swift */; };
 		AA0100DE /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DE /* TranscriptView.swift */; };
 		AA0100DF /* CloudflareVisitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DF /* CloudflareVisitClient.swift */; };
 
@@ -204,7 +204,7 @@
 		AAV20021 /* SurveySessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30021 /* SurveySessionStore.swift */; };
 		AAV20022 /* SurveyAutosaveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30022 /* SurveyAutosaveService.swift */; };
 		AAV20023 /* AtlasVisitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30023 /* AtlasVisitSyncService.swift */; };
-		AAV20024 /* ScanToMindHandoffBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30024 /* ScanToMindHandoffBuilder.swift */; };
+		AAV20024 /* V2ScanToMindHandoffBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30024 /* V2ScanToMindHandoffBuilder.swift */; };
 		AAV20025 /* MindDeepLinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30025 /* MindDeepLinkService.swift */; };
 		AAV20026 /* SurveyHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30026 /* SurveyHomeView.swift */; };
 		AAV20027 /* SurveyHomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30027 /* SurveyHomeViewModel.swift */; };
@@ -315,7 +315,7 @@
 		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
 		AA0200DB /* AtlasRecommendationsWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsWebView.swift; sourceTree = "<group>"; };
 		AA0200DC /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
-		AA0200DD /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
+		AA0200DD /* AtlasVisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasVisitPickerView.swift; sourceTree = "<group>"; };
 		AA0200DE /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		AA0200DF /* CloudflareVisitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareVisitClient.swift; sourceTree = "<group>"; };
 
@@ -432,7 +432,7 @@
 		AAV30021 /* SurveySessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveySessionStore.swift; sourceTree = "<group>"; };
 		AAV30022 /* SurveyAutosaveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyAutosaveService.swift; sourceTree = "<group>"; };
 		AAV30023 /* AtlasVisitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasVisitSyncService.swift; sourceTree = "<group>"; };
-		AAV30024 /* ScanToMindHandoffBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanToMindHandoffBuilder.swift; sourceTree = "<group>"; };
+		AAV30024 /* V2ScanToMindHandoffBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2ScanToMindHandoffBuilder.swift; sourceTree = "<group>"; };
 		AAV30025 /* MindDeepLinkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindDeepLinkService.swift; sourceTree = "<group>"; };
 		AAV30026 /* SurveyHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyHomeView.swift; sourceTree = "<group>"; };
 		AAV30027 /* SurveyHomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurveyHomeViewModel.swift; sourceTree = "<group>"; };
@@ -861,7 +861,7 @@
 		AA050038 /* VisitPicker */ = {
 			isa = PBXGroup;
 			children = (
-				AA0200DD /* VisitPickerView.swift */,
+				AA0200DD /* AtlasVisitPickerView.swift */,
 			);
 			path = VisitPicker;
 			sourceTree = "<group>";
@@ -1002,7 +1002,7 @@
 		AAV50009 /* Handoff */ = {
 			isa = PBXGroup;
 			children = (
-				AAV30024 /* ScanToMindHandoffBuilder.swift */,
+				AAV30024 /* V2ScanToMindHandoffBuilder.swift */,
 				AAV30025 /* MindDeepLinkService.swift */,
 			);
 			path = Handoff;
@@ -1274,7 +1274,7 @@
 				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
 				AA0100DB /* AtlasRecommendationsWebView.swift in Sources */,
 				AA0100DC /* WelcomeView.swift in Sources */,
-				AA0100DD /* VisitPickerView.swift in Sources */,
+				AA0100DD /* AtlasVisitPickerView.swift in Sources */,
 				AA0100DE /* TranscriptView.swift in Sources */,
 				AA0100DF /* CloudflareVisitClient.swift in Sources */,
 				AA0100E6 /* StartVisitView.swift in Sources */,
@@ -1367,7 +1367,7 @@
 				AAV20021 /* SurveySessionStore.swift in Sources */,
 				AAV20022 /* SurveyAutosaveService.swift in Sources */,
 				AAV20023 /* AtlasVisitSyncService.swift in Sources */,
-				AAV20024 /* ScanToMindHandoffBuilder.swift in Sources */,
+				AAV20024 /* V2ScanToMindHandoffBuilder.swift in Sources */,
 				AAV20025 /* MindDeepLinkService.swift in Sources */,
 				AAV20026 /* SurveyHomeView.swift in Sources */,
 				AAV20027 /* SurveyHomeViewModel.swift in Sources */,
