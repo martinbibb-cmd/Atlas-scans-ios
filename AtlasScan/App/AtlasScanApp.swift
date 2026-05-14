@@ -56,7 +56,10 @@ private enum FirebaseBootstrap {
         options.projectID = projectID
         options.storageBucket = stringValue(for: "FirebaseStorageBucket")
         options.clientID = stringValue(for: "FirebaseClientID")
-        options.bundleID = Bundle.main.bundleIdentifier
+        if let bundleID = Bundle.main.bundleIdentifier,
+           !bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            options.bundleID = bundleID
+        }
         FirebaseApp.configure(options: options)
     }
 
