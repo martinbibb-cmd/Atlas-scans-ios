@@ -71,7 +71,7 @@ public struct FinishSurveyView: View {
                 Text("Needs review")
                 Spacer()
                 Text("\(viewModel.needsReviewRooms.count)")
-                    .foregroundStyle(viewModel.needsReviewRooms.isEmpty ? .secondary : .orange)
+                    .foregroundStyle(viewModel.needsReviewRooms.isEmpty ? Color.secondary : Color.orange)
             }
             HStack {
                 Text("Photos")

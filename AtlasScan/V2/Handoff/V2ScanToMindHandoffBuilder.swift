@@ -24,7 +24,7 @@ public enum V2ScanToMindHandoffBuilder {
         session: SessionCaptureV2,
         engineerNotesOverride: String? = nil
     ) throws -> ScanToMindHandoffV1 {
-        let baseHandoff = try ScanToMindPayloadEncoder.encode(session: session)
+        let baseHandoff = try AtlasScanCore.ScanToMindPayloadEncoder.encode(session: session)
 
         guard let override = engineerNotesOverride?.trimmingCharacters(in: .whitespacesAndNewlines),
               !override.isEmpty,
@@ -38,7 +38,7 @@ public enum V2ScanToMindHandoffBuilder {
         // same construction with the override applied.
         var sessionWithNote = session
         sessionWithNote.engineerNotes = override
-        return try ScanToMindPayloadEncoder.encode(session: sessionWithNote)
+        return try AtlasScanCore.ScanToMindPayloadEncoder.encode(session: sessionWithNote)
     }
 
     /// Convenience: returns the JSON `Data` for the built payload.
