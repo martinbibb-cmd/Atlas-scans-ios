@@ -84,7 +84,7 @@
 		AA0100D9 /* AtlasKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200D9 /* AtlasKeychainStore.swift */; };
 		AA0100DB /* AtlasRecommendationsWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DB /* AtlasRecommendationsWebView.swift */; };
 		AA0100DC /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DC /* WelcomeView.swift */; };
-		AA0100DD /* AtlasVisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* AtlasVisitPickerView.swift */; };
+		AA0100DD /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DD /* VisitPickerView.swift */; };
 		AA0100DE /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DE /* TranscriptView.swift */; };
 		AA0100DF /* CloudflareVisitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200DF /* CloudflareVisitClient.swift */; };
 
@@ -197,7 +197,7 @@
 		AAD10005 /* AtlasSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20005 /* AtlasSessionStore.swift */; };
 		AAD10006 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20006 /* LoginView.swift */; };
 		AAD10007 /* WorkspacePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20007 /* WorkspacePickerView.swift */; };
-		AAD10008 /* VisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20008 /* VisitPickerView.swift */; };
+		AAD10008 /* AtlasVisitPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD20008 /* AtlasVisitPickerView.swift */; };
 		AAPKG016 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AAPKG102 /* GoogleSignIn */; };
 		AAV2001F /* SurveyAppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV3001F /* SurveyAppRootView.swift */; };
 		AAV20020 /* FeatureFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAV30020 /* FeatureFlag.swift */; };
@@ -315,7 +315,7 @@
 		AA0200D9 /* AtlasKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasKeychainStore.swift; sourceTree = "<group>"; };
 		AA0200DB /* AtlasRecommendationsWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRecommendationsWebView.swift; sourceTree = "<group>"; };
 		AA0200DC /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
-		AA0200DD /* AtlasVisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasVisitPickerView.swift; sourceTree = "<group>"; };
+		AA0200DD /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
 		AA0200DE /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		AA0200DF /* CloudflareVisitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudflareVisitClient.swift; sourceTree = "<group>"; };
 
@@ -388,7 +388,7 @@
 		AAD20005 /* AtlasSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasSessionStore.swift; sourceTree = "<group>"; };
 		AAD20006 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		AAD20007 /* WorkspacePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspacePickerView.swift; sourceTree = "<group>"; };
-		AAD20008 /* VisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisitPickerView.swift; sourceTree = "<group>"; };
+		AAD20008 /* AtlasVisitPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasVisitPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		AA0200E6 /* StartVisitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartVisitView.swift; sourceTree = "<group>"; };
 		AA0200E7 /* SavedVisitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedVisitsView.swift; sourceTree = "<group>"; };
@@ -512,7 +512,7 @@
 			children = (
 				AAD20006 /* LoginView.swift */,
 				AAD20007 /* WorkspacePickerView.swift */,
-				AAD20008 /* VisitPickerView.swift */,
+				AAD20008 /* AtlasVisitPickerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -861,7 +861,7 @@
 		AA050038 /* VisitPicker */ = {
 			isa = PBXGroup;
 			children = (
-				AA0200DD /* AtlasVisitPickerView.swift */,
+				AA0200DD /* VisitPickerView.swift */,
 			);
 			path = VisitPicker;
 			sourceTree = "<group>";
@@ -1274,7 +1274,7 @@
 				AA0100D9 /* AtlasKeychainStore.swift in Sources */,
 				AA0100DB /* AtlasRecommendationsWebView.swift in Sources */,
 				AA0100DC /* WelcomeView.swift in Sources */,
-				AA0100DD /* AtlasVisitPickerView.swift in Sources */,
+				AA0100DD /* VisitPickerView.swift in Sources */,
 				AA0100DE /* TranscriptView.swift in Sources */,
 				AA0100DF /* CloudflareVisitClient.swift in Sources */,
 				AA0100E6 /* StartVisitView.swift in Sources */,
@@ -1361,7 +1361,7 @@
 				AAD10005 /* AtlasSessionStore.swift in Sources */,
 				AAD10006 /* LoginView.swift in Sources */,
 				AAD10007 /* WorkspacePickerView.swift in Sources */,
-				AAD10008 /* VisitPickerView.swift in Sources */,
+				AAD10008 /* AtlasVisitPickerView.swift in Sources */,
 				AAV2001F /* SurveyAppRootView.swift in Sources */,
 				AAV20020 /* FeatureFlag.swift in Sources */,
 				AAV20021 /* SurveySessionStore.swift in Sources */,
