@@ -17,10 +17,10 @@ final class AtlasAuthState: ObservableObject {
     var isAuthenticated: Bool { authSession != nil }
 
     init(
-        authService: AtlasAuthService = GoogleAtlasAuthService(),
+        authService: AtlasAuthService? = nil,
         sessionStore: AtlasSessionStore = .shared
     ) {
-        self.authService = authService
+        self.authService = authService ?? GoogleAtlasAuthService()
         self.sessionStore = sessionStore
     }
 
