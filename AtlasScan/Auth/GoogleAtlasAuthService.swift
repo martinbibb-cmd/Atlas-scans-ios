@@ -18,11 +18,11 @@ final class GoogleAtlasAuthService: AtlasAuthService {
     private let fallbackService: DevMockAtlasAuthService
 
     init(
-        visitClient: CloudflareVisitClient = .shared,
-        fallbackService: DevMockAtlasAuthService = DevMockAtlasAuthService()
+        visitClient: CloudflareVisitClient? = nil,
+        fallbackService: DevMockAtlasAuthService? = nil
     ) {
-        self.visitClient = visitClient
-        self.fallbackService = fallbackService
+        self.visitClient = visitClient ?? .shared
+        self.fallbackService = fallbackService ?? DevMockAtlasAuthService()
     }
 
     func restoreSession() async throws -> AtlasAuthSessionV1? {

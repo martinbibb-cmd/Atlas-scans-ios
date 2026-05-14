@@ -39,8 +39,8 @@ public final class ARPinRenderer: ObservableObject {
 
     private let store: SpatialEvidenceStore
 
-    public init(store: SpatialEvidenceStore = .shared) {
-        self.store = store
+    public init(store: SpatialEvidenceStore? = nil) {
+        self.store = store ?? SpatialEvidenceStore.shared
     }
 
     /// Called when the user enters (or re-enters) `roomId`. Computes the set
