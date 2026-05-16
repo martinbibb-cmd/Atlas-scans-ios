@@ -15,7 +15,7 @@ final class DevMockAtlasAuthService: AtlasAuthService {
         )
     }
 
-    func signInWithGoogle() async throws -> AtlasAuthSessionV1 {
+    func signIn() async throws -> AtlasAuthSessionV1 {
         let token = "dev-token-\(UUID().uuidString)"
         AtlasKeychainStore.saveAuthToken(token)
         return AtlasAuthSessionV1(

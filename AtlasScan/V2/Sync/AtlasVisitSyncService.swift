@@ -2,7 +2,7 @@
 /// Atlas-Mind ⇄ Atlas-Scan visit sync, with two implementations:
 ///
 ///   - `DevLocalAtlasVisitSyncService` — backed by `AtlasAuthService`'s
-///     local fixtures (used today by the dev mock and Google auth path).
+///     local fixtures (used today by the dev mock auth path).
 ///   - `FutureRemoteAtlasVisitSyncService` — placeholder; throws
 ///     `.notImplemented` until the real Mind sync API is plumbed in.
 ///
@@ -45,7 +45,7 @@ enum AtlasVisitSyncError: LocalizedError, Sendable {
 // MARK: - Local-fixtures impl (current default)
 
 /// Uses the existing `AtlasAuthService` to source visits from local fixtures
-/// (the dev mock) or the Google-auth path. This is the implementation the
+/// (the dev mock). This is the implementation the
 /// shell uses today; it will be swapped for `FutureRemoteAtlasVisitSyncService`
 /// once the Mind backend is ready.
 @MainActor

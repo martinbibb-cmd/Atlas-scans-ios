@@ -32,36 +32,12 @@ struct AtlasAuthSessionV1: Codable, Equatable, Sendable {
 }
 
 enum AtlasAuthError: LocalizedError {
-    case missingGoogleClientID
-    case missingPresentationContext
-    case googleSignInUnavailable
-    case missingGoogleToken
     case notAuthenticated
-    case firebaseAuthFailed(String)
-    case firebaseAuthUnavailable
-    case missingGoogleIDTokenForFirebase
-    case missingGoogleUserIdentity
 
     var errorDescription: String? {
         switch self {
-        case .missingGoogleClientID:
-            return "Missing GIDClientID in Info.plist."
-        case .missingPresentationContext:
-            return "Unable to present Google Sign-In."
-        case .googleSignInUnavailable:
-            return "Google Sign-In is unavailable in this build."
-        case .missingGoogleToken:
-            return "Google sign-in succeeded but no token was returned."
         case .notAuthenticated:
             return "Sign in is required."
-        case .firebaseAuthFailed(let message):
-            return "Firebase authentication failed: \(message)"
-        case .firebaseAuthUnavailable:
-            return "FirebaseAuth SDK is not linked in this build."
-        case .missingGoogleIDTokenForFirebase:
-            return "Google sign-in did not return an ID token required for Firebase authentication."
-        case .missingGoogleUserIdentity:
-            return "Google sign-in did not return a stable user identifier."
         }
     }
 }
@@ -69,7 +45,7 @@ enum AtlasAuthError: LocalizedError {
 @MainActor
 protocol AtlasAuthService {
     func restoreSession() async throws -> AtlasAuthSessionV1?
-    func signInWithGoogle() async throws -> AtlasAuthSessionV1
+    func signIn() async throws -> AtlasAuthSessionV1
     func signOut() async
     func fetchWorkspaces(for session: AtlasAuthSessionV1) async throws -> [AtlasWorkspaceV1]
     func fetchVisits(

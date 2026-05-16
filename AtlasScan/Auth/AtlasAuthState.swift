@@ -20,7 +20,7 @@ final class AtlasAuthState: ObservableObject {
         authService: AtlasAuthService? = nil,
         sessionStore: AtlasSessionStore = .shared
     ) {
-        self.authService = authService ?? GoogleAtlasAuthService()
+        self.authService = authService ?? DevMockAtlasAuthService()
         self.sessionStore = sessionStore
     }
 
@@ -46,13 +46,13 @@ final class AtlasAuthState: ObservableObject {
         }
     }
 
-    func signInWithGoogle() async {
+    func signIn() async {
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
 
         do {
-            let session = try await authService.signInWithGoogle()
+            let session = try await authService.signIn()
             authSession = session
             selectedWorkspace = nil
             selectedVisit = nil
