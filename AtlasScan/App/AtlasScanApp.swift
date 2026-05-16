@@ -1,7 +1,4 @@
 import SwiftUI
-#if canImport(FirebaseCore)
-import FirebaseCore
-#endif
 
 // Atlas Scan V2 — capture-only app.
 // The root scene now uses ScanSessionCoordinator + MindRecallClient
@@ -14,16 +11,6 @@ struct AtlasScanApp: App {
     @StateObject private var recallClient = MindRecallClient(store: .shared)
     @StateObject private var authState = AtlasAuthState()
 
-    init() {
-#if canImport(FirebaseCore)
-        FirebaseBootstrap.configureIfNeeded()
-#if DEBUG
-        print("Firebase configured:", FirebaseApp.app() != nil)
-        print("Firebase clientID:", FirebaseApp.app()?.options.clientID ?? "missing")
-#endif
-#endif
-    }
-
     var body: some Scene {
         WindowGroup {
             AtlasAuthRootView()
@@ -33,47 +20,6 @@ struct AtlasScanApp: App {
         }
     }
 }
-
-#if canImport(FirebaseCore)
-private enum FirebaseBootstrap {
-    static func configureIfNeeded() {
-        guard FirebaseApp.app() == nil else { return }
-
-        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
-            FirebaseApp.configure()
-            return
-        }
-
-        guard
-            let apiKey = stringValue(for: "FirebaseAPIKey"),
-            let projectID = stringValue(for: "FirebaseProjectID"),
-            let appID = stringValue(for: "FirebaseAppID"),
-            let senderID = stringValue(for: "FirebaseMessagingSenderID")
-        else { return }
-
-        let options = FirebaseOptions(googleAppID: appID, gcmSenderID: senderID)
-        options.apiKey = apiKey
-        options.projectID = projectID
-        options.storageBucket = stringValue(for: "FirebaseStorageBucket")
-        options.clientID = stringValue(for: "FirebaseClientID")
-        if let bundleID = Bundle.main.bundleIdentifier,
-           !bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            options.bundleID = bundleID
-        }
-        FirebaseApp.configure(options: options)
-    }
-
-    private static func stringValue(for key: String) -> String? {
-        guard
-            let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
-            !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return nil
-        }
-        return value
-    }
-}
-#endif
 
 @MainActor
 private struct AtlasAuthRootView: View {
@@ -89,7 +35,7 @@ private struct AtlasAuthRootView: View {
                         isLoading: authState.isLoading,
                         errorMessage: authState.errorMessage
                     ) {
-                        Task { await authState.signInWithGoogle() }
+                        Task { await authState.signIn() }
                     }
                 } else if let workspace = authState.selectedWorkspace {
                     if let visit = authState.selectedVisit {

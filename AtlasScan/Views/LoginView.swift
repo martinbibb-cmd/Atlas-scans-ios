@@ -13,7 +13,7 @@ struct LoginView: View {
                 .foregroundStyle(.blue)
             Text("Sign in to Atlas Scan")
                 .font(.title3.weight(.semibold))
-            Text("Use your Atlas Google account so Scan and Mind share the same engineer identity.")
+            Text("Sign in with your Atlas account so Scan and Mind share the same engineer identity.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -32,7 +32,7 @@ struct LoginView: View {
                     if isLoading {
                         ProgressView()
                     }
-                    Text("Continue with Google")
+                    Text("Continue")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
