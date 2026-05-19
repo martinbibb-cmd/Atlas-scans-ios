@@ -217,9 +217,10 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     /// Live incremental update — extract the current floor polygon for the mini-map.
     func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
         latestCapturedRoom = room
-        let vertices = polygonVertices(from: room)
+        let wallSegments = roomWallSegments2D(from: room.walls)
+        let floorPlan = RoomGeometryBuilder.buildFloorPlan(from: wallSegments)
         DispatchQueue.main.async { [weak self] in
-            self?.onLiveVertices?(vertices)
+            self?.onLiveVertices?(floorPlan.vertices)
         }
     }
 
@@ -248,10 +249,6 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     // MARK: - Private helpers
 
     private let minimumWallLengthMeters: Float = 0.01
-    private let polygonToleranceMin: Float = 0.01
-    private let polygonToleranceFraction: Float = 0.10
-    private let polygonToleranceMax: Float = 0.25
-    private let minimumAreaM2 = 0.05
     private let reticleToleranceRadiusPixels: CGFloat = 18
     private let featurePointToleranceMeters: Float = 0.08
     private let roomSurfaceToleranceMeters: Float = 0.06
@@ -564,17 +561,54 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
     }
 
     private func bridgeToV2(_ room: CapturedRoom) -> RoomCaptureV2 {
-        let vertices = polygonVertices(from: room)
+        let wallSegments = roomWallSegments2D(from: room.walls)
+        let floorPlan = RoomGeometryBuilder.buildFloorPlan(from: wallSegments)
         let rawHeight = rawCeilingHeight(from: room)
         var v2 = RoomCaptureV2(
             id: prospectiveRoomId ?? UUID(),
-            displayName: "Room"
+            displayName: "Room",
+            capturedWallSegments2D: wallSegments,
+            geometryConfidence: floorPlan.confidence,
+            geometryWarnings: floorPlan.warnings
         )
-        v2.polygonVertices = vertices
+        v2.polygonVertices = floorPlan.vertices
         v2.floorLevelY = Double(room.floors.first?.transform.columns.3.y ?? 0)
         v2.rawCapturedCeilingHeightM = rawHeight
         v2.ceilingHeightM = displayedCeilingHeight(from: rawHeight)
         return v2
+    }
+
+    /// Extracts `RoomWallSegment2D` values from RoomPlan surface data.
+    ///
+    /// Uses `CapturedRoom.Surface.transform` for exact wall positions:
+    ///   - centre  = transform column 3 (x, z)
+    ///   - local X = transform column 0 (normalised)
+    ///   - half length = dimensions.x / 2
+    ///   - start = centre − localX × halfLength
+    ///   - end   = centre + localX × halfLength
+    private func roomWallSegments2D(from walls: [CapturedRoom.Surface]) -> [RoomWallSegment2D] {
+        var result: [RoomWallSegment2D] = []
+        for (index, wall) in walls.enumerated() {
+            let cx = Double(wall.transform.columns.3.x)
+            let cz = Double(wall.transform.columns.3.z)
+            let axisX = Double(wall.transform.columns.0.x)
+            let axisZ = Double(wall.transform.columns.0.z)
+            let norm = (axisX * axisX + axisZ * axisZ).squareRoot()
+            guard norm > 1e-4 else { continue }
+            let ux = axisX / norm
+            let uz = axisZ / norm
+            let halfLen = Double(wall.dimensions.x) / 2.0
+            guard halfLen > Double(minimumWallLengthMeters) else { continue }
+            let start = Vertex2D(x: cx - halfLen * ux, z: cz - halfLen * uz)
+            let end   = Vertex2D(x: cx + halfLen * ux, z: cz + halfLen * uz)
+            result.append(RoomWallSegment2D(
+                wallIndex: index,
+                start: start,
+                end: end,
+                confidence: .medium
+            ))
+        }
+        return result
     }
 
     private func rawCeilingHeight(from room: CapturedRoom) -> Double? {
@@ -606,96 +640,5 @@ final class RoomPlanCoordinator: NSObject, RoomCaptureSessionDelegate {
         return rawHeight
     }
 
-    /// Extracts an ordered floor-polygon from captured wall segments first and
-    /// falls back to floor-surface geometry if wall chaining fails.
-    private func polygonVertices(from room: CapturedRoom) -> [Vertex2D] {
-        let fromWalls = polygonVerticesFromWalls(room.walls)
-        if fromWalls.count >= 3, RoomPolygon(vertices: fromWalls).area >= minimumAreaM2 {
-            return fromWalls
-        }
-        guard let floor = room.floors.first else { return [] }
-        return rectangularVertices(from: floor)
-    }
-
-    private func rectangularVertices(from floor: CapturedRoom.Surface) -> [Vertex2D] {
-        let transform = floor.transform
-        let halfW = floor.dimensions.x / 2
-        let halfD = floor.dimensions.z / 2
-        let corners: [SIMD4<Float>] = [
-            SIMD4(-halfW, 0,  halfD, 1),
-            SIMD4( halfW, 0,  halfD, 1),
-            SIMD4( halfW, 0, -halfD, 1),
-            SIMD4(-halfW, 0, -halfD, 1),
-        ]
-        return corners.map { local in
-            let world = transform * local
-            return Vertex2D(x: Double(world.x), z: Double(world.z))
-        }
-    }
-
-    private func polygonVerticesFromWalls(_ walls: [CapturedRoom.Surface]) -> [Vertex2D] {
-        typealias Pt = SIMD2<Float>
-        var segments: [(a: Pt, b: Pt)] = []
-
-        for wall in walls {
-            let cx = wall.transform.columns.3.x
-            let cz = wall.transform.columns.3.z
-            let axisX = wall.transform.columns.0.x
-            let axisZ = wall.transform.columns.0.z
-            let norm = sqrt(axisX * axisX + axisZ * axisZ)
-            guard norm > 1e-4 else { continue }
-            let ux = axisX / norm
-            let uz = axisZ / norm
-            let halfLen = wall.dimensions.x / 2.0
-            guard halfLen > minimumWallLengthMeters else { continue }
-            segments.append((
-                a: Pt(cx + halfLen * ux, cz + halfLen * uz),
-                b: Pt(cx - halfLen * ux, cz - halfLen * uz)
-            ))
-        }
-
-        guard segments.count >= 3 else { return [] }
-
-        let xs = segments.flatMap { [$0.a.x, $0.b.x] }
-        let zs = segments.flatMap { [$0.a.y, $0.b.y] }
-        guard let minX = xs.min(), let maxX = xs.max(), let minZ = zs.min(), let maxZ = zs.max() else {
-            return []
-        }
-        let tolerance = max(
-            polygonToleranceMin,
-            min(min(maxX - minX, maxZ - minZ) * polygonToleranceFraction, polygonToleranceMax)
-        )
-
-        var orderedPts: [Pt] = [segments[0].a, segments[0].b]
-        var remaining = Array(segments.dropFirst())
-
-        while !remaining.isEmpty {
-            let last = orderedPts[orderedPts.count - 1]
-            var bestIdx = -1
-            var bestDist = Float.greatestFiniteMagnitude
-            var useEndA = true
-
-            for (i, seg) in remaining.enumerated() {
-                let dA = simd_distance(last, seg.a)
-                let dB = simd_distance(last, seg.b)
-                if dA < bestDist { bestDist = dA; bestIdx = i; useEndA = true }
-                if dB < bestDist { bestDist = dB; bestIdx = i; useEndA = false }
-            }
-
-            guard bestIdx >= 0, bestDist < tolerance else { break }
-            let seg = remaining.remove(at: bestIdx)
-            orderedPts.append(useEndA ? seg.b : seg.a)
-        }
-
-        guard orderedPts.count >= 3 else { return [] }
-        if let first = orderedPts.first, let last = orderedPts.last, simd_distance(first, last) < tolerance {
-            orderedPts.removeLast()
-        }
-        guard orderedPts.count >= 3 else { return [] }
-
-        let vertices = orderedPts.map { Vertex2D(x: Double($0.x), z: Double($0.y)) }
-        let polygon = RoomPolygon(vertices: vertices)
-        guard polygon.area > minimumAreaM2 else { return [] }
-        return polygon.signedArea >= 0 ? vertices : vertices.reversed()
-    }
 }
+

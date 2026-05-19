@@ -2,10 +2,12 @@
 ///
 /// Replaces the plain name-alert flow with a full-screen review that shows:
 ///   • Editable room name
-///   • Floor plan polygon preview (from scan geometry)
+///   • Floor plan preview — filled polygon for `closedPolygon`, wall lines for
+///     `wallSegmentsOnly`, or a "needs review" banner for `estimated`/`failed`
 ///   • Area and ceiling height
 ///   • Evidence counts (pins, photos, voice notes captured during the scan)
-///   • Geometry QA warning when the room shape needs review
+///   • Geometry confidence badge
+///   • Warning if any pins are screen-only (not spatially anchored)
 ///   • Action buttons: Save Room · Continue to Next Room · Finish Visit · Discard
 
 import SwiftUI
@@ -17,6 +19,7 @@ struct V2PostScanRoomReviewView: View {
 
     let capturedRoom: RoomCaptureV2
     let pendingPinCount: Int
+    let screenOnlyPinCount: Int
     let photoCount: Int
     let voiceNoteCount: Int
 
@@ -41,6 +44,7 @@ struct V2PostScanRoomReviewView: View {
         capturedRoom: RoomCaptureV2,
         suggestedName: String,
         pendingPinCount: Int,
+        screenOnlyPinCount: Int = 0,
         photoCount: Int,
         voiceNoteCount: Int,
         onSave: @escaping (String) -> Void,
@@ -50,6 +54,7 @@ struct V2PostScanRoomReviewView: View {
     ) {
         self.capturedRoom = capturedRoom
         self.pendingPinCount = pendingPinCount
+        self.screenOnlyPinCount = screenOnlyPinCount
         self.photoCount = photoCount
         self.voiceNoteCount = voiceNoteCount
         self.onSave = onSave
@@ -59,31 +64,6 @@ struct V2PostScanRoomReviewView: View {
         _roomName = State(initialValue: suggestedName)
     }
 
-    // MARK: - Geometry QA helpers
-
-    /// Rooms smaller than this area (m²) are flagged as suspicious.
-    /// At 1 m² a domestic room is barely a cupboard — anything below this
-    /// almost always indicates a partial or failed scan rather than a real room.
-    private static let minimumTypicalRoomAreaM2 = 1.0
-
-    /// Classifies the captured room's polygon quality.
-    private enum GeometryQAResult {
-        case collapsed   // < 3 vertices — unusable
-        case triangle    // exactly 3 vertices — likely partial scan
-        case tiny        // > 3 vertices but area < threshold
-        case ok
-    }
-
-    private var geometryQA: GeometryQAResult {
-        let count = capturedRoom.polygonVertices.count
-        if count < 3 { return .collapsed }
-        if count == 3 { return .triangle }
-        if capturedRoom.floorAreaM2 < Self.minimumTypicalRoomAreaM2 { return .tiny }
-        return .ok
-    }
-
-    private var hasGeometryQAIssue: Bool { geometryQA != .ok }
-
     // MARK: - Body
 
     var body: some View {
@@ -91,12 +71,7 @@ struct V2PostScanRoomReviewView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     capturedBadge
-                    if hasGeometryQAIssue {
-                        geometryQAWarningBanner
-                    }
-                    if capturedRoom.hasClosedFloorPolygon {
-                        floorPlanSection
-                    }
+                    geometrySection
                     statsSection
                     evidenceSection
                     nameSection
@@ -124,49 +99,35 @@ struct V2PostScanRoomReviewView: View {
             .foregroundStyle(.green)
     }
 
-    private var geometryQAWarningBanner: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label("Room shape needs review", systemImage: "exclamationmark.triangle.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.orange)
-            Text(geometryQADetail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("You can still save this room as a draft and rescan later.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 1)
-        )
-    }
+    // MARK: Geometry section
 
-    private var geometryQADetail: String {
-        switch geometryQA {
-        case .collapsed:
-            return "The captured room polygon has fewer than 3 points — geometry could not be reconstructed. The scan may need to be redone."
-        case .triangle:
-            return "The room shape is a triangle (3 points). This usually means the scan was cut short or the device lost tracking. Consider rescanning for a complete floor plan."
-        case .tiny:
-            return "Captured floor area is \(formattedFloorArea) — unusually small. The scan may be incomplete."
-        case .ok:
-            return ""
+    /// The single geometry section adapts to `geometryConfidence`:
+    ///   `.closedPolygon`    → filled floor-plan polygon
+    ///   `.wallSegmentsOnly` → wall lines only (no fill) + warning banner
+    ///   `.estimated`/`.failed` → warning banner only (no fake shape)
+    @ViewBuilder
+    private var geometrySection: some View {
+        switch capturedRoom.geometryConfidence {
+        case .closedPolygon:
+            floorPlanSection
+        case .wallSegmentsOnly:
+            VStack(alignment: .leading, spacing: 10) {
+                geometryWarningBanner
+                wallLinesSection
+            }
+        case .estimated, .failed:
+            geometryWarningBanner
         }
-    }
-
-    /// Area formatted to one decimal place with unit, e.g. "0.4 m²".
-    private var formattedFloorArea: String {
-        String(format: "%.1f m²", capturedRoom.floorAreaM2)
     }
 
     private var floorPlanSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Floor Plan")
-                .font(.headline)
+            HStack {
+                Text("Floor Plan")
+                    .font(.headline)
+                Spacer()
+                confidenceBadge
+            }
             V2CustomRoomShapeRenderer(vertices: capturedRoom.polygonVertices)
                 .fill(Color.accentColor.opacity(0.15))
                 .overlay(
@@ -180,9 +141,92 @@ struct V2PostScanRoomReviewView: View {
         }
     }
 
+    private var wallLinesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Wall Segments")
+                    .font(.headline)
+                Spacer()
+                confidenceBadge
+            }
+            V2WallSegmentsShape(segments: capturedRoom.capturedWallSegments2D)
+                .stroke(Color.accentColor, lineWidth: 2.5)
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var geometryWarningBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Label("Geometry needs review", systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+                Spacer()
+                confidenceBadge
+            }
+            if capturedRoom.geometryWarnings.isEmpty {
+                Text(defaultGeometryWarningDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(capturedRoom.geometryWarnings, id: \.self) { warning in
+                    Text("• \(warning)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text("You can still save this room as a draft and rescan later.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 1)
+        )
+    }
+
+    private var defaultGeometryWarningDetail: String {
+        switch capturedRoom.geometryConfidence {
+        case .closedPolygon:
+            return ""
+        case .wallSegmentsOnly:
+            return "Wall segments were captured but the room outline does not form a complete closed polygon. Check the scan for gaps."
+        case .estimated:
+            return "Room geometry could not be reliably derived from this capture. The scan may need to be redone."
+        case .failed:
+            return "No usable room geometry was captured. The scan needs to be redone."
+        }
+    }
+
+    private var confidenceBadge: some View {
+        Text(capturedRoom.geometryConfidence.displayLabel)
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(confidenceBadgeColor.opacity(0.15), in: Capsule())
+            .foregroundStyle(confidenceBadgeColor)
+    }
+
+    private var confidenceBadgeColor: Color {
+        switch capturedRoom.geometryConfidence {
+        case .closedPolygon:    return .green
+        case .wallSegmentsOnly: return .orange
+        case .estimated:        return .orange
+        case .failed:           return .red
+        }
+    }
+
+    // MARK: Stats
+
     private var statsSection: some View {
         HStack(spacing: 20) {
-            if capturedRoom.hasClosedFloorPolygon {
+            if capturedRoom.geometryConfidence == .closedPolygon {
                 statCell(
                     value: formattedFloorArea,
                     label: "Floor area",
@@ -195,7 +239,7 @@ struct V2PostScanRoomReviewView: View {
                 icon: "arrow.up.and.down"
             )
             statCell(
-                value: "\(capturedRoom.wallSegments.count)",
+                value: "\(capturedRoom.capturedWallSegments2D.count)",
                 label: "Walls",
                 icon: "square.on.square"
             )
@@ -219,6 +263,8 @@ struct V2PostScanRoomReviewView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: Evidence
+
     private var evidenceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Evidence Captured")
@@ -228,7 +274,19 @@ struct V2PostScanRoomReviewView: View {
                 evidencePill(count: photoCount, icon: "camera.fill", label: "Photos")
                 evidencePill(count: voiceNoteCount, icon: "mic.fill", label: "Voice notes")
             }
+            if screenOnlyPinCount > 0 {
+                screenOnlyPinWarning
+            }
         }
+    }
+
+    private var screenOnlyPinWarning: some View {
+        Label(
+            "\(screenOnlyPinCount) pin\(screenOnlyPinCount == 1 ? "" : "s") not spatially anchored — screen-only placement. Pin\(screenOnlyPinCount == 1 ? "" : "s") will be counted but marked as needing review.",
+            systemImage: "mappin.slash"
+        )
+        .font(.caption)
+        .foregroundStyle(.orange)
     }
 
     private func evidencePill(count: Int, icon: String, label: String) -> some View {
@@ -248,6 +306,8 @@ struct V2PostScanRoomReviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: Name
+
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Room Name")
@@ -258,6 +318,8 @@ struct V2PostScanRoomReviewView: View {
                 .textInputAutocapitalization(.words)
         }
     }
+
+    // MARK: Action bar
 
     private var actionBar: some View {
         VStack(spacing: 10) {
@@ -296,11 +358,16 @@ struct V2PostScanRoomReviewView: View {
     private var resolvedName: String {
         roomName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Area formatted to one decimal place with unit, e.g. "0.4 m²".
+    private var formattedFloorArea: String {
+        String(format: "%.1f m²", capturedRoom.floorAreaM2)
+    }
 }
 
 // MARK: - Previews
 
-#Preview("Stable room") {
+#Preview("Stable room — closed polygon") {
     V2PostScanRoomReviewView(
         capturedRoom: {
             var room = RoomCaptureV2(displayName: "Kitchen")
@@ -308,6 +375,13 @@ struct V2PostScanRoomReviewView: View {
                 Vertex2D(x: 0, z: 0), Vertex2D(x: 4, z: 0),
                 Vertex2D(x: 4, z: 3.5), Vertex2D(x: 0, z: 3.5)
             ]
+            room.capturedWallSegments2D = [
+                RoomWallSegment2D(wallIndex: 0, start: Vertex2D(x: 0, z: 0), end: Vertex2D(x: 4, z: 0)),
+                RoomWallSegment2D(wallIndex: 1, start: Vertex2D(x: 4, z: 0), end: Vertex2D(x: 4, z: 3.5)),
+                RoomWallSegment2D(wallIndex: 2, start: Vertex2D(x: 4, z: 3.5), end: Vertex2D(x: 0, z: 3.5)),
+                RoomWallSegment2D(wallIndex: 3, start: Vertex2D(x: 0, z: 3.5), end: Vertex2D(x: 0, z: 0)),
+            ]
+            room.geometryConfidence = .closedPolygon
             room.ceilingHeightM = 2.4
             return room
         }(),
@@ -322,18 +396,26 @@ struct V2PostScanRoomReviewView: View {
     )
 }
 
-#Preview("Triangle room") {
+#Preview("Wall segments only — open scan") {
     V2PostScanRoomReviewView(
         capturedRoom: {
             var room = RoomCaptureV2(displayName: "Living Room")
-            room.polygonVertices = [
-                Vertex2D(x: 0, z: 0), Vertex2D(x: 5, z: 0), Vertex2D(x: 2.5, z: 4)
+            room.capturedWallSegments2D = [
+                RoomWallSegment2D(wallIndex: 0, start: Vertex2D(x: 0, z: 0), end: Vertex2D(x: 5, z: 0)),
+                RoomWallSegment2D(wallIndex: 1, start: Vertex2D(x: 5, z: 0), end: Vertex2D(x: 5, z: 4)),
+                RoomWallSegment2D(wallIndex: 2, start: Vertex2D(x: 5, z: 4), end: Vertex2D(x: 0, z: 4)),
+                // fourth wall absent — open scan
+            ]
+            room.geometryConfidence = .wallSegmentsOnly
+            room.geometryWarnings = [
+                "Room outline gap: 5.00 m between first and last wall endpoint — scan may be incomplete."
             ]
             room.ceilingHeightM = 2.4
             return room
         }(),
         suggestedName: "Living Room",
         pendingPinCount: 1,
+        screenOnlyPinCount: 1,
         photoCount: 2,
         voiceNoteCount: 0,
         onSave: { _ in },
@@ -343,11 +425,14 @@ struct V2PostScanRoomReviewView: View {
     )
 }
 
-#Preview("Collapsed room") {
+#Preview("Estimated — no closed polygon") {
     V2PostScanRoomReviewView(
         capturedRoom: {
             var room = RoomCaptureV2(displayName: "Room 3")
-            room.polygonVertices = []
+            room.geometryConfidence = .estimated
+            room.geometryWarnings = [
+                "Only one wall segment was placed — cannot form a room outline."
+            ]
             room.ceilingHeightM = 2.4
             return room
         }(),
@@ -362,14 +447,12 @@ struct V2PostScanRoomReviewView: View {
     )
 }
 
-#Preview("Incomplete evidence") {
+#Preview("Failed — no geometry") {
     V2PostScanRoomReviewView(
         capturedRoom: {
             var room = RoomCaptureV2(displayName: "Bedroom")
-            room.polygonVertices = [
-                Vertex2D(x: 0, z: 0), Vertex2D(x: 3.5, z: 0),
-                Vertex2D(x: 3.5, z: 3), Vertex2D(x: 0, z: 3)
-            ]
+            room.geometryConfidence = .failed
+            room.geometryWarnings = ["No wall segments were captured."]
             room.ceilingHeightM = 2.3
             return room
         }(),
@@ -383,4 +466,5 @@ struct V2PostScanRoomReviewView: View {
         onDiscard: {}
     )
 }
+
 

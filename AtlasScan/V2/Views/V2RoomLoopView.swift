@@ -162,6 +162,7 @@ struct V2RoomLoopView: View {
                     capturedRoom: room,
                     suggestedName: nextRoomSuggestedName,
                     pendingPinCount: pendingPins.count,
+                    screenOnlyPinCount: pendingPins.filter { $0.anchorConfidence == .screenOnly }.count,
                     photoCount: coordinator.session.photos.filter { $0.roomId == room.id }.count,
                     voiceNoteCount: coordinator.session.voiceNotes.filter { $0.roomId == room.id }.count,
                     onSave: { name in
