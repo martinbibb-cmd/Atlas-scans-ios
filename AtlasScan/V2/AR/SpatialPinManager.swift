@@ -31,6 +31,7 @@ final class SpatialPinManager: NSObject {
         let loc = gesture.location(in: arView)
         let results = arView.raycast(from: loc, allowing: .estimatedPlane, alignment: .any)
         guard let result = results.first else {
+            // Screen-only fallback: position at origin, no room-coordinate info.
             let fallback = SpatialPinV1(
                 roomId: roomId,
                 positionX: 0,
@@ -38,6 +39,7 @@ final class SpatialPinManager: NSObject {
                 positionZ: 0,
                 objectType: pendingType,
                 anchorConfidence: .screenOnly
+                // roomFloorX/Z intentionally nil — not spatially anchored
             )
             DispatchQueue.main.async { [weak self] in
                 self?.pinsBinding.wrappedValue.append(fallback)
@@ -54,13 +56,19 @@ final class SpatialPinManager: NSObject {
         @unknown default:
             confidence = .raycastEstimated
         }
+        // In a RoomPlan capture the AR world space IS the room coordinate space,
+        // so world X/Z are the room-local floor coordinates.
+        let worldX = Double(col.x)
+        let worldZ = Double(col.z)
         let pin = SpatialPinV1(
             roomId: roomId,
-            positionX: Double(col.x),
+            positionX: worldX,
             positionY: Double(col.y),
-            positionZ: Double(col.z),
+            positionZ: worldZ,
             objectType: pendingType,
-            anchorConfidence: confidence
+            anchorConfidence: confidence,
+            roomFloorX: worldX,
+            roomFloorZ: worldZ
         )
         DispatchQueue.main.async { [weak self] in
             self?.pinsBinding.wrappedValue.append(pin)

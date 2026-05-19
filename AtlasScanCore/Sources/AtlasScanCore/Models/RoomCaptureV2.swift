@@ -62,6 +62,25 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
     /// Coordinate space: right-handed Y-up, metric metres.
     public var polygonVertices: [Vertex2D]
 
+    /// Per-wall segments derived from `CapturedRoom.Surface.transform` during
+    /// LiDAR capture.  Each entry stores the wall's exact start/end endpoints
+    /// in room-local X/Z space — not a bounding-box approximation.
+    ///
+    /// Decoded with `decodeIfPresent`; empty for manually entered rooms and for
+    /// records written before this field was added.
+    public var capturedWallSegments2D: [RoomWallSegment2D]
+
+    /// How trustworthy the `polygonVertices` floor plan is.
+    ///
+    /// The review screen and any downstream handoff MUST check this value.
+    /// Decoded with `decodeIfPresent`; inferred from `polygonVertices` shape
+    /// for records written before this field was added.
+    public var geometryConfidence: GeometryConfidence
+
+    /// Human-readable warnings emitted during floor-plan construction.
+    /// Decoded with `decodeIfPresent`; empty for legacy records.
+    public var geometryWarnings: [String]
+
     /// Floor-level Y coordinate (metres above reference datum).
     public var floorLevelY: Double
 
@@ -98,6 +117,9 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         id: UUID = UUID(),
         displayName: String,
         polygonVertices: [Vertex2D] = [],
+        capturedWallSegments2D: [RoomWallSegment2D] = [],
+        geometryConfidence: GeometryConfidence = .failed,
+        geometryWarnings: [String] = [],
         floorLevelY: Double = 0.0,
         ceilingHeightM: Double = 2.4,
         rawCapturedCeilingHeightM: Double? = nil,
@@ -107,6 +129,9 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         self.id = id
         self.displayName = displayName
         self.polygonVertices = polygonVertices
+        self.capturedWallSegments2D = capturedWallSegments2D
+        self.geometryConfidence = geometryConfidence
+        self.geometryWarnings = geometryWarnings
         self.floorLevelY = floorLevelY
         self.ceilingHeightM = ceilingHeightM
         self.rawCapturedCeilingHeightM = rawCapturedCeilingHeightM
@@ -130,6 +155,7 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         case measurements
         case usdzAssetPath, incomingConnectionReview, capturedAt
         case captureStatus
+        case capturedWallSegments2D, geometryConfidence, geometryWarnings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -152,6 +178,23 @@ public struct RoomCaptureV2: Codable, Identifiable, Sendable {
         // Backward-compat: captureStatus absent in records written before this field.
         // Default to .saved — every previously persisted room was intentionally saved.
         captureStatus = try c.decodeIfPresent(V2RoomCaptureStatusV1.self, forKey: .captureStatus) ?? .saved
+        // Backward-compat: geometry fields absent in records written before this field.
+        capturedWallSegments2D = try c.decodeIfPresent([RoomWallSegment2D].self, forKey: .capturedWallSegments2D) ?? []
+        geometryWarnings = try c.decodeIfPresent([String].self, forKey: .geometryWarnings) ?? []
+        // Infer geometryConfidence from polygon shape for legacy records.
+        if let conf = try c.decodeIfPresent(GeometryConfidence.self, forKey: .geometryConfidence) {
+            geometryConfidence = conf
+        } else {
+            let count = polygonVertices.count
+            if count < 3 {
+                geometryConfidence = .failed
+            } else if count == 3 {
+                geometryConfidence = .estimated
+            } else {
+                // Assume old four-or-more-vertex rooms were valid closed polygons.
+                geometryConfidence = .closedPolygon
+            }
+        }
     }
 
     // MARK: Helpers
@@ -508,6 +551,25 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
     public var reviewStatus: SpatialPinReviewStatus
     public var provenance: SpatialPinProvenance
 
+    /// Floor-plan X coordinate (metres) in the room's local coordinate space.
+    ///
+    /// Set from the AR world X position at capture time.  In RoomPlan captures
+    /// the AR world space IS the room coordinate space, so `roomFloorX == positionX`.
+    /// Decoded with `decodeIfPresent`; nil for records written before this field.
+    public var roomFloorX: Double?
+
+    /// Floor-plan Z coordinate (metres) in the room's local coordinate space.
+    ///
+    /// Set from the AR world Z position at capture time.
+    /// Decoded with `decodeIfPresent`; nil for records written before this field.
+    public var roomFloorZ: Double?
+
+    /// UUID of the `RoomWallSegment2D` this pin is attached to, when wall-mounted.
+    ///
+    /// Nil for floor/ceiling pins or when the wall was not identified.
+    /// Decoded with `decodeIfPresent`; nil for records written before this field.
+    public var attachedWallId: UUID?
+
     /// Hardware spec linked to this pin (e.g. the boiler model).
     public var hardwareSpecId: UUID?
 
@@ -557,7 +619,10 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         provenance: SpatialPinProvenance = .manualCapture,
         hardwareSpecId: UUID? = nil,
         modelId: String? = nil,
-        surfaceSemantic: SurfaceSemanticV1? = nil
+        surfaceSemantic: SurfaceSemanticV1? = nil,
+        roomFloorX: Double? = nil,
+        roomFloorZ: Double? = nil,
+        attachedWallId: UUID? = nil
     ) {
         self.id = id
         self.roomId = roomId
@@ -583,6 +648,9 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         self.hardwareSpecId = hardwareSpecId
         self.modelId = modelId
         self.surfaceSemantic = surfaceSemantic
+        self.roomFloorX = roomFloorX
+        self.roomFloorZ = roomFloorZ
+        self.attachedWallId = attachedWallId
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -592,6 +660,7 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         case objectType, label, objectCategory, selectedTemplateId, manualEntry
         case anchorConfidence, reviewStatus, provenance
         case hardwareSpecId, modelId, surfaceSemantic
+        case roomFloorX, roomFloorZ, attachedWallId
     }
 
     public init(from decoder: any Decoder) throws {
@@ -623,6 +692,10 @@ public struct SpatialPinV1: Codable, Identifiable, Sendable {
         hardwareSpecId = try container.decodeIfPresent(UUID.self, forKey: .hardwareSpecId)
         modelId = try container.decodeIfPresent(String.self, forKey: .modelId)
         surfaceSemantic = try container.decodeIfPresent(SurfaceSemanticV1.self, forKey: .surfaceSemantic)
+        // Backward-compat: room-coordinate fields absent in records written before this field.
+        roomFloorX = try container.decodeIfPresent(Double.self, forKey: .roomFloorX)
+        roomFloorZ = try container.decodeIfPresent(Double.self, forKey: .roomFloorZ)
+        attachedWallId = try container.decodeIfPresent(UUID.self, forKey: .attachedWallId)
     }
 }
 
